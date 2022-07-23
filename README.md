@@ -1,19 +1,35 @@
-# Terraform Provider Scaffolding (Terraform Plugin SDK)
+# Terraform Provider Neon
 
-_This template repository is built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk). The template repository built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework) can be found at [terraform-provider-scaffolding-framework](https://github.com/hashicorp/terraform-provider-scaffolding-framework). See [Which SDK Should I Use?](https://www.terraform.io/docs/plugin/which-sdk.html) in the Terraform documentation for additional information._
+Terraform provider to manage the [Neon](https://neon.tech/) Postgres projects.
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+## Using the provider
 
- - A resource, and a data source (`internal/provider/`),
- - Examples (`examples/`) and generated documentation (`docs/`),
- - Miscellaneous meta files.
- 
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Learn](https://learn.hashicorp.com/collections/terraform/providers) platform.
+```terraform
+terraform {
+    required_providers {
+        neon = {
+            source = "kislerdm/terraform-provider-neon"
+        }
+    }
+}
 
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
+provider "neon" {}
+```
 
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://www.terraform.io/docs/registry/providers/publishing.html) so that others can use it.
+### Authentication and Configuration
 
+Configuration for the Neon Provider can be derived from several sources, which are applied in the following order:
+
+1. Parameters in the provider configuration
+
+```terraform
+provider "neon" {
+  api_key = "<neon-api_key>"
+}
+```
+
+2. Environment variables:
+- Api key specified as `NEON_API_KEY`
 
 ## Requirements
 
@@ -23,10 +39,14 @@ Once you've written your provider, you'll want to [publish it on the Terraform R
 ## Building The Provider
 
 1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command: 
+2. Enter the repository directory
+3. Build the provider using the Go `install` command: 
 ```sh
 $ go install
+```
+4. Run to install the provider to be used locally:
+```sh
+make install
 ```
 
 ## Adding Dependencies
@@ -43,15 +63,11 @@ go mod tidy
 
 Then commit the changes to `go.mod` and `go.sum`.
 
-## Using the provider
-
-Fill this in for each provider
-
 ## Developing the Provider
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
 
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
+To compile the provider, run `make install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
 
 To generate or update documentation, run `go generate`.
 

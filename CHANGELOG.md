@@ -1,3 +1,12 @@
-## 0.1.0 (Unreleased)
+## 0.0.1 (Unreleased)
 
-BACKWARDS INCOMPATIBILITIES / NOTES:
+Initial release. 
+
+Supported features:
+- [Project](https://neon.tech/docs/get-started-with-neon/setting-up-a-project/):
+  - Create
+  - Update
+  - Delete
+- Database:
+  - Create
+  - Delete

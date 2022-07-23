@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding
+module github.com/kislerdm/terraform-provider-neon
 
 go 1.17
 
