@@ -37,7 +37,7 @@ func main() {
 
 		ProviderAddr: "registry.terraform.io/kislerdm/neon",
 
-		ProviderFunc: provider.New(version),
+		ProviderFunc: provider.New,
 	}
 
 	plugin.Serve(opts)
