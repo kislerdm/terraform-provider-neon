@@ -1,6 +1,6 @@
 module github.com/kislerdm/terraform-provider-neon
 
-go 1.17
+go 1.19
 
 require (
 	github.com/google/uuid v1.3.0
@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-log v0.7.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.19.0
-	github.com/kislerdm/neon-sdk-go v0.0.0-20220724132924-3ec1997d2171
+	github.com/kislerdm/neon-sdk-go v0.1.0
 )
 
 require (

@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	sdk "github.com/kislerdm/neon-sdk-go"
+	neon "github.com/kislerdm/neon-sdk-go"
 )
 
 func init() {
@@ -46,7 +46,7 @@ func New() *schema.Provider {
 }
 
 func configure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	c, err := sdk.NewClient(ctx, sdk.WithAPIKey(d.Get("api_key").(string)))
+	c, err := neon.NewClient(neon.WithAPIKey(d.Get("api_key").(string)))
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
