@@ -39,7 +39,7 @@ func New(version string) *schema.Provider {
 			"api_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "API access key.",
+				Description: "API access key. Default is read from the environment variable `NEON_API_KEY`.",
 				Default:     os.Getenv("NEON_API_KEY"),
 			},
 		},

@@ -23,47 +23,30 @@ resource "neon_project" "example" {
 
 ### Optional
 
-- `instance_handle` (String) Instance type name.
+- `autoscaling_limit_max_cu` (Number)
+- `autoscaling_limit_min_cu` (Number)
+- `cpu_quota_sec` (Number) Total amount of CPU seconds that is allowed to be spent by the endpoints of that project.
 - `name` (String) Project name.
-- `platform_id` (String) Platform type id.
+- `pg_settings` (Map of String)
+- `pg_version` (Number) Postgres version
 - `region_id` (String) AWS Region.
-- `settings` (Map of String) Project custom settings.
 
 ### Read-Only
 
+- `branch_logical_size_limit` (Number)
+- `cpu_used_sec` (Number) CPU seconds used by all the endpoints of the project, including deleted ones.
+This value is reset at the beginning of each billing period.
+Examples:
+1. Having endpoint used 1 CPU for 1 sec, that's cpu_used_sec=1.
+2. Having endpoint used 2 CPU simultaneously for 1 sec, that's cpu_used_sec=2.
 - `created_at` (String) Project creation timestamp.
-- `current_state` (String) Project current state.
-- `databases` (List of Object) List of the project databases. (see [below for nested schema](#nestedatt--databases))
-- `deleted` (Boolean) Flag is the project is deleted.
 - `id` (String) Project ID.
-- `instance_type_id` (String) Instance type ID.
-- `max_project_size` (Number) Project max size.
-- `parent_id` (String) Project parent.
-- `pending_state` (String) Project pending state.
-- `platform_name` (String) Platform type name.
-- `pooler_enabled` (Boolean) Flag if pooler is enabled.
-- `region_name` (String) AWS Region name.
-- `roles` (List of Object) List of roles for the project. (see [below for nested schema](#nestedatt--roles))
-- `size` (Number) Project size.
+- `locked` (Boolean) Currently, a project may not have more than one running operations chain.
+If there are any running operations, 'locked' will be set to 'true'.
+This attributed is considered to be temporary, and could be gone soon.
+- `maintenance_starts_at` (String) If set, means project will be in maintenance since that time.
+- `platform_id` (String) Platform type id.
+- `proxy_host` (String)
 - `updated_at` (String) Project last update timestamp.
-
-<a id="nestedatt--databases"></a>
-### Nested Schema for `databases`
-
-Read-Only:
-
-- `id` (Number)
-- `name` (String)
-- `owner_id` (Number)
-
-
-<a id="nestedatt--roles"></a>
-### Nested Schema for `roles`
-
-Read-Only:
-
-- `id` (Number)
-- `name` (String)
-- `password` (String)
 
 

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 	"github.com/kislerdm/terraform-provider-neon/internal/provider"
 )
@@ -37,7 +38,9 @@ func main() {
 
 		ProviderAddr: "registry.terraform.io/kislerdm/neon",
 
-		ProviderFunc: provider.New,
+		ProviderFunc: func() *schema.Provider {
+			return provider.New(version)
+		},
 	}
 
 	plugin.Serve(opts)

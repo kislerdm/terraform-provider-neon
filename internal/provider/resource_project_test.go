@@ -18,12 +18,12 @@ func TestAccResourceProject(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("neon_project.foo", "id", "string"),
 						resource.TestCheckResourceAttr("neon_project.foo", "name", "string"),
-						resource.TestCheckResourceAttr("neon_project.foo", "region_id", "aws-us-east-2"),
 					),
 					ExpectNonEmptyPlan:        false,
 					PlanOnly:                  false,
 					PreventDiskCleanup:        false,
 					PreventPostDestroyRefresh: false,
+					Destroy:                   false,
 				},
 			},
 		},

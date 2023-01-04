@@ -19,9 +19,6 @@ func resourceProject() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Timeouts: &schema.ResourceTimeout{
-			Default: schema.DefaultTimeout(2 * time.Minute),
-		},
 		CreateContext: resourceProjectCreate,
 		ReadContext:   resourceProjectRead,
 		UpdateContext: resourceProjectUpdate,
@@ -37,7 +34,7 @@ func resourceProject() *schema.Resource {
 			"region_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "aws-us-east-2",
+				Computed:    true,
 				Description: "AWS Region.",
 				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
 					switch v := i.(string); v {
@@ -161,7 +158,7 @@ func mapToPgSettings(v map[string]interface{}) neon.PgSettingsData {
 
 func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) {
 	_ = d.Set("name", r.Project.Name)
-	_ = d.Set("region", r.Project.RegionID)
+	_ = d.Set("region_id", r.Project.RegionID)
 	_ = d.Set("pg_version", int(r.Project.PgVersion))
 	_ = d.Set("pg_settings", pgSettingsToMap(r.Project.DefaultEndpointSettings.PgSettings))
 	_ = d.Set("cpu_quota_sec", int(r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec))
