@@ -2,136 +2,132 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
+	"errors"
+	"strconv"
+	"time"
 
-	"github.com/google/uuid"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	sdk "github.com/kislerdm/neon-sdk-go"
+	neon "github.com/kislerdm/neon-sdk-go"
 )
 
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
-		Description: "Neon Project. See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/",
-
+		Description:   "Neon Project. See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/",
+		SchemaVersion: versionSchema,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Default: schema.DefaultTimeout(2 * time.Minute),
+		},
 		CreateContext: resourceProjectCreate,
 		ReadContext:   resourceProjectRead,
 		UpdateContext: resourceProjectUpdate,
 		DeleteContext: resourceProjectDelete,
-
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     uuid.NewString(),
+				Computed:    true,
+				ForceNew:    true,
 				Description: "Project name.",
-			},
-			"platform_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "serverless",
-				Description: "Platform type id.",
-				ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
-					if v, _ := i.(string); v != "serverless" {
-						return diag.Errorf("platform_id is not recognised.")
-					}
-					return nil
-				},
 			},
 			"region_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "us-west-2",
+				Default:     "aws-us-east-2",
 				Description: "AWS Region.",
+				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+					switch v := i.(string); v {
+					case "aws-us-east-2", "aws-us-west-2", "aws-eu-central-1", "aws-ap-southeast-1":
+						return
+					default:
+						errs = append(
+							errs,
+							errors.New(
+								"region "+v+" is not supported yet: https://neon.tech/docs/introduction/regions/",
+							),
+						)
+						return
+					}
+				},
 			},
-			"instance_handle": {
-				Type:        schema.TypeString,
+			"pg_version": {
+				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     "scalable",
-				Description: "Instance type name.",
+				Computed:    true,
+				Description: "Postgres version",
+				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+					switch v := i.(int); v {
+					case 14, 15:
+						return
+					default:
+						errs = append(
+							errs, errors.New("postgres version "+strconv.Itoa(v)+" is not supported yet"),
+						)
+						return
+					}
+				},
 			},
-			"settings": {
-				Type:        schema.TypeMap,
+			"pg_settings": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Computed: true,
+			},
+			"cpu_quota_sec": {
+				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "Project custom settings.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Computed:    true,
+				Description: "Total amount of CPU seconds that is allowed to be spent by the endpoints of that project.",
+			},
+			"autoscaling_limit_min_cu": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"autoscaling_limit_max_cu": {
+				Type:     schema.TypeInt,
+				Optional: true,
 			},
 			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Project ID.",
 			},
-			"instance_type_id": {
+			"platform_id": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Instance type ID.",
+				Description: "Platform type id.",
 			},
-			"platform_name": {
+			"maintenance_starts_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Platform type name.",
+				Description: "If set, means project will be in maintenance since that time.",
 			},
-			"region_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "AWS Region name.",
+			"locked": {
+				Type:     schema.TypeBool,
+				Computed: true,
+				Description: `Currently, a project may not have more than one running operations chain.
+If there are any running operations, 'locked' will be set to 'true'.
+This attributed is considered to be temporary, and could be gone soon.`,
 			},
-			"parent_id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Project parent.",
+			"proxy_host": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
-			"roles": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "List of roles for the project.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeInt,
-							Computed:    true,
-							Description: "Role ID.",
-						},
-						"name": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Role name.",
-						},
-						"password": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Role access password.",
-							Sensitive:   true,
-						},
-					},
-				},
+			"cpu_used_sec": {
+				Type:     schema.TypeInt,
+				Computed: true,
+				Description: `CPU seconds used by all the endpoints of the project, including deleted ones.
+This value is reset at the beginning of each billing period.
+Examples:
+1. Having endpoint used 1 CPU for 1 sec, that's cpu_used_sec=1.
+2. Having endpoint used 2 CPU simultaneously for 1 sec, that's cpu_used_sec=2.`,
 			},
-			"databases": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "List of the project databases.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeInt,
-							Computed:    true,
-							Description: "Role ID.",
-						},
-						"name": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Role name.",
-						},
-						"owner_id": {
-							Type:        schema.TypeInt,
-							Computed:    true,
-							Description: "Owner role ID.",
-						},
-					},
-				},
+			"branch_logical_size_limit": {
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -143,74 +139,56 @@ func resourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Project last update timestamp.",
 			},
-			"pending_state": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Project pending state.",
-			},
-			"current_state": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Project current state.",
-			},
-			"deleted": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Flag is the project is deleted.",
-			},
-			"size": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Project size.",
-			},
-			"max_project_size": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Project max size.",
-			},
-			"pooler_enabled": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Flag if pooler is enabled.",
-			},
 		},
 	}
 }
 
-func updateProjectInfoState(d *schema.ResourceData, resp sdk.ProjectInfo) {
-	_ = d.Set("name", resp.Name)
-	_ = d.Set("platform_id", resp.PlatformID)
-	_ = d.Set("region_id", resp.RegionID)
-	_ = d.Set("instance_handle", resp.InstanceHandle)
-	_ = d.Set("settings", resp.Settings)
-	_ = d.Set("id", resp.ID)
-	_ = d.Set("instance_type_id", resp.InstanceTypeID)
-	_ = d.Set("platform_name", resp.PlatformName)
-	_ = d.Set("region_name", resp.RegionName)
-	_ = d.Set("parent_id", resp.ParentID)
-	_ = d.Set("roles", resp.Roles)
-	_ = d.Set("databases", resp.Databases)
-	_ = d.Set("created_at", resp.CreatedAt)
-	_ = d.Set("updated_at", resp.UpdatedAt)
-	_ = d.Set("pending_state", resp.PendingState)
-	_ = d.Set("current_state", resp.CurrentState)
-	_ = d.Set("deleted", resp.Deleted)
-	_ = d.Set("size", resp.Size)
-	_ = d.Set("max_project_size", resp.MaxProjectSize)
-	_ = d.Set("pooler_enabled", resp.PoolerEnabled)
+func pgSettingsToMap(v neon.PgSettingsData) map[string]interface{} {
+	o := make(map[string]interface{}, len(v))
+	for k, v := range v {
+		o[k] = v
+	}
+	return o
+}
+
+func mapToPgSettings(v map[string]interface{}) neon.PgSettingsData {
+	o := make(neon.PgSettingsData, len(v))
+	for k, v := range v {
+		o[k] = v
+	}
+	return o
+}
+
+func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) {
+	_ = d.Set("name", r.Project.Name)
+	_ = d.Set("region", r.Project.RegionID)
+	_ = d.Set("pg_version", int(r.Project.PgVersion))
+	_ = d.Set("pg_settings", pgSettingsToMap(r.Project.DefaultEndpointSettings.PgSettings))
+	_ = d.Set("cpu_quota_sec", int(r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec))
+	_ = d.Set("platform_id", r.Project.PlatformID)
+	_ = d.Set("maintenance_starts_at", r.Project.MaintenanceStartsAt.Format(time.RFC3339))
+	_ = d.Set("locked", r.Project.Locked)
+	_ = d.Set("proxy_host", r.Project.ProxyHost)
+	_ = d.Set("cpu_used_sec", int(r.Project.CpuUsedSec))
+	_ = d.Set("branch_logical_size_limit", int(r.Project.BranchLogicalSizeLimit))
+	_ = d.Set("created_at", r.Project.CreatedAt.Format(time.RFC3339))
+	_ = d.Set("updated_at", r.Project.UpdatedAt.Format(time.RFC3339))
 }
 
 func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "created Project")
-	client := meta.(sdk.Client)
 
-	resp, err := client.CreateProject(
-		sdk.ProjectSettingsRequestCreate{
-			Name:           d.Get("name").(string),
-			PlatformID:     d.Get("platform_id").(string),
-			RegionID:       d.Get("region_id").(string),
-			InstanceHandle: d.Get("instance_handle").(string),
-			Settings:       d.Get("settings").(map[string]string),
+	resp, err := meta.(neon.Client).CreateProject(
+		neon.ProjectCreateRequest{
+			Project: neon.ProjectCreateRequestProject{
+				AutoscalingLimitMinCu:   int32(d.Get("autoscaling_limit_min_cu").(int)),
+				AutoscalingLimitMaxCu:   int32(d.Get("autoscaling_limit_max_cu").(int)),
+				RegionID:                d.Get("region_id").(string),
+				DefaultEndpointSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
+				PgVersion:               neon.PgVersion(d.Get("pg_version").(int)),
+				Quota:                   neon.ProjectQuota{CpuQuotaSec: int64(d.Get("cpu_quota_sec").(int))},
+				Name:                    d.Get("name").(string),
+			},
 		},
 	)
 
@@ -218,51 +196,64 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("%d", rand.Int()))
-	updateProjectInfoState(d, resp)
-
+	d.SetId(resp.ProjectResponse.Project.ID)
+	updateStateProject(d, resp.ProjectResponse)
 	return nil
 }
 
 func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "update Project")
-	resp, err := meta.(sdk.Client).UpdateProject(
-		sdk.ProjectSettingsRequestUpdate{
-			InstanceTypeID: d.Get("instance_type_id").(string),
-			Name:           d.Get("name").(string),
-			PoolerEnabled:  d.Get("pooler_enabled").(bool),
-			Settings:       d.Get("settings").(map[string]string),
+
+	for {
+		resourceProjectRead(ctx, d, meta)
+		if !d.Get("locked").(bool) {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	resp, err := meta.(neon.Client).UpdateProject(
+		d.Get("id").(string),
+		neon.ProjectUpdateRequest{
+			Project: neon.ProjectUpdateRequestProject{
+				DefaultEndpointSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
+				Quota: neon.ProjectQuota{
+					CpuQuotaSec: int64(d.Get("cpu_quota_sec").(int)),
+				},
+				AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
+				AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
+				Name:                  d.Get("name").(string),
+			},
 		},
 	)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	updateProjectInfoState(d, resp)
-
+	updateStateProject(d, resp.ProjectResponse)
 	return nil
 }
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(sdk.Client)
-	resp, err := client.ReadInfoProject(d.Get("id").(string))
+	tflog.Trace(ctx, "get Project")
+
+	resp, err := meta.(neon.Client).GetProject(d.Get("id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	updateProjectInfoState(d, resp)
-
+	updateStateProject(d, resp)
 	return nil
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(sdk.Client)
-	if _, err := client.DeleteProject(d.Get("id").(string)); err != nil {
+	tflog.Trace(ctx, "delete Project")
+
+	if _, err := meta.(neon.Client).DeleteProject(d.Get("id").(string)); err != nil {
 		return diag.FromErr(err)
 	}
+
 	d.SetId("")
-
-	updateProjectInfoState(d, sdk.ProjectInfo{})
-
+	updateStateProject(d, neon.ProjectResponse{})
 	return nil
 }

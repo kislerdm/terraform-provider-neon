@@ -1,35 +1,33 @@
 package provider
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccResourceProject(t *testing.T) {
-	t.Skip("resource not yet implemented, remove this once you add your own code")
-
 	resource.UnitTest(
 		t, resource.TestCase{
 			PreCheck:          func() { testAccPreCheck(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
+					Taint:  nil,
 					Config: testAccResourceProject,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestMatchResourceAttr(
-							"neon_project.example", "name", regexp.MustCompile("^fo"),
-						),
+						resource.TestCheckResourceAttr("neon_project.foo", "id", "string"),
+						resource.TestCheckResourceAttr("neon_project.foo", "name", "string"),
+						resource.TestCheckResourceAttr("neon_project.foo", "region_id", "aws-us-east-2"),
 					),
+					ExpectNonEmptyPlan:        false,
+					PlanOnly:                  false,
+					PreventDiskCleanup:        false,
+					PreventPostDestroyRefresh: false,
 				},
 			},
 		},
 	)
 }
 
-const testAccResourceProject = `
-resource "neon_project" "example" {
-  name = "foo"
-}
-`
+const testAccResourceProject = `resource "neon_project" "foo" {}`

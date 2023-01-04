@@ -28,7 +28,12 @@ func init() {
 	// }
 }
 
-func New() *schema.Provider {
+// version is mapped to the sdk: https://github.com/kislerdm/neon-sdk-go
+// 0.1.0: 0
+// 0.1.1: 1
+const versionSchema = 1
+
+func New(version string) *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_key": {
@@ -41,14 +46,23 @@ func New() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"neon_project": resourceProject(),
 		},
-		ConfigureContextFunc: configure,
+		ConfigureContextFunc: configure(version),
 	}
 }
 
-func configure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	c, err := neon.NewClient(neon.WithAPIKey(d.Get("api_key").(string)))
-	if err != nil {
-		return nil, diag.FromErr(err)
+func configure(version string) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		if version == "dev" {
+			c, err := neon.NewClient(neon.WithHTTPClient(neon.NewMockHTTPClient()))
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
+			return c, diag.FromErr(err)
+		}
+		c, err := neon.NewClient(neon.WithAPIKey(d.Get("api_key").(string)))
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		return c, nil
 	}
-	return c, nil
 }
