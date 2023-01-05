@@ -2,8 +2,7 @@
 before:
   hooks:
     - go mod tidy
-post:
-    - upx -9 --best --ultra-brute "{{ .Path }}"
+
 builds:
 - env:
     - CGO_ENABLED=0
@@ -26,15 +25,21 @@ builds:
     - goos: darwin
       goarch: '386'
   binary: '{{ .ProjectName }}_v{{ .Version }}'
+  hooks:
+    post:
+      - upx -9 --best --ultra-brute "{{ .Path }}"
+
 archives:
 - format: zip
   name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
 checksum:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
+
 signs:
   - artifacts: checksum
     args:
@@ -47,11 +52,13 @@ signs:
       - "${signature}"
       - "--detach-sign"
       - "${artifact}"
+
 release:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   # If you want to manually examine the release before its live, uncomment this line:
   # draft: true
+
 changelog:
-  skip: true
+  skip: false
