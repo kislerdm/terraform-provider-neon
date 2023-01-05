@@ -2,7 +2,7 @@
 before:
   hooks:
     - go mod tidy
-  post:
+post:
     - upx -9 --best --ultra-brute "{{ .Path }}"
 builds:
 - env:
