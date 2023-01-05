@@ -2,8 +2,8 @@ TEST?=$$(go list ./... | grep -v 'vendor')
 HOSTNAME=hashicorp.com
 NAMESPACE=kislerdm
 NAME=neon
-BINARY=terraform-provider-${NAME}
 VERSION=dev
+BINARY=terraform-provider-${NAME}_v${VERSION}
 OS_ARCH=darwin_arm64
 
 .PHONY: testacc build install test
@@ -14,14 +14,14 @@ help: ## Prints help message.
 default: help
 
 build:
-	@ go -a -gcflags=all="-l -B -C" -ldflags="-w -s" -o ${BINARY} build .
+	@ go build -a -gcflags=all="-l -B -C" -ldflags="-w -s" -o ${BINARY} .
 
 install: build ## Builds and installs the provider.
 	@ mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
-	@ mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
+	@ mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}/
 
 test: ## Runs unit tests.
-	@ go test -i $(TEST) || exit 1
+	@ go test $(TEST) || exit 1
 	@ echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 testacc: ## Runs acceptance tests.

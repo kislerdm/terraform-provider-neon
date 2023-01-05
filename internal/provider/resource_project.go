@@ -17,7 +17,7 @@ func resourceProject() *schema.Resource {
 		Description:   "Neon Project. See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/",
 		SchemaVersion: versionSchema,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceProjectImport,
 		},
 		CreateContext: resourceProjectCreate,
 		ReadContext:   resourceProjectRead,
@@ -28,13 +28,13 @@ func resourceProject() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				ForceNew:    true,
 				Description: "Project name.",
 			},
 			"region_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "AWS Region.",
 				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
 					switch v := i.(string); v {
@@ -55,6 +55,7 @@ func resourceProject() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "Postgres version",
 				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
 					switch v := i.(int); v {
@@ -136,8 +137,25 @@ Examples:
 				Computed:    true,
 				Description: "Project last update timestamp.",
 			},
+			"main_branch_main_endpoint": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Endpoint to access database",
+			},
+			"main_branch_main_role_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Initial role of the API key owner.",
+			},
 		},
 	}
+}
+
+func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
+	[]*schema.ResourceData, error,
+) {
+	resourceProjectRead(ctx, d, meta)
+	return []*schema.ResourceData{d}, nil
 }
 
 func pgSettingsToMap(v neon.PgSettingsData) map[string]interface{} {
@@ -175,7 +193,8 @@ func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) {
 func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "created Project")
 
-	resp, err := meta.(neon.Client).CreateProject(
+	client := meta.(neon.Client)
+	resp, err := client.CreateProject(
 		neon.ProjectCreateRequest{
 			Project: neon.ProjectCreateRequestProject{
 				AutoscalingLimitMinCu:   int32(d.Get("autoscaling_limit_min_cu").(int)),
@@ -195,22 +214,48 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 
 	d.SetId(resp.ProjectResponse.Project.ID)
 	updateStateProject(d, resp.ProjectResponse)
+
+	return setMainBranchInfo(d, client)
+}
+
+func setMainBranchInfo(d *schema.ResourceData, client neon.Client) diag.Diagnostics {
+	br, err := client.ListProjectBranches(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	for _, branch := range br.Branches {
+		if branch.Name == "main" {
+			r, err := client.ListProjectBranchRoles(d.Id(), branch.ID)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			for _, role := range r.Roles {
+				if role.Name == "web_access" {
+					continue
+				}
+				_ = d.Set("main_branch_main_role_name", role.Name)
+				break
+			}
+			break
+		}
+	}
+
+	endpoints, err := client.ListProjectEndpoints(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	_ = d.Set("main_branch_main_endpoint", endpoints.Endpoints[0].Host)
+
 	return nil
 }
 
 func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "update Project")
 
-	for {
-		resourceProjectRead(ctx, d, meta)
-		if !d.Get("locked").(bool) {
-			break
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
-
 	resp, err := meta.(neon.Client).UpdateProject(
-		d.Get("id").(string),
+		d.Id(),
 		neon.ProjectUpdateRequest{
 			Project: neon.ProjectUpdateRequestProject{
 				DefaultEndpointSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
@@ -234,23 +279,30 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "get Project")
 
-	resp, err := meta.(neon.Client).GetProject(d.Get("id").(string))
+	client := meta.(neon.Client)
+
+	resp, err := client.GetProject(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	updateStateProject(d, resp)
-	return nil
+
+	return setMainBranchInfo(d, client)
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "delete Project")
 
-	if _, err := meta.(neon.Client).DeleteProject(d.Get("id").(string)); err != nil {
+	if _, err := meta.(neon.Client).DeleteProject(d.Id()); err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId("")
 	updateStateProject(d, neon.ProjectResponse{})
+
+	_ = d.Set("main_branch_main_endpoint", "")
+	_ = d.Set("main_branch_main_role_name", "")
+
 	return nil
 }

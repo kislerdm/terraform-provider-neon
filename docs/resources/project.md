@@ -44,6 +44,8 @@ Examples:
 - `locked` (Boolean) Currently, a project may not have more than one running operations chain.
 If there are any running operations, 'locked' will be set to 'true'.
 This attributed is considered to be temporary, and could be gone soon.
+- `main_branch_main_endpoint` (String) Endpoint to access database
+- `main_branch_main_role_name` (String) Initial role of the API key owner.
 - `maintenance_starts_at` (String) If set, means project will be in maintenance since that time.
 - `platform_id` (String) Platform type id.
 - `proxy_host` (String)

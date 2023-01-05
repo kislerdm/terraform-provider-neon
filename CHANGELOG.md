@@ -5,15 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.0.1]
 
 ### Added
 
-Supported features:
-- [Project](https://neon.tech/docs/get-started-with-neon/setting-up-a-project/):
-  - Create
-  - Update
-  - Delete
-- Database:
-  - Create
-  - Delete
+- `Neon` Provider:
+
+```terraform
+terraform {
+  required_providers {
+    neon = {
+      source = "hashicorp.com/kislerdm/neon"
+    }
+  }
+}
+
+provider "neon" {}
+```
+
+- Project resource:
+
+```terraform
+resource "neon_project" "foo" {}
+```
