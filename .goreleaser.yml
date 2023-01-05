@@ -25,9 +25,9 @@ builds:
     - goos: darwin
       goarch: '386'
   binary: '{{ .ProjectName }}_v{{ .Version }}'
-  hooks:
-    post:
-      - upx -9 --best --ultra-brute "{{ .Path }}"
+#  hooks:
+#    post:
+#      - upx -9 --best --ultra-brute "{{ .Path }}"
 
 archives:
 - format: zip

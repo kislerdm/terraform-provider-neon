@@ -83,45 +83,17 @@ func resourceProject() *schema.Resource {
 			"autoscaling_limit_min_cu": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"autoscaling_limit_max_cu": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Project ID.",
-			},
-			"platform_id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Platform type id.",
-			},
-			"maintenance_starts_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "If set, means project will be in maintenance since that time.",
-			},
-			"locked": {
-				Type:     schema.TypeBool,
-				Computed: true,
-				Description: `Currently, a project may not have more than one running operations chain.
-If there are any running operations, 'locked' will be set to 'true'.
-This attributed is considered to be temporary, and could be gone soon.`,
-			},
-			"proxy_host": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"cpu_used_sec": {
-				Type:     schema.TypeInt,
-				Computed: true,
-				Description: `CPU seconds used by all the endpoints of the project, including deleted ones.
-This value is reset at the beginning of each billing period.
-Examples:
-1. Having endpoint used 1 CPU for 1 sec, that's cpu_used_sec=1.
-2. Having endpoint used 2 CPU simultaneously for 1 sec, that's cpu_used_sec=2.`,
 			},
 			"branch_logical_size_limit": {
 				Type:     schema.TypeInt,
@@ -180,11 +152,6 @@ func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) {
 	_ = d.Set("pg_version", int(r.Project.PgVersion))
 	_ = d.Set("pg_settings", pgSettingsToMap(r.Project.DefaultEndpointSettings.PgSettings))
 	_ = d.Set("cpu_quota_sec", int(r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec))
-	_ = d.Set("platform_id", r.Project.PlatformID)
-	_ = d.Set("maintenance_starts_at", r.Project.MaintenanceStartsAt.Format(time.RFC3339))
-	_ = d.Set("locked", r.Project.Locked)
-	_ = d.Set("proxy_host", r.Project.ProxyHost)
-	_ = d.Set("cpu_used_sec", int(r.Project.CpuUsedSec))
 	_ = d.Set("branch_logical_size_limit", int(r.Project.BranchLogicalSizeLimit))
 	_ = d.Set("created_at", r.Project.CreatedAt.Format(time.RFC3339))
 	_ = d.Set("updated_at", r.Project.UpdatedAt.Format(time.RFC3339))
