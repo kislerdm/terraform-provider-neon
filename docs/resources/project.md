@@ -34,21 +34,10 @@ resource "neon_project" "example" {
 ### Read-Only
 
 - `branch_logical_size_limit` (Number)
-- `cpu_used_sec` (Number) CPU seconds used by all the endpoints of the project, including deleted ones.
-This value is reset at the beginning of each billing period.
-Examples:
-1. Having endpoint used 1 CPU for 1 sec, that's cpu_used_sec=1.
-2. Having endpoint used 2 CPU simultaneously for 1 sec, that's cpu_used_sec=2.
 - `created_at` (String) Project creation timestamp.
 - `id` (String) Project ID.
-- `locked` (Boolean) Currently, a project may not have more than one running operations chain.
-If there are any running operations, 'locked' will be set to 'true'.
-This attributed is considered to be temporary, and could be gone soon.
 - `main_branch_main_endpoint` (String) Endpoint to access database
 - `main_branch_main_role_name` (String) Initial role of the API key owner.
-- `maintenance_starts_at` (String) If set, means project will be in maintenance since that time.
-- `platform_id` (String) Platform type id.
-- `proxy_host` (String)
 - `updated_at` (String) Project last update timestamp.
 
 
