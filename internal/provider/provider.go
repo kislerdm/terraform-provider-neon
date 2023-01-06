@@ -21,7 +21,8 @@ func init() {
 // version is mapped to the sdk: https://github.com/kislerdm/neon-sdk-go
 // 0.1.0: 0
 // 0.1.1: 1
-const versionSchema = 1
+// 0.1.3: 2
+const versionSchema = 2
 
 func New(version string) *schema.Provider {
 	return &schema.Provider{
