@@ -76,7 +76,6 @@ func resourceEndpoint() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Default:     false,
 				Description: "Allow passwordless access.",
 			},
 			"pooler_enabled": {
@@ -89,7 +88,6 @@ See details: https://neon.tech/docs/connect/connection-pooling`,
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				Default:  "transaction",
 				Description: `Mode of connections pooling.
 See details: https://neon.tech/docs/connect/connection-pooling`,
 			},
@@ -97,7 +95,6 @@ See details: https://neon.tech/docs/connect/connection-pooling`,
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Default:     false,
 				Description: "Disable the endpoint.",
 			},
 			"proxy_host": {
@@ -129,12 +126,6 @@ See details: https://neon.tech/docs/connect/connection-pooling`,
 }
 
 func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
-	if err := d.Set("project_id", v.ProjectID); err != nil {
-		return err
-	}
-	if err := d.Set("branch_id", v.BranchID); err != nil {
-		return err
-	}
 	if err := d.Set("type", v.Type); err != nil {
 		return err
 	}

@@ -19,6 +19,9 @@ func TestAccResourceEndpoint(t *testing.T) {
 					Config:       testAccResourceEndpoint,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("neon_endpoint.foo", "type", "read_write"),
+						resource.TestCheckResourceAttr("neon_endpoint.foo", "type", "read_write"),
+						resource.TestCheckResourceAttr("neon_endpoint.foo", "region_id", "aws-us-east-2"),
+						resource.TestCheckResourceAttr("neon_endpoint.foo", "proxy_host", "us-east-2.aws.neon.tech"),
 					),
 				},
 			},
@@ -27,7 +30,7 @@ func TestAccResourceEndpoint(t *testing.T) {
 }
 
 const testAccResourceEndpoint = `resource "neon_endpoint" "foo" {
-	project_id = "spring-example-302709"
-	branch_id  = "foo"
+	project_id = "shiny-wind-028834"
+	branch_id  = "br-aged-salad-637688"
 	type 	   = "read_write"
 }`
