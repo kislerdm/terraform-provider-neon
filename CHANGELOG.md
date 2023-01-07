@@ -22,6 +22,9 @@ resource "neon_branch" "this" {
 }
 ```
 
+- Backoff+retry mechanism: operation is retried after the delay of 5 sec. API response's HTTP codes are 500, or 429.
+  Total number of attempts is limited to 120 per operation.
+
 ### Changed
 
 - Bumped [Neon Go SDK](https://pkg.go.dev/github.com/kislerdm/neon-sdk-go) v0.1.3

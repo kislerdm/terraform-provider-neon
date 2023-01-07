@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -143,14 +142,8 @@ func resourceBranchDeleteRetry(ctx context.Context, d *schema.ResourceData, meta
 	return projectReadiness.Retry(resourceBranchDelete, ctx, d, meta)
 }
 
-func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Branch")
-
-	client := meta.(neon.Client)
-	projectID := d.Get("project_id").(string)
-	if !projectReadiness.Try(client, projectID) {
-		return diag.FromErr(errors.New(projectID + " is busy"))
-	}
 
 	cfg := neon.BranchCreateRequest{
 		Branch: neon.BranchCreateRequestBranch{
@@ -165,30 +158,24 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		cfg.Branch.ParentTimestamp = &t
 	}
 
-	resp, err := client.CreateProjectBranch(
-		projectID,
+	resp, err := meta.(neon.Client).CreateProjectBranch(
+		d.Get("project_id").(string),
 		&cfg,
 	)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	d.SetId(resp.Branch.ID)
-	return diag.FromErr(updateStateBranch(d, resp.Branch))
+	return updateStateBranch(d, resp.Branch)
 }
 
-func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "update Branch")
 
 	v, ok := d.GetOk("name")
 	if !ok || v.(string) == "" {
 		return nil
-	}
-
-	client := meta.(neon.Client)
-	projectID := d.Get("project_id").(string)
-	if !projectReadiness.Try(client, projectID) {
-		return diag.FromErr(errors.New(projectID + " is busy"))
 	}
 
 	cfg := neon.BranchUpdateRequest{
@@ -197,47 +184,41 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		},
 	}
 
-	resp, err := client.UpdateProjectBranch(d.Get("project_id").(string), d.Id(), cfg)
+	resp, err := meta.(neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(), cfg)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
-	return diag.FromErr(updateStateBranch(d, resp.Branch))
+	return updateStateBranch(d, resp.Branch)
 }
 
-func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "read Branch")
 
 	resp, err := meta.(neon.Client).GetProjectBranch(d.Get("project_id").(string), d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
-	return diag.FromErr(updateStateBranch(d, resp.Branch))
+	return updateStateBranch(d, resp.Branch)
 }
 
-func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Branch")
 
-	client := meta.(neon.Client)
-	projectID := d.Get("project_id").(string)
-	if !projectReadiness.Try(client, projectID) {
-		return diag.FromErr(errors.New(projectID + " is busy"))
-	}
-
-	if _, err := client.DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
-		return diag.FromErr(err)
+	if _, err := meta.(neon.Client).DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
+		return err
 	}
 
 	d.SetId("")
-	return diag.FromErr(updateStateBranch(d, neon.Branch{}))
+	return updateStateBranch(d, neon.Branch{})
 }
 
 func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
 	[]*schema.ResourceData, error,
 ) {
-	if diags := resourceBranchRead(ctx, d, meta); diags.HasError() {
-		return nil, errors.New(diags[0].Summary)
+	if err := resourceBranchRead(ctx, d, meta); err != nil {
+		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
 }

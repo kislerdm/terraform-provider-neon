@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -34,49 +35,35 @@ func intValidationNotNegative(v interface{}, s string) (warn []string, errs []er
 	return
 }
 
-func isProjectLocked(client neon.Client, projectID string) (bool, error) {
-	o, err := client.GetProject(projectID)
-	if err != nil {
-		return false, err
-	}
-	return o.Project.Locked, nil
-}
-
 type delay struct {
 	delay  time.Duration
 	maxCnt uint8
 }
 
-func (r *delay) Try(client neon.Client, projectID string) bool {
-	var i uint8
-	for i < r.maxCnt {
-		v, err := isProjectLocked(client, projectID)
-		if err != nil {
-			panic(err)
-		}
-		if !v {
-			return true
-		}
-		i++
-		time.Sleep(r.delay)
-	}
-	return false
-}
-
 func (r *delay) Retry(
-	fn func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics,
+	fn func(context.Context, *schema.ResourceData, interface{}) error,
 	ctx context.Context, d *schema.ResourceData, meta interface{},
 ) diag.Diagnostics {
 	var i uint8
-	var diags diag.Diagnostics
+	var err error
 	for i < r.maxCnt {
-		if diags = fn(ctx, d, meta); !diags.HasError() {
+		switch e := fn(ctx, d, meta).(type) {
+		case nil:
 			return nil
+		case neon.Error:
+			switch e.HTTPCode {
+			case 200:
+				return nil
+			case http.StatusTooManyRequests, http.StatusInternalServerError:
+				err = e
+				i++
+				time.Sleep(r.delay)
+			}
+		default:
+			return diag.FromErr(e)
 		}
-		i++
-		time.Sleep(r.delay)
 	}
-	return diags
+	return diag.FromErr(err)
 }
 
 var projectReadiness = delay{

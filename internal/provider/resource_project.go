@@ -222,7 +222,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 	return setMainBranchInfo(d, client)
 }
 
-func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "update Project")
 
 	resp, err := meta.(neon.Client).UpdateProject(
@@ -240,10 +240,10 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		},
 	)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
-	return diag.FromErr(updateStateProject(d, resp.ProjectResponse))
+	return updateStateProject(d, resp.ProjectResponse)
 }
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -263,23 +263,23 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return setMainBranchInfo(d, client)
 }
 
-func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Project")
 
 	if _, err := meta.(neon.Client).DeleteProject(d.Id()); err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	d.SetId("")
 	if err := updateStateProject(d, neon.ProjectResponse{}); err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	if err := d.Set("main_branch_main_endpoint", ""); err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 	if err := d.Set("main_branch_main_role_name", ""); err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	return nil
