@@ -13,20 +13,21 @@ func TestAccResourceBranch(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Taint:  nil,
-					Config: testAccResourceBranch,
+					ResourceName: "",
+					PreConfig:    nil,
+					Taint:        nil,
+					Config:       testAccResourceBranch,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("neon_branch.foo", "name", "string"),
+						resource.TestCheckResourceAttr("neon_branch.foo", "name", "dev2"),
+						resource.TestCheckResourceAttr("neon_branch.foo", "parent_lsn", "0/1DE2850"),
+						resource.TestCheckResourceAttr("neon_branch.foo", "current_state", "ready"),
 					),
-					ExpectNonEmptyPlan:        false,
-					PlanOnly:                  false,
-					PreventDiskCleanup:        false,
-					PreventPostDestroyRefresh: false,
-					Destroy:                   false,
 				},
 			},
 		},
 	)
 }
 
-const testAccResourceBranch = `resource "neon_branch" "foo" {}`
+const testAccResourceBranch = `resource "neon_branch" "foo" {
+	project_id = "spring-example-302709"
+}`

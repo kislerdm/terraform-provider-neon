@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
@@ -49,17 +50,11 @@ func resourceBranch() *schema.Resource {
 See details: https://neon.tech/docs/reference/glossary/#lsn`,
 			},
 			"parent_timestamp": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
-					if i.(int) < 0 {
-						errs = append(errs, errors.New("timestamp must be not negative"))
-						return
-					}
-					return
-				},
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ValidateFunc:  intValidationNotNegative,
 				ConflictsWith: []string{"parent_lsn"},
 				Description: `Timestamp horizon for the data to be present in the new branch. 
 **Note**: it's defined as Unix epoch.'`,
@@ -94,85 +89,131 @@ See details: https://neon.tech/docs/reference/glossary/#lsn`,
 				Computed:    true,
 				Description: "Branch last update timestamp.",
 			},
-			"endpoints": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: "Endpoints for the branch.",
-				Elem: map[string]*schema.Schema{
-					"type": {
-						Type:         schema.TypeString,
-						Required:     true,
-						InputDefault: "read_write",
-						Description: `Endpoint type. 
-Either "read_write" for read-write primary or "read_only" for read-only secondary.
-**Note**: "read_only" endpoints are NOT yet implemented.`,
-					},
-					"autoscaling_limit_min_cu": {
-						Type:     schema.TypeInt,
-						Optional: true,
-					},
-					"autoscaling_limit_max_cu": {
-						Type:     schema.TypeInt,
-						Optional: true,
-					},
-					"host": {
-						Type:        schema.TypeString,
-						Computed:    true,
-						Description: "Hostname to connect to.",
-					},
-					"disabled": {
-						Type:        schema.TypeBool,
-						Computed:    true,
-						Description: "Restrict any connections to this endpoint.",
-					},
-					"pg_settings": {
-						Type:     schema.TypeMap,
-						Optional: true,
-						Computed: true,
-					},
-				},
-			},
 		},
 	}
 }
 
-func updateStateBranch(d *schema.ResourceData, r neon.Branch) {
-	_ = d.Set("project_id", r.ProjectID)
-	_ = d.Set("name", r.Name)
-	_ = d.Set("parent_id", r.ParentID)
-	_ = d.Set("parent_lsn", r.ParentLsn)
-	_ = d.Set("parent_timestamp", int(r.ParentTimestamp.Unix()))
-	_ = d.Set("logical_size", int(r.LogicalSize))
-	_ = d.Set("physical_size_size", int(r.PhysicalSize))
-	_ = d.Set("current_state", r.CurrentState)
-	_ = d.Set("pending_state", r.PendingState)
-	_ = d.Set("created_at", r.CreatedAt.Format(time.RFC3339))
-	_ = d.Set("updated_at", r.CreatedAt.Format(time.RFC3339))
+func intValidationNotNegative(v interface{}, s string) (warn []string, errs []error) {
+	if v.(int) < 0 {
+		errs = append(errs, errors.New(s+" must be not negative"))
+		return
+	}
+	return
 }
 
-func updateStateBranchEndpoints(d *schema.ResourceData, r neon.Endpoint) {
-	panic("todo")
+func updateStateBranch(d *schema.ResourceData, v neon.Branch) error {
+	if err := d.Set("name", v.Name); err != nil {
+		return err
+	}
+	if err := d.Set("parent_id", v.ParentID); err != nil {
+		return err
+	}
+	if err := d.Set("parent_lsn", v.ParentLsn); err != nil {
+		return err
+	}
+	if err := d.Set("parent_timestamp", int(v.ParentTimestamp.Unix())); err != nil {
+		return err
+	}
+	if err := d.Set("logical_size", int(v.LogicalSize)); err != nil {
+		return err
+	}
+	if err := d.Set("physical_size_size", int(v.PhysicalSize)); err != nil {
+		return err
+	}
+	if err := d.Set("current_state", v.CurrentState); err != nil {
+		return err
+	}
+	if err := d.Set("pending_state", v.PendingState); err != nil {
+		return err
+	}
+	if err := d.Set("created_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
+		return err
+	}
+	if err := d.Set("updated_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
+		return err
+	}
+	return nil
 }
 
-func resourceBranchDelete(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	panic("todo")
+func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	tflog.Trace(ctx, "delete Branch")
+
+	if _, err := meta.(neon.Client).DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId("")
+	return diag.FromErr(updateStateBranch(d, neon.Branch{}))
 }
 
-func resourceBranchUpdate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	panic("todo")
+func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	tflog.Trace(ctx, "update Branch")
+
+	v, ok := d.GetOk("name")
+	if !ok || v.(string) == "" {
+		return nil
+	}
+
+	cfg := neon.BranchUpdateRequest{
+		Branch: neon.BranchUpdateRequestBranch{
+			Name: v.(string),
+		},
+	}
+
+	resp, err := meta.(neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(), cfg)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.FromErr(updateStateBranch(d, resp.Branch))
 }
 
-func resourceBranchRead(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	panic("todo")
+func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	tflog.Trace(ctx, "read Branch")
+
+	resp, err := meta.(neon.Client).GetProjectBranch(d.Get("project_id").(string), d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.FromErr(updateStateBranch(d, resp.Branch))
 }
 
-func resourceBranchCreate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	panic("todo")
+func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	tflog.Trace(ctx, "created Branch")
+
+	client := meta.(neon.Client)
+
+	cfg := neon.BranchCreateRequest{
+		Branch: neon.BranchCreateRequestBranch{
+			ParentID:  d.Get("parent_id").(string),
+			Name:      d.Get("name").(string),
+			ParentLsn: d.Get("parent_lsn").(string),
+		},
+	}
+
+	if v, ok := d.GetOk("parent_timestamp"); ok && v.(int) > 0 {
+		t := time.Unix(int64(v.(int)), 0)
+		cfg.Branch.ParentTimestamp = &t
+	}
+
+	resp, err := client.CreateProjectBranch(
+		d.Get("project_id").(string),
+		&cfg,
+	)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(resp.Branch.ID)
+	return diag.FromErr(updateStateBranch(d, resp.Branch))
 }
 
-func resourceBranchImport(ctx context.Context, data *schema.ResourceData, i interface{}) (
+func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
 	[]*schema.ResourceData, error,
 ) {
-	panic("todo")
+	if diags := resourceBranchRead(ctx, d, meta); diags.HasError() {
+		return nil, errors.New(diags[0].Summary)
+	}
+	return []*schema.ResourceData{d}, nil
 }
