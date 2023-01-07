@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -217,8 +219,27 @@ func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta inte
 func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
 	[]*schema.ResourceData, error,
 ) {
-	if err := resourceBranchRead(ctx, d, meta); err != nil {
+	tflog.Trace(ctx, "import Branch")
+
+	resp, err := meta.(neon.Client).ListProjects()
+	if err != nil {
 		return nil, err
 	}
-	return []*schema.ResourceData{d}, nil
+
+	for _, project := range resp.Projects {
+		if err := d.Set("project_id", project.ID); err != nil {
+			return nil, err
+		}
+		switch err := resourceBranchRead(ctx, d, meta).(type) {
+		case nil:
+			return []*schema.ResourceData{d}, nil
+		case neon.Error:
+			if err.HTTPCode == http.StatusNotFound {
+				continue
+			}
+		default:
+			return nil, err
+		}
+	}
+	return nil, errors.New("no branch " + d.Id() + " found")
 }
