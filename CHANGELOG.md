@@ -25,6 +25,7 @@ resource "neon_branch" "this" {
 ### Changed
 
 - Bumped [Neon Go SDK](https://pkg.go.dev/github.com/kislerdm/neon-sdk-go) v0.1.3
+- Added errors handling for the project resource
 
 ## [0.0.1] - 2022-01-05
 
