@@ -21,8 +21,8 @@ func resourceProject() *schema.Resource {
 		},
 		CreateContext: resourceProjectCreate,
 		ReadContext:   resourceProjectRead,
-		UpdateContext: resourceProjectUpdate,
-		DeleteContext: resourceProjectDelete,
+		UpdateContext: resourceProjectUpdateRetry,
+		DeleteContext: resourceProjectDeleteRetry,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -123,66 +123,40 @@ func resourceProject() *schema.Resource {
 	}
 }
 
-func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
-	[]*schema.ResourceData, error,
-) {
-	resourceProjectRead(ctx, d, meta)
-	return []*schema.ResourceData{d}, nil
-}
-
-func pgSettingsToMap(v neon.PgSettingsData) map[string]interface{} {
-	o := make(map[string]interface{}, len(v))
-	for k, v := range v {
-		o[k] = v
+func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) error {
+	if err := d.Set("name", r.Project.Name); err != nil {
+		return err
 	}
-	return o
-}
-
-func mapToPgSettings(v map[string]interface{}) neon.PgSettingsData {
-	o := make(neon.PgSettingsData, len(v))
-	for k, v := range v {
-		o[k] = v
+	if err := d.Set("region_id", r.Project.RegionID); err != nil {
+		return err
 	}
-	return o
-}
-
-func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) {
-	_ = d.Set("name", r.Project.Name)
-	_ = d.Set("region_id", r.Project.RegionID)
-	_ = d.Set("pg_version", int(r.Project.PgVersion))
-	_ = d.Set("pg_settings", pgSettingsToMap(r.Project.DefaultEndpointSettings.PgSettings))
-	_ = d.Set("cpu_quota_sec", int(r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec))
-	_ = d.Set("branch_logical_size_limit", int(r.Project.BranchLogicalSizeLimit))
-	_ = d.Set("created_at", r.Project.CreatedAt.Format(time.RFC3339))
-	_ = d.Set("updated_at", r.Project.UpdatedAt.Format(time.RFC3339))
-}
-
-func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	tflog.Trace(ctx, "created Project")
-
-	client := meta.(neon.Client)
-	resp, err := client.CreateProject(
-		neon.ProjectCreateRequest{
-			Project: neon.ProjectCreateRequestProject{
-				AutoscalingLimitMinCu:   int32(d.Get("autoscaling_limit_min_cu").(int)),
-				AutoscalingLimitMaxCu:   int32(d.Get("autoscaling_limit_max_cu").(int)),
-				RegionID:                d.Get("region_id").(string),
-				DefaultEndpointSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
-				PgVersion:               neon.PgVersion(d.Get("pg_version").(int)),
-				Quota:                   neon.ProjectQuota{CpuQuotaSec: int64(d.Get("cpu_quota_sec").(int))},
-				Name:                    d.Get("name").(string),
-			},
-		},
-	)
-
-	if err != nil {
-		return diag.FromErr(err)
+	if err := d.Set("pg_version", int(r.Project.PgVersion)); err != nil {
+		return err
 	}
+	if err := d.Set("pg_settings", pgSettingsToMap(r.Project.DefaultEndpointSettings.PgSettings)); err != nil {
+		return err
+	}
+	if err := d.Set("cpu_quota_sec", int(r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec)); err != nil {
+		return err
+	}
+	if err := d.Set("branch_logical_size_limit", int(r.Project.BranchLogicalSizeLimit)); err != nil {
+		return err
+	}
+	if err := d.Set("created_at", r.Project.CreatedAt.Format(time.RFC3339)); err != nil {
+		return err
+	}
+	if err := d.Set("updated_at", r.Project.UpdatedAt.Format(time.RFC3339)); err != nil {
+		return err
+	}
+	return nil
+}
 
-	d.SetId(resp.ProjectResponse.Project.ID)
-	updateStateProject(d, resp.ProjectResponse)
+func resourceProjectDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectDelete, ctx, d, meta)
+}
 
-	return setMainBranchInfo(d, client)
+func resourceProjectUpdateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectUpdate, ctx, d, meta)
 }
 
 func setMainBranchInfo(d *schema.ResourceData, client neon.Client) diag.Diagnostics {
@@ -218,7 +192,37 @@ func setMainBranchInfo(d *schema.ResourceData, client neon.Client) diag.Diagnost
 	return nil
 }
 
-func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	tflog.Trace(ctx, "created Project")
+
+	client := meta.(neon.Client)
+	resp, err := client.CreateProject(
+		neon.ProjectCreateRequest{
+			Project: neon.ProjectCreateRequestProject{
+				AutoscalingLimitMinCu:   int32(d.Get("autoscaling_limit_min_cu").(int)),
+				AutoscalingLimitMaxCu:   int32(d.Get("autoscaling_limit_max_cu").(int)),
+				RegionID:                d.Get("region_id").(string),
+				DefaultEndpointSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
+				PgVersion:               neon.PgVersion(d.Get("pg_version").(int)),
+				Quota:                   neon.ProjectQuota{CpuQuotaSec: int64(d.Get("cpu_quota_sec").(int))},
+				Name:                    d.Get("name").(string),
+			},
+		},
+	)
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(resp.ProjectResponse.Project.ID)
+	if err := updateStateProject(d, resp.ProjectResponse); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return setMainBranchInfo(d, client)
+}
+
+func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "update Project")
 
 	resp, err := meta.(neon.Client).UpdateProject(
@@ -236,11 +240,10 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		},
 	)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
-	updateStateProject(d, resp.ProjectResponse)
-	return nil
+	return updateStateProject(d, resp.ProjectResponse)
 }
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -253,23 +256,40 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	updateStateProject(d, resp)
+	if err := updateStateProject(d, resp); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return setMainBranchInfo(d, client)
 }
 
-func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Project")
 
 	if _, err := meta.(neon.Client).DeleteProject(d.Id()); err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	d.SetId("")
-	updateStateProject(d, neon.ProjectResponse{})
+	if err := updateStateProject(d, neon.ProjectResponse{}); err != nil {
+		return err
+	}
 
-	_ = d.Set("main_branch_main_endpoint", "")
-	_ = d.Set("main_branch_main_role_name", "")
+	if err := d.Set("main_branch_main_endpoint", ""); err != nil {
+		return err
+	}
+	if err := d.Set("main_branch_main_role_name", ""); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
+	[]*schema.ResourceData, error,
+) {
+	if diags := resourceProjectRead(ctx, d, meta); diags.HasError() {
+		return nil, errors.New(diags[0].Summary)
+	}
+	return []*schema.ResourceData{d}, nil
 }
