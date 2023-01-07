@@ -267,8 +267,12 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("main_branch_main_endpoint", "")
-	_ = d.Set("main_branch_main_role_name", "")
+	if err := d.Set("main_branch_main_endpoint", ""); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("main_branch_main_role_name", ""); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

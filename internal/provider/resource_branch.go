@@ -93,14 +93,6 @@ See details: https://neon.tech/docs/reference/glossary/#lsn`,
 	}
 }
 
-func intValidationNotNegative(v interface{}, s string) (warn []string, errs []error) {
-	if v.(int) < 0 {
-		errs = append(errs, errors.New(s+" must be not negative"))
-		return
-	}
-	return
-}
-
 func updateStateBranch(d *schema.ResourceData, v neon.Branch) error {
 	if err := d.Set("name", v.Name); err != nil {
 		return err
@@ -135,15 +127,34 @@ func updateStateBranch(d *schema.ResourceData, v neon.Branch) error {
 	return nil
 }
 
-func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	tflog.Trace(ctx, "delete Branch")
+func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	tflog.Trace(ctx, "created Branch")
 
-	if _, err := meta.(neon.Client).DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
+	client := meta.(neon.Client)
+
+	cfg := neon.BranchCreateRequest{
+		Branch: neon.BranchCreateRequestBranch{
+			ParentID:  d.Get("parent_id").(string),
+			Name:      d.Get("name").(string),
+			ParentLsn: d.Get("parent_lsn").(string),
+		},
+	}
+
+	if v, ok := d.GetOk("parent_timestamp"); ok && v.(int) > 0 {
+		t := time.Unix(int64(v.(int)), 0)
+		cfg.Branch.ParentTimestamp = &t
+	}
+
+	resp, err := client.CreateProjectBranch(
+		d.Get("project_id").(string),
+		&cfg,
+	)
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId("")
-	return diag.FromErr(updateStateBranch(d, neon.Branch{}))
+	d.SetId(resp.Branch.ID)
+	return diag.FromErr(updateStateBranch(d, resp.Branch))
 }
 
 func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -179,34 +190,15 @@ func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interf
 	return diag.FromErr(updateStateBranch(d, resp.Branch))
 }
 
-func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	tflog.Trace(ctx, "created Branch")
+func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	tflog.Trace(ctx, "delete Branch")
 
-	client := meta.(neon.Client)
-
-	cfg := neon.BranchCreateRequest{
-		Branch: neon.BranchCreateRequestBranch{
-			ParentID:  d.Get("parent_id").(string),
-			Name:      d.Get("name").(string),
-			ParentLsn: d.Get("parent_lsn").(string),
-		},
-	}
-
-	if v, ok := d.GetOk("parent_timestamp"); ok && v.(int) > 0 {
-		t := time.Unix(int64(v.(int)), 0)
-		cfg.Branch.ParentTimestamp = &t
-	}
-
-	resp, err := client.CreateProjectBranch(
-		d.Get("project_id").(string),
-		&cfg,
-	)
-	if err != nil {
+	if _, err := meta.(neon.Client).DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(resp.Branch.ID)
-	return diag.FromErr(updateStateBranch(d, resp.Branch))
+	d.SetId("")
+	return diag.FromErr(updateStateBranch(d, neon.Branch{}))
 }
 
 func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
