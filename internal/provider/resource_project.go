@@ -21,8 +21,8 @@ func resourceProject() *schema.Resource {
 		},
 		CreateContext: resourceProjectCreate,
 		ReadContext:   resourceProjectRead,
-		UpdateContext: resourceProjectUpdate,
-		DeleteContext: resourceProjectDelete,
+		UpdateContext: resourceProjectUpdateRetry,
+		DeleteContext: resourceProjectDeleteRetry,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -149,6 +149,14 @@ func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) error {
 		return err
 	}
 	return nil
+}
+
+func resourceProjectDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectDelete, ctx, d, meta)
+}
+
+func resourceProjectUpdateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectUpdate, ctx, d, meta)
 }
 
 func setMainBranchInfo(d *schema.ResourceData, client neon.Client) diag.Diagnostics {
