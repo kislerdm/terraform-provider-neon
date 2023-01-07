@@ -34,10 +34,13 @@ resource "neon_project" "example" {
 ### Read-Only
 
 - `branch_logical_size_limit` (Number)
+- `connection_uri` (String, Sensitive) Default connection uri. **Note** that it contains access credentials.
 - `created_at` (String) Project creation timestamp.
+- `database_host` (String) Default database host.
+- `database_name` (String) Default database name.
+- `database_password` (String, Sensitive) Default database access password.
+- `database_user` (String) Default database role.
 - `id` (String) Project ID.
-- `main_branch_main_endpoint` (String) Endpoint to access database
-- `main_branch_main_role_name` (String) Initial role of the API key owner.
 - `updated_at` (String) Project last update timestamp.
 
 

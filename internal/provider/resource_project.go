@@ -109,15 +109,32 @@ func resourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Project last update timestamp.",
 			},
-			"main_branch_main_endpoint": {
+			"database_host": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Endpoint to access database",
+				Description: "Default database host.",
 			},
-			"main_branch_main_role_name": {
+			"database_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Initial role of the API key owner.",
+				Description: "Default database name.",
+			},
+			"database_user": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default database role.",
+			},
+			"database_password": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default database access password.",
+			},
+			"connection_uri": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default connection uri. **Note** that it contains access credentials.",
 			},
 		},
 	}
@@ -130,16 +147,16 @@ func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) error {
 	if err := d.Set("region_id", r.Project.RegionID); err != nil {
 		return err
 	}
-	if err := d.Set("pg_version", int(r.Project.PgVersion)); err != nil {
+	if err := d.Set("pg_version", r.Project.PgVersion); err != nil {
 		return err
 	}
 	if err := d.Set("pg_settings", pgSettingsToMap(r.Project.DefaultEndpointSettings.PgSettings)); err != nil {
 		return err
 	}
-	if err := d.Set("cpu_quota_sec", int(r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec)); err != nil {
+	if err := d.Set("cpu_quota_sec", r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec); err != nil {
 		return err
 	}
-	if err := d.Set("branch_logical_size_limit", int(r.Project.BranchLogicalSizeLimit)); err != nil {
+	if err := d.Set("branch_logical_size_limit", r.Project.BranchLogicalSizeLimit); err != nil {
 		return err
 	}
 	if err := d.Set("created_at", r.Project.CreatedAt.Format(time.RFC3339)); err != nil {
@@ -165,6 +182,16 @@ func setMainBranchInfo(d *schema.ResourceData, client neon.Client) diag.Diagnost
 		return diag.FromErr(err)
 	}
 
+	endpoints, err := client.ListProjectEndpoints(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	databaseHost := endpoints.Endpoints[0].Host
+	if err := d.Set("database_host", databaseHost); err != nil {
+		return diag.FromErr(err)
+	}
+
 	for _, branch := range br.Branches {
 		if branch.Name == "main" {
 			r, err := client.ListProjectBranchRoles(d.Id(), branch.ID)
@@ -172,23 +199,49 @@ func setMainBranchInfo(d *schema.ResourceData, client neon.Client) diag.Diagnost
 				return diag.FromErr(err)
 			}
 
-			for _, role := range r.Roles {
-				if role.Name == "web_access" {
-					continue
-				}
-				_ = d.Set("main_branch_main_role_name", role.Name)
-				break
+			if err := setRole(d, r.Roles); err != nil {
+				return diag.FromErr(err)
 			}
+
+			o, err := client.ListProjectBranchDatabases(d.Id(), branch.ID)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			databaseName := o.Databases[0].Name
+			if err := d.Set("database_name", databaseName); err != nil {
+				return diag.FromErr(err)
+			}
+
+			databaseUser := d.Get("database_user").(string)
+			databasePassword := d.Get("database_password").(string)
+			if databaseUser != "" && databasePassword != "" {
+				connectionURI := "postgres://" + databaseUser + ":" + databasePassword + "@" + databaseHost + "/" + databaseName
+				if err := d.Set("connection_uri", connectionURI); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+
 			break
 		}
 	}
 
-	endpoints, err := client.ListProjectEndpoints(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	_ = d.Set("main_branch_main_endpoint", endpoints.Endpoints[0].Host)
+	return nil
+}
 
+func setRole(d *schema.ResourceData, r []neon.Role) error {
+	for _, role := range r {
+		if role.Name == "web_access" {
+			continue
+		}
+		if err := d.Set("database_user", role.Name); err != nil {
+			return err
+		}
+		if err := d.Set("database_password", role.Password); err != nil {
+			return err
+		}
+		break
+	}
 	return nil
 }
 
@@ -219,7 +272,20 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	return setMainBranchInfo(d, client)
+	if err := setRole(d, resp.Roles); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("database_host", resp.Endpoints[0].Host); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("database_name", resp.Databases[0].Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("connection_uri", resp.ConnectionUris[0].ConnectionURI); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
 func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -275,13 +341,21 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 		return err
 	}
 
-	if err := d.Set("main_branch_main_endpoint", ""); err != nil {
+	if err := d.Set("database_name", ""); err != nil {
 		return err
 	}
-	if err := d.Set("main_branch_main_role_name", ""); err != nil {
+	if err := d.Set("database_host", ""); err != nil {
 		return err
 	}
-
+	if err := d.Set("database_user", ""); err != nil {
+		return err
+	}
+	if err := d.Set("database_password", ""); err != nil {
+		return err
+	}
+	if err := d.Set("connection_uri", ""); err != nil {
+		return err
+	}
 	return nil
 }
 

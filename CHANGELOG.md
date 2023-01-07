@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.2] - unreleased
+## [0.0.3] - 2023-01-07
+
+### Added
+
+- Added database connection details for the resource `neon_project`. **Note** that `database_password`
+  and `connection_uri` read-only attributes are sensitive. Make sure that terraform backend is secured and
+  terraform state is not exposed to prevent undesirable access to database.
+
+## [0.0.2] - 2023-01-07
 
 ### Added
 
@@ -30,7 +38,7 @@ resource "neon_branch" "this" {
 - Bumped [Neon Go SDK](https://pkg.go.dev/github.com/kislerdm/neon-sdk-go) v0.1.3
 - Added errors handling for the project resource
 
-## [0.0.1] - 2022-01-05
+## [0.0.1] - 2023-01-05
 
 ### Added
 
