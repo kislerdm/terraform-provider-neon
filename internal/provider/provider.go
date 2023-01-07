@@ -35,8 +35,9 @@ func New(version string) *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"neon_project": resourceProject(),
-			"neon_branch":  resourceBranch(),
+			"neon_project":  resourceProject(),
+			"neon_branch":   resourceBranch(),
+			"neon_endpoint": resourceEndpoint(),
 		},
 		ConfigureContextFunc: configure(version),
 	}

@@ -20,6 +20,9 @@ func pgSettingsToMap(v neon.PgSettingsData) map[string]interface{} {
 }
 
 func mapToPgSettings(v map[string]interface{}) neon.PgSettingsData {
+	if len(v) == 0 {
+		return nil
+	}
 	o := make(neon.PgSettingsData, len(v))
 	for k, v := range v {
 		o[k] = v
@@ -69,4 +72,26 @@ func (r *delay) Retry(
 var projectReadiness = delay{
 	delay:  5 * time.Second,
 	maxCnt: 120,
+}
+
+var schemaRegionID = &schema.Schema{
+	Type:        schema.TypeString,
+	Optional:    true,
+	Computed:    true,
+	ForceNew:    true,
+	Description: "AWS Region.",
+	ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+		switch v := i.(string); v {
+		case "aws-us-east-2", "aws-us-west-2", "aws-eu-central-1", "aws-ap-southeast-1":
+			return
+		default:
+			errs = append(
+				errs,
+				errors.New(
+					"region "+v+" is not supported yet: https://neon.tech/docs/introduction/regions/",
+				),
+			)
+			return
+		}
+	},
 }

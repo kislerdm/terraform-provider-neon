@@ -30,27 +30,7 @@ func resourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Project name.",
 			},
-			"region_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "AWS Region.",
-				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
-					switch v := i.(string); v {
-					case "aws-us-east-2", "aws-us-west-2", "aws-eu-central-1", "aws-ap-southeast-1":
-						return
-					default:
-						errs = append(
-							errs,
-							errors.New(
-								"region "+v+" is not supported yet: https://neon.tech/docs/introduction/regions/",
-							),
-						)
-						return
-					}
-				},
-			},
+			"region_id": schemaRegionID,
 			"pg_version": {
 				Type:        schema.TypeInt,
 				Optional:    true,
