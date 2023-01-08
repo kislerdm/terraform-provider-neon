@@ -81,7 +81,7 @@ resource "aws_secretsmanager_secret" "this" {
 }
 
 resource "aws_secretsmanager_secret_version" "this" {
-  secret_id     = aws_secretsmanager_secret.this.id
+  secret_id = aws_secretsmanager_secret.this.id
   secret_string = jsonencode({
     host     = neon_branch.this.host
     user     = neon_role.this.name
@@ -98,7 +98,7 @@ data "aws_iam_policy_document" "neon_access_secret" {
   }
 
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "secretsmanager:GetResourcePolicy",
       "secretsmanager:GetSecretValue",
