@@ -101,7 +101,7 @@ type complexID struct {
 	ProjectID, BranchID, Name string
 }
 
-func setResourceDataFrom(d *schema.ResourceData, r complexID) {
+func setResourceDataFromComplexID(d *schema.ResourceData, r complexID) {
 	_ = d.Set("project_id", r.ProjectID)
 	_ = d.Set("branch_id", r.BranchID)
 	_ = d.Set("name", r.Name)

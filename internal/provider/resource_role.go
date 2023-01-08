@@ -168,7 +168,7 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 	if err := updateStateRole(d, resp.Role); err != nil {
 		return nil, err
 	}
-	setResourceDataFrom(d, r)
+	setResourceDataFromComplexID(d, r)
 
 	return []*schema.ResourceData{d}, nil
 }
