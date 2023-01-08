@@ -121,28 +121,28 @@ resource "aws_iam_policy" "neon_access_secret" {
 ## Execution
 
 1. Export API keys as environment variables:
-    ```commandline
-    export NEON_API_KEY=##neon api key##
-    export AWS_ACCESS_KEY_ID=##AWS access key ID##
-    export AWS_SECRET_ACCESS_KEY=##AWS access secret##
-    ```
+   ```commandline
+   export NEON_API_KEY=##neon api key##
+   export AWS_ACCESS_KEY_ID=##AWS access key ID##
+   export AWS_SECRET_ACCESS_KEY=##AWS access secret##
+   ```
 2. Create the file `main.tf` and copy the code [snippet](#code-snippet) there.
 3. Initialize the terraform to download required providers:
-    ```commandline
-    terraform init
-    ```
+   ```commandline
+   terraform init
+   ```
    ~> Note that the terraform state will be stored locally. Find more
    details [here](https://developer.hashicorp.com/terraform/language/settings/backends/configuration).
 4. Validate the syntax correctness:
-    ```commandline
-    terraform validate
-    ```
+   ```commandline
+   terraform validate
+   ```
 5. Run terraform plan:
-    ```commandline
-    terraform plan
-    ```
+   ```commandline
+   terraform plan
+   ```
    Expected output in stdout:
-    ```commandline
+   ```commandline
     Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
       + create
      <= read (data resources)
@@ -295,27 +295,27 @@ resource "aws_iam_policy" "neon_access_secret" {
         }
     
     Plan: 7 to add, 0 to change, 0 to destroy.
-    ```
+   ```
 6. Run terraform apply:
-    ```commandline
-    terraform apply -auto-approve
-    ```
+   ```commandline
+   terraform apply -auto-approve
+   ```
    Expected output in stdout:
-    ```commandline
-    Apply complete! Resources: 7 added, 0 changed, 0 destroyed.
-    ```
+   ```commandline
+   Apply complete! Resources: 7 added, 0 changed, 0 destroyed.
+   ```
 7. Done! The database can be accessed using the connection details from the AWS secretsmanager.
 8. Clean the demo infrastructure:
-    ```commandline
-    terraform destroy -auto-approve
-    ``` 
+   ```commandline
+   terraform destroy -auto-approve
+   ``` 
    Expected output in stdout:
-    ```commandline
-    Destroy complete! Resources: 7 destroyed.
-    ```
+   ```commandline
+   Destroy complete! Resources: 7 destroyed.
+   ```
 9. Unset environment variables:
-    ```commandline
-    unset NEON_API_KEY
-    unset AWS_ACCESS_KEY_ID
-    unset AWS_SECRET_ACCESS_KEY 
-    ```
+  ``` commandline
+  unset NEON_API_KEY
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY 
+   ```
