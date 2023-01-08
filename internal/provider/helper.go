@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -94,4 +95,32 @@ var schemaRegionID = &schema.Schema{
 			return
 		}
 	},
+}
+
+type complexID struct {
+	ProjectID, BranchID, Name string
+}
+
+func setResourceDataFromComplexID(d *schema.ResourceData, r complexID) {
+	_ = d.Set("project_id", r.ProjectID)
+	_ = d.Set("branch_id", r.BranchID)
+	_ = d.Set("name", r.Name)
+}
+
+func (v complexID) toString() string {
+	return v.ProjectID + "/" + v.BranchID + "/" + v.Name
+}
+
+func parseComplexID(s string) (complexID, error) {
+	spl := strings.Split(s, "/")
+	if len(spl) != 3 {
+		return complexID{}, errors.New(
+			"ID of this resource type shall follow the template: {{.ProjectID}}/{{.BranchID}}/{{.Name}}",
+		)
+	}
+	return complexID{
+		ProjectID: spl[0],
+		BranchID:  spl[1],
+		Name:      spl[2],
+	}, nil
 }
