@@ -42,6 +42,7 @@ func resourceDatabase() *schema.Resource {
 			"owner_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Role name of the database owner.",
 			},
 			"created_at": {
