@@ -2,8 +2,6 @@ package provider
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -82,32 +80,6 @@ func updateStateRole(d *schema.ResourceData, v neon.Role) error {
 	return nil
 }
 
-type roleID struct {
-	ProjectID, BranchID, Name string
-}
-
-func setResourceDataFrom(d *schema.ResourceData, r roleID) {
-	_ = d.Set("project_id", r.ProjectID)
-	_ = d.Set("branch_id", r.BranchID)
-	_ = d.Set("name", r.Name)
-}
-
-func (v roleID) toString() string {
-	return v.ProjectID + "/" + v.BranchID + "/" + v.Name
-}
-
-func parseRoleID(s string) (roleID, error) {
-	spl := strings.Split(s, "/")
-	if len(spl) != 3 {
-		return roleID{}, errors.New("role ID must follow the format: {{.ProjectID}}/{{.BranchID}}/{{.RoleName}}")
-	}
-	return roleID{
-		ProjectID: spl[0],
-		BranchID:  spl[1],
-		Name:      spl[2],
-	}, nil
-}
-
 func resourceRoleCreateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return projectReadiness.Retry(resourceRoleCreate, ctx, d, meta)
 }
@@ -115,7 +87,7 @@ func resourceRoleCreateRetry(ctx context.Context, d *schema.ResourceData, meta i
 func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Role")
 
-	r := roleID{
+	r := complexID{
 		ProjectID: d.Get("project_id").(string),
 		BranchID:  d.Get("branch_id").(string),
 		Name:      d.Get("name").(string),
@@ -179,7 +151,7 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 ) {
 	tflog.Trace(ctx, "import Role")
 
-	r, err := parseRoleID(d.Id())
+	r, err := parseComplexID(d.Id())
 	if err != nil {
 		return nil, err
 	}
