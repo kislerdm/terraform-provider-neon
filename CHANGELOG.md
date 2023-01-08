@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.9] - 2023-01-08
+
+### Fixed
+
+- Fixed `neon_branch` recourse by provisioning an endpoint attached to a newly created branch. It is required to permit
+  interactions with the branch to manage associated roles and databases.
+
+### Changed
+
+- Improved documentation
+- Added an end-to-end guide to provision resources for AWS application to communicate with the Neon database  
+
 ## [0.0.8] - 2023-01-08
 
 ### Added
@@ -38,7 +50,8 @@ resource "neon_role" "this" {
 
 ### Fixed
 
-- Fixed `neon_endpoint` resource provisioning when the attribute `pg_settings` is not set. The bug was in the Neon SDK, see
+- Fixed `neon_endpoint` resource provisioning when the attribute `pg_settings` is not set. The bug was in the Neon SDK,
+  see
   details in the [release notes](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.1.4).
 
 ### Changed
