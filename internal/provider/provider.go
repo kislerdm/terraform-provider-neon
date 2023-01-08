@@ -39,6 +39,7 @@ func New(version string) *schema.Provider {
 			"neon_project":  resourceProject(),
 			"neon_branch":   resourceBranch(),
 			"neon_endpoint": resourceEndpoint(),
+			"neon_role":     resourceRole(),
 		},
 		ConfigureContextFunc: configure(version),
 	}
