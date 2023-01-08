@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7] - 2023-01-08
+
+### Added
+
+- Role resource:
+
+```terraform
+resource "neon_role" "this" {
+  project_id = "bitter-meadow-966132"
+  branch_id  = "br-floral-mountain-251143"
+  name       = "qux"
+}
+```
+
 ## [0.0.6] - 2023-01-08
 
 ### Fixed
