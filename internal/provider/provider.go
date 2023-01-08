@@ -22,7 +22,8 @@ func init() {
 // 0.1.0: 0
 // 0.1.1: 1
 // 0.1.3: 2
-const versionSchema = 2
+// 0.1.4: 3
+const versionSchema = 3
 
 func New(version string) *schema.Provider {
 	return &schema.Provider{

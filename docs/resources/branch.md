@@ -19,7 +19,7 @@ resource "neon_project" "example" {
 
 resource "neon_branch" "example" {
   project_id = neon_project.example.id
-  name       = "foo"
+  name       = "bar"
 }
 ```
 

@@ -181,24 +181,27 @@ func resourceEndpointCreateRetry(ctx context.Context, d *schema.ResourceData, me
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Endpoint")
 
+	cfg := neon.EndpointCreateRequestEndpoint{
+		BranchID:              d.Get("branch_id").(string),
+		Type:                  neon.EndpointType(d.Get("type").(string)),
+		RegionID:              d.Get("region_id").(string),
+		PoolerEnabled:         d.Get("pooler_enabled").(bool),
+		AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
+		AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
+		PoolerMode:            neon.EndpointPoolerMode(d.Get("pooler_mode").(string)),
+		PasswordlessAccess:    d.Get("passwordless_access").(bool),
+		Disabled:              d.Get("disabled").(bool),
+	}
+
+	if v, ok := d.GetOk("pg_settings"); ok {
+		cfg.Settings = &neon.EndpointSettingsData{
+			PgSettings: mapToPgSettings(v.(map[string]interface{})),
+		}
+	}
+
 	resp, err := meta.(neon.Client).CreateProjectEndpoint(
 		d.Get("project_id").(string),
-		neon.EndpointCreateRequest{
-			Endpoint: neon.EndpointCreateRequestEndpoint{
-				BranchID:              d.Get("branch_id").(string),
-				Type:                  neon.EndpointType(d.Get("type").(string)),
-				RegionID:              d.Get("region_id").(string),
-				PoolerEnabled:         d.Get("pooler_enabled").(bool),
-				AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
-				AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
-				PoolerMode:            neon.EndpointPoolerMode(d.Get("pooler_mode").(string)),
-				Settings: neon.EndpointSettingsData{
-					PgSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
-				},
-				PasswordlessAccess: d.Get("passwordless_access").(bool),
-				Disabled:           d.Get("disabled").(bool),
-			},
-		},
+		neon.EndpointCreateRequest{Endpoint: cfg},
 	)
 	if err != nil {
 		return err
@@ -233,23 +236,26 @@ func resourceEndpointUpdateRetry(ctx context.Context, d *schema.ResourceData, me
 func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "update Endpoint")
 
+	cfg := neon.EndpointUpdateRequestEndpoint{
+		PoolerEnabled:         d.Get("pooler_enabled").(bool),
+		PoolerMode:            neon.EndpointPoolerMode(d.Get("pooler_mode").(string)),
+		Disabled:              d.Get("disabled").(bool),
+		PasswordlessAccess:    d.Get("passwordless_access").(bool),
+		BranchID:              d.Get("branch_id").(string),
+		AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
+		AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
+	}
+
+	if v, ok := d.GetOk("pg_settings"); ok {
+		cfg.Settings = &neon.EndpointSettingsData{
+			PgSettings: mapToPgSettings(v.(map[string]interface{})),
+		}
+	}
+
 	resp, err := meta.(neon.Client).UpdateProjectEndpoint(
 		d.Get("project_id").(string),
 		d.Id(),
-		neon.EndpointUpdateRequest{
-			Endpoint: neon.EndpointUpdateRequestEndpoint{
-				Settings: neon.EndpointSettingsData{
-					PgSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
-				},
-				PoolerEnabled:         d.Get("pooler_enabled").(bool),
-				PoolerMode:            neon.EndpointPoolerMode(d.Get("pooler_mode").(string)),
-				Disabled:              d.Get("disabled").(bool),
-				PasswordlessAccess:    d.Get("passwordless_access").(bool),
-				BranchID:              d.Get("branch_id").(string),
-				AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
-				AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
-			},
-		},
+		neon.EndpointUpdateRequest{Endpoint: cfg},
 	)
 	if err != nil {
 		return err
