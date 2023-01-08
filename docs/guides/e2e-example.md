@@ -308,14 +308,14 @@ resource "aws_iam_policy" "neon_access_secret" {
 8. Clean the demo infrastructure:
    ```commandline
    terraform destroy -auto-approve
-   ``` 
+   ```
    Expected output in stdout:
    ```commandline
    Destroy complete! Resources: 7 destroyed.
    ```
 9. Unset environment variables:
-  ``` commandline
-  unset NEON_API_KEY
-  unset AWS_ACCESS_KEY_ID
-  unset AWS_SECRET_ACCESS_KEY 
+   ```commandline
+   unset NEON_API_KEY
+   unset AWS_ACCESS_KEY_ID
+   unset AWS_SECRET_ACCESS_KEY
    ```
