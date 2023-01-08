@@ -21,6 +21,9 @@ func TestAccResourceBranch(t *testing.T) {
 						resource.TestCheckResourceAttr("neon_branch.foo", "name", "dev2"),
 						resource.TestCheckResourceAttr("neon_branch.foo", "parent_lsn", "0/1DE2850"),
 						resource.TestCheckResourceAttr("neon_branch.foo", "current_state", "ready"),
+						resource.TestCheckResourceAttr(
+							"neon_branch.foo", "host", "ep-shrill-thunder-454069.us-east-2.aws.neon.tech",
+						),
 					),
 				},
 			},

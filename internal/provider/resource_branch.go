@@ -70,6 +70,17 @@ See details: https://neon.tech/docs/reference/glossary/#lsn`,
 				Computed:    true,
 				Description: "Branch logical size in MB.",
 			},
+			"endpoint": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Default endpoint to interact with resources associated with the branch.",
+				Elem:        resourceEndpoint(),
+			},
+			"host": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Host to access resources through default endpoint.",
+			},
 			"current_state": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -146,6 +157,7 @@ func resourceBranchDeleteRetry(ctx context.Context, d *schema.ResourceData, meta
 
 func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Branch")
+	tflog.Debug(ctx, "create Branch. projectID: "+d.Get("project_id").(string))
 
 	cfg := neon.BranchCreateRequest{
 		Branch: neon.BranchCreateRequestBranch{
@@ -169,7 +181,45 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	d.SetId(resp.Branch.ID)
-	return updateStateBranch(d, resp.Branch)
+	if err := updateStateBranch(d, resp.Branch); err != nil {
+		return err
+	}
+
+	endpoint := resourceEndpoint()
+	endpointData := endpoint.TestResourceData()
+	if err := endpointData.Set("project_id", d.Get("project_id")); err != nil {
+		return err
+	}
+	if err := endpointData.Set("branch_id", d.Id()); err != nil {
+		return err
+	}
+	if err := endpointData.Set("type", "read_write"); err != nil {
+		return err
+	}
+
+	tflog.Debug(
+		ctx,
+		"create Endpoint. projectID: "+endpointData.Get("project_id").(string)+
+			"branchID: "+endpointData.Get("branch_id").(string),
+	)
+
+	if err := resourceEndpointCreate(ctx, endpointData, meta); err != nil {
+		tflog.Error(ctx, err.Error())
+		return err
+	}
+
+	if err := d.Set("endpoint", []*schema.ResourceData{endpointData}); err != nil {
+		tflog.Error(ctx, `d.Set("endpoint"): `+err.Error())
+		return err
+	}
+
+	tflog.Debug(ctx, "endpoint host: "+endpointData.Get("host").(string))
+	if err := d.Set("host", endpointData.Get("host")); err != nil {
+		tflog.Error(ctx, `d.Set("host"): `+err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
