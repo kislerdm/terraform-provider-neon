@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -12,9 +11,131 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
+func newSchemaQuota() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Computed: true,
+		Description: `Per-project consumption quota. If the quota is exceeded, all active computes
+are automatically suspended and it will not be possible to start them with
+an API method call or incoming proxy connections. The only exception is
+logical_size_bytes, which is applied on per-branch basis, i.e., only the
+compute on the branch that exceeds the logical_size quota will be suspended.
+
+Quotas are enforced based on per-project consumption metrics with the same names,
+which are reset at the end of each billing period (the first day of the month).
+Logical size is also an exception in this case, as it represents the total size
+of data stored in a branch, so it is not reset.
+
+The zero value per attributed means 'unlimited'.`,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"active_time_seconds": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Computed:    true,
+					Description: `The total amount of wall-clock time allowed to be spent by the project's compute endpoints.`,
+				},
+				"compute_time_seconds": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Computed:    true,
+					Description: `The total amount of CPU seconds allowed to be spent by the project's compute endpoints.`,
+				},
+				"written_data_bytes": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Computed:    true,
+					Description: `Total amount of data written to all of a project's branches.`,
+				},
+				"data_transfer_bytes": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Computed:    true,
+					Description: `Total amount of data transferred from all of a project's branches using the proxy.`,
+				},
+				"logical_size_bytes": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Computed:    true,
+					Description: `Limit on the logical size of every project's branch.`,
+				},
+			},
+		},
+	}
+}
+
+func expandSchemaProjectQuota(v []interface{}) neon.ProjectQuota {
+	if len(v) == 0 || v[0] == nil {
+		return neon.ProjectQuota{}
+	}
+
+	mConf := v[0].(map[string]interface{})
+
+	o := neon.ProjectQuota{}
+
+	if v, ok := mConf["active_time_seconds"].(int64); ok && v > 0 {
+		o.ActiveTimeSeconds = v
+	}
+
+	if v, ok := mConf["compute_time_seconds"].(int64); ok && v > 0 {
+		o.ComputeTimeSeconds = v
+	}
+
+	if v, ok := mConf["written_data_bytes"].(int64); ok && v > 0 {
+		o.WrittenDataBytes = v
+	}
+
+	if v, ok := mConf["data_transfer_bytes"].(int64); ok && v > 0 {
+		o.DataTransferBytes = v
+	}
+
+	if v, ok := mConf["logical_size_bytes"].(int64); ok && v > 0 {
+		o.LogicalSizeBytes = v
+	}
+
+	return o
+}
+
+func newSchemaDefaultEndpointSettings() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Computed: true,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"autoscaling_limit_min_cu": {
+					Type:         schema.TypeFloat,
+					ValidateFunc: validateAutoscallingLimit,
+					Optional:     true,
+					Computed:     true,
+				},
+				"autoscaling_limit_max_cu": {
+					Type:         schema.TypeFloat,
+					ValidateFunc: validateAutoscallingLimit,
+					Optional:     true,
+					Computed:     true,
+				},
+				"suspend_timeout_seconds": {
+					Type:     schema.TypeInt,
+					Optional: true,
+					Computed: true,
+					Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+The value 0 means use the global default.
+The value -1 means never suspend. The default value is 300 seconds (5 minutes).
+The maximum value is 604800 seconds (1 week)`,
+				},
+			},
+		},
+	}
+}
+
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Neon Project. See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/",
+		Description: `Neon Project. 
+
+See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
+API: https://api-docs.neon.tech/reference/createproject`,
 		SchemaVersion: versionSchema,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectImport,
@@ -24,6 +145,11 @@ func resourceProject() *schema.Resource {
 		UpdateContext: resourceProjectUpdateRetry,
 		DeleteContext: resourceProjectDeleteRetry,
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Project ID.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -37,7 +163,7 @@ func resourceProject() *schema.Resource {
 				Computed:    true,
 				ForceNew:    true,
 				Description: "Postgres version",
-				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+				ValidateFunc: func(i interface{}, _ string) (warns []string, errs []error) {
 					switch v := i.(int); v {
 					case 14, 15:
 						return
@@ -49,46 +175,51 @@ func resourceProject() *schema.Resource {
 					}
 				},
 			},
-			"pg_settings": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Computed: true,
+
+			"store_password": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not passwords are stored for roles in the Neon project. Storing passwords facilitates access to Neon features that require authorization.",
 			},
-			"cpu_quota_sec": {
+
+			"history_retention_seconds": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
-				Description: "Total amount of CPU seconds that is allowed to be spent by the endpoints of that project.",
+				Description: "The number of seconds to retain the point-in-time restore (PITR) backup history for this project",
 			},
-			"autoscaling_limit_min_cu": {
-				Type:     schema.TypeInt,
+
+			"provisioner": {
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				Description: `Provisioner The Neon compute provisioner.
+Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
+`,
+				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+					switch v := i.(string); v {
+					case "k8s-pod", "k8s-neonvm":
+					default:
+						errs = append(
+							errs,
+							errors.New(
+								v+" is not supported for "+s+
+									". See details: https://api-docs.neon.tech/reference/createproject",
+							),
+						)
+					}
+					return
+				},
 			},
-			"autoscaling_limit_max_cu": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-			},
-			"id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Project ID.",
-			},
-			"branch_logical_size_limit": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Project creation timestamp.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Project last update timestamp.",
-			},
+
+			"quota": newSchemaQuota(),
+
+			"default_endpoint_settings": newSchemaDefaultEndpointSettings(),
+
+			"branch": newBranchSchema(),
+
+			// computed fields
 			"database_host": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -120,6 +251,63 @@ func resourceProject() *schema.Resource {
 	}
 }
 
+func newBranchSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Computed: true,
+		ForceNew: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Computed:    true,
+					ForceNew:    true,
+					Description: "The branch name. If not specified, the default branch name will be used.",
+				},
+				"role_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Computed:    true,
+					ForceNew:    true,
+					Description: "The role name. If not specified, the default role name will be used.",
+				},
+				"database_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Computed:    true,
+					ForceNew:    true,
+					Description: "The database name. If not specified, the default database name will be used.",
+				},
+			},
+		},
+	}
+}
+
+func expandSchemaCreateProjectBranch(v []interface{}) *neon.ProjectCreateRequestProjectBranch {
+	if v == nil || len(v) == 0 {
+		return nil
+	}
+
+	mConf := v[0].(map[string]interface{})
+
+	o := &neon.ProjectCreateRequestProjectBranch{}
+	if v, ok := mConf["name"].(string); ok && v != "" {
+		o.Name = &v
+	}
+
+	if v, ok := mConf["role_name"].(string); ok && v != "" {
+		o.RoleName = &v
+	}
+
+	if v, ok := mConf["database_name"].(string); ok && v != "" {
+		o.RoleName = &v
+	}
+
+	return o
+}
+
 func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) error {
 	if err := d.Set("name", r.Project.Name); err != nil {
 		return err
@@ -130,21 +318,10 @@ func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) error {
 	if err := d.Set("pg_version", r.Project.PgVersion); err != nil {
 		return err
 	}
-	if err := d.Set("pg_settings", pgSettingsToMap(r.Project.DefaultEndpointSettings.PgSettings)); err != nil {
-		return err
-	}
-	if err := d.Set("cpu_quota_sec", r.Project.DefaultEndpointSettings.Quota.CpuQuotaSec); err != nil {
-		return err
-	}
 	if err := d.Set("branch_logical_size_limit", r.Project.BranchLogicalSizeLimit); err != nil {
 		return err
 	}
-	if err := d.Set("created_at", r.Project.CreatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
-	if err := d.Set("updated_at", r.Project.UpdatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -228,18 +405,28 @@ func setRole(d *schema.ResourceData, r []neon.Role) error {
 func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "created Project")
 
+	projectDef := neon.ProjectCreateRequestProject{
+		HistoryRetentionSeconds: pointer(d.Get("history_retention_seconds").(int64)),
+		Name:                    pointer(d.Get("name").(string)),
+		PgVersion:               pointer(neon.PgVersion(d.Get("pg_version").(int))),
+		Provisioner:             pointer(neon.Provisioner(d.Get("provisioner").(string))),
+		RegionID:                pointer(d.Get("region_id").(string)),
+		StorePasswords:          pointer(d.Get("store_password").(bool)),
+	}
+
+	if v, ok := d.Get("quota").([]interface{}); ok && len(v) > 0 && v[0] != nil {
+		projectDef.Settings = &neon.ProjectSettingsData{Quota: expandSchemaProjectQuota(v)}
+	}
+
+	if v, ok := d.Get("branch").([]interface{}); ok && len(v) > 0 && v[0] != nil {
+		projectDef.Branch = expandSchemaCreateProjectBranch(v)
+	}
+
 	client := meta.(neon.Client)
+
 	resp, err := client.CreateProject(
 		neon.ProjectCreateRequest{
-			Project: neon.ProjectCreateRequestProject{
-				AutoscalingLimitMinCu:   int32(d.Get("autoscaling_limit_min_cu").(int)),
-				AutoscalingLimitMaxCu:   int32(d.Get("autoscaling_limit_max_cu").(int)),
-				RegionID:                d.Get("region_id").(string),
-				DefaultEndpointSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
-				PgVersion:               neon.PgVersion(d.Get("pg_version").(int)),
-				Quota:                   neon.ProjectQuota{CpuQuotaSec: int64(d.Get("cpu_quota_sec").(int))},
-				Name:                    d.Get("name").(string),
-			},
+			Project: projectDef,
 		},
 	)
 
@@ -273,17 +460,8 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 	resp, err := meta.(neon.Client).UpdateProject(
 		d.Id(),
-		neon.ProjectUpdateRequest{
-			Project: neon.ProjectUpdateRequestProject{
-				DefaultEndpointSettings: mapToPgSettings(d.Get("pg_settings").(map[string]interface{})),
-				Quota: neon.ProjectQuota{
-					CpuQuotaSec: int64(d.Get("cpu_quota_sec").(int)),
-				},
-				AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
-				AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
-				Name:                  d.Get("name").(string),
-			},
-		},
+		// TODO
+		neon.ProjectUpdateRequest{},
 	)
 	if err != nil {
 		return err
