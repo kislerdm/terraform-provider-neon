@@ -130,6 +130,29 @@ The maximum value is 604800 seconds (1 week)`,
 	}
 }
 
+func expandSchemaProjectDefaultEndpointSettings(v []interface{}) *neon.DefaultEndpointSettings {
+	if v == nil || len(v) == 0 {
+		return nil
+	}
+
+	mConf := v[0].(map[string]interface{})
+
+	o := &neon.DefaultEndpointSettings{}
+	if v, ok := mConf["autoscaling_limit_min_cu"].(float64); ok && v > 0 {
+		o.AutoscalingLimitMinCu = neon.ComputeUnit(v)
+	}
+
+	if v, ok := mConf["autoscaling_limit_max_cu"].(float64); ok && v > 0 {
+		o.AutoscalingLimitMaxCu = neon.ComputeUnit(v)
+	}
+
+	if v, ok := mConf["suspend_timeout_seconds"].(int64); ok && v > 0 {
+		o.SuspendTimeoutSeconds = neon.SuspendTimeoutSeconds(v)
+	}
+
+	return o
+}
+
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
 		Description: `Neon Project. 
@@ -259,6 +282,11 @@ func newBranchSchema() *schema.Schema {
 		ForceNew: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
+				"id": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "Branch ID.",
+				},
 				"name": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -308,20 +336,25 @@ func expandSchemaCreateProjectBranch(v []interface{}) *neon.ProjectCreateRequest
 	return o
 }
 
-func updateStateProject(d *schema.ResourceData, r neon.ProjectResponse) error {
-	if err := d.Set("name", r.Project.Name); err != nil {
+func updateStateProject(d *schema.ResourceData, r neon.Project) error {
+	if err := d.Set("name", r.Name); err != nil {
 		return err
 	}
-	if err := d.Set("region_id", r.Project.RegionID); err != nil {
+	if err := d.Set("region_id", r.RegionID); err != nil {
 		return err
 	}
-	if err := d.Set("pg_version", r.Project.PgVersion); err != nil {
+	if err := d.Set("pg_version", r.PgVersion); err != nil {
 		return err
 	}
-	if err := d.Set("branch_logical_size_limit", r.Project.BranchLogicalSizeLimit); err != nil {
+	if err := d.Set("history_retention_seconds", r.HistoryRetentionSeconds); err != nil {
 		return err
 	}
-
+	if err := d.Set("provisioner", string(r.Provisioner)); err != nil {
+		return err
+	}
+	if err := d.Set("store_password", r.StorePasswords); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -331,75 +364,6 @@ func resourceProjectDeleteRetry(ctx context.Context, d *schema.ResourceData, met
 
 func resourceProjectUpdateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return projectReadiness.Retry(resourceProjectUpdate, ctx, d, meta)
-}
-
-func setMainBranchInfo(d *schema.ResourceData, client neon.Client) diag.Diagnostics {
-	br, err := client.ListProjectBranches(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	endpoints, err := client.ListProjectEndpoints(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	databaseHost := endpoints.Endpoints[0].Host
-	if err := d.Set("database_host", databaseHost); err != nil {
-		return diag.FromErr(err)
-	}
-
-	for _, branch := range br.Branches {
-		if branch.Name == "main" {
-			r, err := client.ListProjectBranchRoles(d.Id(), branch.ID)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			if err := setRole(d, r.Roles); err != nil {
-				return diag.FromErr(err)
-			}
-
-			o, err := client.ListProjectBranchDatabases(d.Id(), branch.ID)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			databaseName := o.Databases[0].Name
-			if err := d.Set("database_name", databaseName); err != nil {
-				return diag.FromErr(err)
-			}
-
-			databaseUser := d.Get("database_user").(string)
-			databasePassword := d.Get("database_password").(string)
-			if databaseUser != "" && databasePassword != "" {
-				connectionURI := "postgres://" + databaseUser + ":" + databasePassword + "@" + databaseHost + "/" + databaseName
-				if err := d.Set("connection_uri", connectionURI); err != nil {
-					return diag.FromErr(err)
-				}
-			}
-
-			break
-		}
-	}
-
-	return nil
-}
-
-func setRole(d *schema.ResourceData, r []neon.Role) error {
-	for _, role := range r {
-		if role.Name == "web_access" {
-			continue
-		}
-		if err := d.Set("database_user", role.Name); err != nil {
-			return err
-		}
-		if err := d.Set("database_password", role.Password); err != nil {
-			return err
-		}
-		break
-	}
-	return nil
 }
 
 func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -422,6 +386,10 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		projectDef.Branch = expandSchemaCreateProjectBranch(v)
 	}
 
+	if v, ok := d.Get("default_endpoint_settings").([]interface{}); ok && len(v) > 0 && v[0] != nil {
+		projectDef.DefaultEndpointSettings = expandSchemaProjectDefaultEndpointSettings(v)
+	}
+
 	client := meta.(neon.Client)
 
 	resp, err := client.CreateProject(
@@ -434,21 +402,80 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	d.SetId(resp.ProjectResponse.Project.ID)
-	if err := updateStateProject(d, resp.ProjectResponse); err != nil {
+	project := resp.ProjectResponse.Project
+
+	d.SetId(project.ID)
+
+	if err := updateStateProject(d, project); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := setRole(d, resp.Roles); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("database_host", resp.Endpoints[0].Host); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("database_name", resp.Databases[0].Name); err != nil {
+
+	defaultDatabaseName := resp.Databases[0].Name
+
+	if err := d.Set("database_name", defaultDatabaseName); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("connection_uri", resp.ConnectionUris[0].ConnectionURI); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// TODO: verify if the logic works for project import given that many non "web_access" roles exist
+	var defaultRole string
+	for _, role := range resp.Roles {
+		if role.Name == "web_access" {
+			continue
+		}
+		defaultRole = role.Name
+		if err := d.Set("database_user", role.Name); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("database_password", role.Password); err != nil {
+			return diag.FromErr(err)
+		}
+		break
+	}
+
+	quota := project.Settings.Quota
+	if err := d.Set(
+		"quota", []interface{}{
+			map[string]interface{}{
+				"active_time_seconds":  quota.ActiveTimeSeconds,
+				"compute_time_seconds": quota.ComputeTimeSeconds,
+				"written_data_bytes":   quota.WrittenDataBytes,
+				"data_transfer_bytes":  quota.DataTransferBytes,
+				"logical_size_bytes":   quota.LogicalSizeBytes,
+			},
+		},
+	); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set(
+		"branch", []interface{}{
+			map[string]interface{}{
+				"id":            resp.Branch.ID,
+				"name":          resp.Branch.Name,
+				"role_name":     defaultRole,
+				"database_name": defaultDatabaseName,
+			},
+		},
+	); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set(
+		"default_endpoint_settings", []interface{}{
+			map[string]interface{}{
+				"autoscaling_limit_min_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMinCu),
+				"autoscaling_limit_max_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMaxCu),
+				"suspend_timeout_seconds":  int64(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
+			},
+		},
+	); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -458,16 +485,22 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "update Project")
 
-	resp, err := meta.(neon.Client).UpdateProject(
-		d.Id(),
-		// TODO
-		neon.ProjectUpdateRequest{},
-	)
-	if err != nil {
-		return err
+	if !d.HasChanges("name", "history_retention_seconds", "default_endpoint_settings", "quota") {
+		return nil
 	}
 
-	return updateStateProject(d, resp.ProjectResponse)
+	req := neon.ProjectUpdateRequestProject{
+		HistoryRetentionSeconds: pointer(d.Get("history_retention_seconds").(int64)),
+		Name:                    pointer(d.Get("name").(string)),
+	}
+	req.Settings.Quota = expandSchemaProjectQuota(d.Get("quota").([]interface{}))
+	req.DefaultEndpointSettings = expandSchemaProjectDefaultEndpointSettings(
+		d.Get("default_endpoint_settings").([]interface{}),
+	)
+
+	_, err := meta.(neon.Client).UpdateProject(d.Id(), neon.ProjectUpdateRequest{Project: req})
+
+	return err
 }
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -480,11 +513,128 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	if err := updateStateProject(d, resp); err != nil {
+	branches, err := client.ListProjectBranches(d.Id())
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return setMainBranchInfo(d, client)
+	project := resp.Project
+
+	if err := updateStateProject(d, project); err != nil {
+		return diag.FromErr(err)
+	}
+
+	quota := project.Settings.Quota
+	if err := d.Set(
+		"quota", []interface{}{
+			map[string]interface{}{
+				"active_time_seconds":  quota.ActiveTimeSeconds,
+				"compute_time_seconds": quota.ComputeTimeSeconds,
+				"written_data_bytes":   quota.WrittenDataBytes,
+				"data_transfer_bytes":  quota.DataTransferBytes,
+				"logical_size_bytes":   quota.LogicalSizeBytes,
+			},
+		},
+	); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set(
+		"default_endpoint_settings", []interface{}{
+			map[string]interface{}{
+				"autoscaling_limit_min_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMinCu),
+				"autoscaling_limit_max_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMaxCu),
+				"suspend_timeout_seconds":  int64(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
+			},
+		},
+	); err != nil {
+		return diag.FromErr(err)
+	}
+
+	branchMain := selectMainBranch(branches.Branches)
+
+	roles, err := client.ListProjectBranchRoles(d.Id(), branchMain.ID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	dbs, err := client.ListProjectBranchDatabases(d.Id(), branchMain.ID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	var defaultRole string
+	var pass string
+	for _, v := range roles.Roles {
+		if !v.Protected && v.Name != "web_access" {
+			defaultRole = v.Name
+			pass = v.Password
+		}
+	}
+
+	dbName := dbs.Databases[0].Name
+	if err := d.Set(
+		"branch", []interface{}{
+			map[string]interface{}{
+				"id":            branchMain.ID,
+				"name":          branchMain.Name,
+				"role_name":     defaultRole,
+				"database_name": dbName,
+			},
+		},
+	); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("database_user", defaultRole); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("database_password", pass); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("database_name", dbName); err != nil {
+		return diag.FromErr(err)
+	}
+
+	endpoints, err := client.ListProjectBranchEndpoints(d.Id(), branchMain.ID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	endpoint := selectFirstActiveRWEndpoint(endpoints.Endpoints)
+
+	if endpoint != nil {
+		if err := d.Set("database_host", endpoint.Host); err != nil {
+			return diag.FromErr(err)
+		}
+		connectionURI := "postgres://" + defaultRole + ":" + pass + "@" + endpoint.Host + "/" + dbName
+		if err := d.Set("connection_uri", connectionURI); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
+}
+
+func selectFirstActiveRWEndpoint(endpoints []neon.Endpoint) *neon.Endpoint {
+	for _, v := range endpoints {
+		if !v.Disabled && v.Type == "read_write" {
+			return &v
+		}
+	}
+	return nil
+}
+
+func selectMainBranch(branches []neon.Branch) neon.Branch {
+	if len(branches) == 0 {
+		return neon.Branch{}
+	}
+	for _, v := range branches {
+		if v.Name == "main" {
+			return v
+		}
+	}
+	return branches[0]
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -495,10 +645,9 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	d.SetId("")
-	if err := updateStateProject(d, neon.ProjectResponse{}); err != nil {
+	if err := updateStateProject(d, neon.Project{}); err != nil {
 		return err
 	}
-
 	if err := d.Set("database_name", ""); err != nil {
 		return err
 	}
@@ -513,6 +662,15 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 	}
 	if err := d.Set("connection_uri", ""); err != nil {
 		return err
+	}
+	for _, k := range []string{
+		"quota",
+		"branch",
+		"default_endpoint_settings",
+	} {
+		if err := d.Set(k, nil); err != nil {
+			return err
+		}
 	}
 	return nil
 }

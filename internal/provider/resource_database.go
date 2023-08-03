@@ -134,8 +134,8 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		r.ProjectID, r.BranchID, r.Name,
 		neon.DatabaseUpdateRequest{
 			Database: neon.DatabaseUpdateRequestDatabase{
-				Name:      d.Get("name").(string),
-				OwnerName: d.Get("owner_name").(string),
+				Name:      d.Get("name").(*string),
+				OwnerName: d.Get("owner_name").(*string),
 			},
 		},
 	)
