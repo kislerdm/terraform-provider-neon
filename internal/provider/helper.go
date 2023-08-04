@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -131,4 +132,39 @@ func parseComplexID(s string) (complexID, error) {
 		BranchID:  spl[1],
 		Name:      spl[2],
 	}, nil
+}
+
+type t interface {
+	bool | string | int | int32 | int64 | float64 | float32 | neon.PgVersion | neon.ComputeUnit | neon.Provisioner | neon.EndpointPoolerMode
+}
+
+func pointer[V t](v V) *V {
+	if fmt.Sprintf("%v", v) == "" {
+		return nil
+	}
+	return &v
+}
+
+func validateAutoscallingLimit(val interface{}, name string) (warns []string, errs []error) {
+	switch v := val.(float64); v {
+	case
+		0.25,
+		0.5,
+		1.,
+		2.,
+		3.,
+		4.,
+		5.,
+		6.,
+		7.:
+		return
+	default:
+		errs = append(
+			errs, fmt.Errorf(
+				`%v is unsopported value for %s, 
+details: https://neon.tech/docs/manage/endpoints#compute-size-and-autoscaling-configuration`, v, name,
+			),
+		)
+		return
+	}
 }

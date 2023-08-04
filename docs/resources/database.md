@@ -48,8 +48,6 @@ resource "neon_database" "example" {
 
 ### Read-Only
 
-- `created_at` (String) Role creation timestamp.
 - `id` (String) The ID of this resource.
-- `updated_at` (String) Role last update timestamp.
 
 

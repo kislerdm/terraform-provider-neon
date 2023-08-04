@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -45,28 +44,12 @@ func resourceDatabase() *schema.Resource {
 				ForceNew:    true,
 				Description: "Role name of the database owner.",
 			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Role creation timestamp.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Role last update timestamp.",
-			},
 		},
 	}
 }
 
 func updateStateDatabase(d *schema.ResourceData, v neon.Database) error {
 	if err := d.Set("owner_name", v.OwnerName); err != nil {
-		return err
-	}
-	if err := d.Set("created_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
-	if err := d.Set("updated_at", v.UpdatedAt.Format(time.RFC3339)); err != nil {
 		return err
 	}
 	return nil
@@ -134,8 +117,8 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		r.ProjectID, r.BranchID, r.Name,
 		neon.DatabaseUpdateRequest{
 			Database: neon.DatabaseUpdateRequestDatabase{
-				Name:      d.Get("name").(string),
-				OwnerName: d.Get("owner_name").(string),
+				Name:      pointer(d.Get("name").(string)),
+				OwnerName: pointer(d.Get("owner_name").(string)),
 			},
 		},
 	)
@@ -176,7 +159,7 @@ func resourceDatabaseImport(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	setResourceDataFromComplexID(d, r)
-	if err := resourceDatabaseUpdate(ctx, d, meta); err != nil {
+	if err := resourceDatabaseRead(ctx, d, meta); err != nil {
 		return nil, err
 	}
 

@@ -56,12 +56,10 @@ See details: https://neon.tech/docs/connect/connection-pooling
 
 ### Read-Only
 
-- `created_at` (String) Endpoint creation timestamp.
 - `current_state` (String) Endpoint state.
 - `host` (String) Endpoint URI.
 - `id` (String) The ID of this resource.
 - `pending_state` (String) Endpoint pending state.
 - `proxy_host` (String)
-- `updated_at` (String) Endpoint last update timestamp.
 
 

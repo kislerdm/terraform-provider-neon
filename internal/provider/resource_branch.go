@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"errors"
-	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -28,6 +27,11 @@ func resourceBranch() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Project ID.",
+			},
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Branch ID.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -60,46 +64,18 @@ See details: https://neon.tech/docs/reference/glossary/#lsn`,
 				Description: `Timestamp horizon for the data to be present in the new branch. 
 **Note**: it's defined as Unix epoch.'`,
 			},
-			"physical_size_size": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Branch physical size in MB.",
-			},
+
 			"logical_size": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "Branch logical size in MB.",
 			},
-			"endpoint": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "Default endpoint to interact with resources associated with the branch.",
-				Elem:        resourceEndpoint(),
-			},
-			"host": {
+
+			"connection_uri": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Host to access resources through default endpoint.",
-			},
-			"current_state": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Branch state.",
-			},
-			"pending_state": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Branch pending state.",
-			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Branch creation timestamp.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Branch last update timestamp.",
+				Sensitive:   true,
+				Description: "Default connection uri. **Note** that it contains access credentials.",
 			},
 		},
 	}
@@ -119,21 +95,6 @@ func updateStateBranch(d *schema.ResourceData, v neon.Branch) error {
 		return err
 	}
 	if err := d.Set("logical_size", int(v.LogicalSize)); err != nil {
-		return err
-	}
-	if err := d.Set("physical_size_size", int(v.PhysicalSize)); err != nil {
-		return err
-	}
-	if err := d.Set("current_state", v.CurrentState); err != nil {
-		return err
-	}
-	if err := d.Set("pending_state", v.PendingState); err != nil {
-		return err
-	}
-	if err := d.Set("created_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
-	if err := d.Set("updated_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
 		return err
 	}
 	return nil
@@ -160,10 +121,10 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	tflog.Debug(ctx, "create Branch. projectID: "+d.Get("project_id").(string))
 
 	cfg := neon.BranchCreateRequest{
-		Branch: neon.BranchCreateRequestBranch{
-			ParentID:  d.Get("parent_id").(string),
-			Name:      d.Get("name").(string),
-			ParentLsn: d.Get("parent_lsn").(string),
+		Branch: &neon.BranchCreateRequestBranch{
+			Name:      pointer(d.Get("name").(string)),
+			ParentID:  pointer(d.Get("parent_id").(string)),
+			ParentLsn: pointer(d.Get("parent_lsn").(string)),
 		},
 	}
 
@@ -180,43 +141,15 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		return err
 	}
 
-	d.SetId(resp.Branch.ID)
-	if err := updateStateBranch(d, resp.Branch); err != nil {
+	d.SetId(resp.BranchResponse.Branch.ID)
+	if err := updateStateBranch(d, resp.BranchResponse.Branch); err != nil {
 		return err
 	}
 
-	endpoint := resourceEndpoint()
-	endpointData := endpoint.TestResourceData()
-	if err := endpointData.Set("project_id", d.Get("project_id")); err != nil {
-		return err
-	}
-	if err := endpointData.Set("branch_id", d.Id()); err != nil {
-		return err
-	}
-	if err := endpointData.Set("type", "read_write"); err != nil {
-		return err
-	}
-
-	tflog.Debug(
-		ctx,
-		"create Endpoint. projectID: "+endpointData.Get("project_id").(string)+
-			"branchID: "+endpointData.Get("branch_id").(string),
-	)
-
-	if err := resourceEndpointCreate(ctx, endpointData, meta); err != nil {
-		tflog.Error(ctx, err.Error())
-		return err
-	}
-
-	if err := d.Set("endpoint", []*schema.ResourceData{endpointData}); err != nil {
-		tflog.Error(ctx, `d.Set("endpoint"): `+err.Error())
-		return err
-	}
-
-	tflog.Debug(ctx, "endpoint host: "+endpointData.Get("host").(string))
-	if err := d.Set("host", endpointData.Get("host")); err != nil {
-		tflog.Error(ctx, `d.Set("host"): `+err.Error())
-		return err
+	if len(resp.ConnectionUris) > 0 {
+		if err := d.Set("connection_uri", resp.ConnectionUris[0].ConnectionURI); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -232,7 +165,7 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	cfg := neon.BranchUpdateRequest{
 		Branch: neon.BranchUpdateRequestBranch{
-			Name: v.(string),
+			Name: pointer(v.(string)),
 		},
 	}
 
@@ -271,25 +204,28 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 ) {
 	tflog.Trace(ctx, "import Branch")
 
-	resp, err := meta.(neon.Client).ListProjects()
+	resp, err := meta.(neon.Client).ListProjects(nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, project := range resp.Projects {
-		if err := d.Set("project_id", project.ID); err != nil {
+		r, err := meta.(neon.Client).ListProjectBranches(project.ID)
+		if err != nil {
 			return nil, err
 		}
-		switch err := resourceBranchRead(ctx, d, meta).(type) {
-		case nil:
-			return []*schema.ResourceData{d}, nil
-		case neon.Error:
-			if err.HTTPCode == http.StatusNotFound {
-				continue
+		for _, br := range r.Branches {
+			if br.ID == d.Id() {
+				if err := d.Set("project_id", project.ID); err != nil {
+					return nil, err
+				}
+				if err := resourceBranchRead(ctx, d, meta); err != nil {
+					return nil, err
+				}
+				return []*schema.ResourceData{d}, nil
 			}
-		default:
-			return nil, err
 		}
 	}
+
 	return nil, errors.New("no branch " + d.Id() + " found")
 }
