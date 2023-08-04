@@ -14,6 +14,61 @@ The release follows update of the [Neon Go SDK](https://github.com/kislerdm/neon
 - ([#25](https://github.com/kislerdm/terraform-provider-neon/issues/25)) Fixed branch import
 - ([#26](https://github.com/kislerdm/terraform-provider-neon/issues/26)) Fixed database import
 - ([#32](https://github.com/kislerdm/terraform-provider-neon/issues/32)) Data type to define autoscaling limits
+- Neon logo in documentation
+
+### Added
+
+- `resource_project`:
+  - store_password (_Note that Neon does not support "false" value yet_)
+  - history_retention_seconds
+  - compute_provisioner
+  - quota:
+    - active_time_seconds
+    - compute_time_seconds
+    - written_data_bytes
+    - data_transfer_bytes
+    - logical_size_bytes
+  - default_endpoint_settings:
+    - autoscaling_limit_min_cu
+    - autoscaling_limit_max_cu
+    - suspend_timeout_seconds
+  - branch:
+    - id
+    - name
+    - role_name
+    - database_name
+
+- `resource_branch`:
+  - id
+  - connection_uri
+
+### Removed
+
+- `resource_project`:
+  - pg_settings
+  - cpu_quota_sec
+  - autoscaling_limit_min_cu
+  - autoscaling_limit_max_cu
+  - branch_logical_size_limit
+  - created_at
+  - updated_at
+
+- `resource_branch`:
+  - physical_size_size
+  - endpoint
+  - host
+  - current_state
+  - pending_state
+  - created_at
+  - updated_at
+
+- `resource_database`:
+  - created_at
+  - updated_at
+
+- `resource_endpoint`:
+  - created_at
+  - updated_at
 
 ## [0.1.0] - 2023-01-08
 
