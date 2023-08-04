@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -45,28 +44,12 @@ func resourceDatabase() *schema.Resource {
 				ForceNew:    true,
 				Description: "Role name of the database owner.",
 			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Role creation timestamp.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Role last update timestamp.",
-			},
 		},
 	}
 }
 
 func updateStateDatabase(d *schema.ResourceData, v neon.Database) error {
 	if err := d.Set("owner_name", v.OwnerName); err != nil {
-		return err
-	}
-	if err := d.Set("created_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
-	if err := d.Set("updated_at", v.UpdatedAt.Format(time.RFC3339)); err != nil {
 		return err
 	}
 	return nil

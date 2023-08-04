@@ -3,8 +3,6 @@ package provider
 import (
 	"context"
 	"errors"
-	"net/http"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -63,14 +61,16 @@ func resourceEndpoint() *schema.Resource {
 			},
 			"region_id": schemaRegionID,
 			"autoscaling_limit_min_cu": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeFloat,
+				ValidateFunc: validateAutoscallingLimit,
+				Optional:     true,
+				Computed:     true,
 			},
 			"autoscaling_limit_max_cu": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeFloat,
+				ValidateFunc: validateAutoscallingLimit,
+				Optional:     true,
+				Computed:     true,
 			},
 			"pg_settings": {
 				Type:     schema.TypeMap,
@@ -116,16 +116,6 @@ See details: https://neon.tech/docs/connect/connection-pooling`,
 				Computed:    true,
 				Description: "Endpoint pending state.",
 			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Endpoint creation timestamp.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Endpoint last update timestamp.",
-			},
 		},
 	}
 }
@@ -170,12 +160,6 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	if err := d.Set("pending_state", v.PendingState); err != nil {
 		return err
 	}
-	if err := d.Set("created_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
-	if err := d.Set("updated_at", v.UpdatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -189,13 +173,13 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	cfg := neon.EndpointCreateRequestEndpoint{
 		BranchID:              d.Get("branch_id").(string),
 		Type:                  neon.EndpointType(d.Get("type").(string)),
-		RegionID:              d.Get("region_id").(string),
-		PoolerEnabled:         d.Get("pooler_enabled").(bool),
-		AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
-		AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
-		PoolerMode:            neon.EndpointPoolerMode(d.Get("pooler_mode").(string)),
-		PasswordlessAccess:    d.Get("passwordless_access").(bool),
-		Disabled:              d.Get("disabled").(bool),
+		RegionID:              pointer(d.Get("region_id").(string)),
+		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
+		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
+		AutoscalingLimitMaxCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_max_cu").(float64))),
+		PoolerMode:            pointer(neon.EndpointPoolerMode(d.Get("pooler_mode").(string))),
+		PasswordlessAccess:    pointer(d.Get("passwordless_access").(bool)),
+		Disabled:              pointer(d.Get("disabled").(bool)),
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok {
@@ -242,13 +226,13 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	tflog.Trace(ctx, "update Endpoint")
 
 	cfg := neon.EndpointUpdateRequestEndpoint{
-		PoolerEnabled:         d.Get("pooler_enabled").(bool),
-		PoolerMode:            neon.EndpointPoolerMode(d.Get("pooler_mode").(string)),
-		Disabled:              d.Get("disabled").(bool),
-		PasswordlessAccess:    d.Get("passwordless_access").(bool),
-		BranchID:              d.Get("branch_id").(string),
-		AutoscalingLimitMinCu: int32(d.Get("autoscaling_limit_min_cu").(int)),
-		AutoscalingLimitMaxCu: int32(d.Get("autoscaling_limit_max_cu").(int)),
+		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
+		PoolerMode:            pointer(neon.EndpointPoolerMode(d.Get("pooler_mode").(string))),
+		Disabled:              pointer(d.Get("disabled").(bool)),
+		PasswordlessAccess:    pointer(d.Get("passwordless_access").(bool)),
+		BranchID:              pointer(d.Get("branch_id").(string)),
+		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
+		AutoscalingLimitMaxCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_max_cu").(float64))),
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok {
@@ -273,26 +257,31 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 ) {
 	tflog.Trace(ctx, "import Endpoint")
 
-	resp, err := meta.(neon.Client).ListProjects()
+	resp, err := meta.(neon.Client).ListProjects(nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, project := range resp.Projects {
-		if err := d.Set("project_id", project.ID); err != nil {
+		r, err := meta.(neon.Client).ListProjectEndpoints(project.ID)
+		if err != nil {
 			return nil, err
 		}
-		switch err := resourceEndpointRead(ctx, d, meta).(type) {
-		case nil:
-			return []*schema.ResourceData{d}, nil
-		case neon.Error:
-			if err.HTTPCode == http.StatusNotFound {
-				continue
+
+		for _, endpoint := range r.Endpoints {
+			if endpoint.ID == d.Id() {
+				if err := d.Set("project_id", project.ID); err != nil {
+					return nil, err
+				}
+				if err := resourceEndpointRead(ctx, d, meta); err != nil {
+					return nil, err
+				}
+				return []*schema.ResourceData{d}, nil
 			}
-		default:
-			return nil, err
 		}
+
 	}
+
 	return nil, errors.New("no endpoint " + d.Id() + " found")
 }
 

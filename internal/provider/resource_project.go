@@ -198,22 +198,19 @@ API: https://api-docs.neon.tech/reference/createproject`,
 					}
 				},
 			},
-
 			"store_password": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Computed:    true,
+				Default:     true,
 				Description: "Whether or not passwords are stored for roles in the Neon project. Storing passwords facilitates access to Neon features that require authorization.",
 			},
-
 			"history_retention_seconds": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
 				Description: "The number of seconds to retain the point-in-time restore (PITR) backup history for this project",
 			},
-
-			"provisioner": {
+			"compute_provisioner": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -235,13 +232,9 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 					return
 				},
 			},
-
-			"quota": newSchemaQuota(),
-
+			"quota":                     newSchemaQuota(),
 			"default_endpoint_settings": newSchemaDefaultEndpointSettings(),
-
-			"branch": newBranchSchema(),
-
+			"branch":                    newBranchSchema(),
 			// computed fields
 			"database_host": {
 				Type:        schema.TypeString,
@@ -349,7 +342,7 @@ func updateStateProject(d *schema.ResourceData, r neon.Project) error {
 	if err := d.Set("history_retention_seconds", r.HistoryRetentionSeconds); err != nil {
 		return err
 	}
-	if err := d.Set("provisioner", string(r.Provisioner)); err != nil {
+	if err := d.Set("compute_provisioner", string(r.Provisioner)); err != nil {
 		return err
 	}
 	if err := d.Set("store_password", r.StorePasswords); err != nil {
@@ -370,12 +363,17 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 	tflog.Trace(ctx, "created Project")
 
 	projectDef := neon.ProjectCreateRequestProject{
-		HistoryRetentionSeconds: pointer(d.Get("history_retention_seconds").(int64)),
-		Name:                    pointer(d.Get("name").(string)),
-		PgVersion:               pointer(neon.PgVersion(d.Get("pg_version").(int))),
-		Provisioner:             pointer(neon.Provisioner(d.Get("provisioner").(string))),
-		RegionID:                pointer(d.Get("region_id").(string)),
-		StorePasswords:          pointer(d.Get("store_password").(bool)),
+		Name:           pointer(d.Get("name").(string)),
+		Provisioner:    pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
+		RegionID:       pointer(d.Get("region_id").(string)),
+		StorePasswords: pointer(d.Get("store_password").(bool)),
+	}
+	if v, ok := d.Get("history_retention_seconds").(int); ok && v > 0 {
+		projectDef.HistoryRetentionSeconds = pointer(int64(v))
+	}
+
+	if v, ok := d.Get("pg_version").(int); ok && v > 0 {
+		projectDef.PgVersion = pointer(neon.PgVersion(v))
 	}
 
 	if v, ok := d.Get("quota").([]interface{}); ok && len(v) > 0 && v[0] != nil {
