@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2023-08-04
 
-The release follow update of the [Neon Go SDK](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.2.1).
+The release follows update of the [Neon Go SDK](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.2.1).
 
 ### Fixed
 
