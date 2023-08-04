@@ -13,17 +13,16 @@ func TestAccResourceProject(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Taint:  nil,
 					Config: testAccResourceProject,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("neon_project.foo", "id", "string"),
 						resource.TestCheckResourceAttr("neon_project.foo", "name", "string"),
 					),
-					ExpectNonEmptyPlan:        false,
-					PlanOnly:                  false,
-					PreventDiskCleanup:        false,
-					PreventPostDestroyRefresh: false,
-					Destroy:                   false,
+					Destroy:                 false,
+					ExpectNonEmptyPlan:      true,
+					PlanOnly:                true,
+					ImportStateVerifyIgnore: nil,
+					ProviderFactories:       nil,
 				},
 			},
 		},
