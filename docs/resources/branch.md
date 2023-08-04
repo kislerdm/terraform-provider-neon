@@ -41,37 +41,8 @@ See details: https://neon.tech/docs/reference/glossary/#lsn
 
 ### Read-Only
 
-- `created_at` (String) Branch creation timestamp.
-- `current_state` (String) Branch state.
-- `endpoint` (List of Object) Default endpoint to interact with resources associated with the branch. (see [below for nested schema](#nestedatt--endpoint))
-- `host` (String) Host to access resources through default endpoint.
-- `id` (String) The ID of this resource.
+- `connection_uri` (String, Sensitive) Default connection uri. **Note** that it contains access credentials.
+- `id` (String) Branch ID.
 - `logical_size` (Number) Branch logical size in MB.
-- `pending_state` (String) Branch pending state.
-- `physical_size_size` (Number) Branch physical size in MB.
-- `updated_at` (String) Branch last update timestamp.
-
-<a id="nestedatt--endpoint"></a>
-### Nested Schema for `endpoint`
-
-Read-Only:
-
-- `autoscaling_limit_max_cu` (Number)
-- `autoscaling_limit_min_cu` (Number)
-- `branch_id` (String)
-- `created_at` (String)
-- `current_state` (String)
-- `disabled` (Boolean)
-- `host` (String)
-- `passwordless_access` (Boolean)
-- `pending_state` (String)
-- `pg_settings` (Map of String)
-- `pooler_enabled` (Boolean)
-- `pooler_mode` (String)
-- `project_id` (String)
-- `proxy_host` (String)
-- `region_id` (String)
-- `type` (String)
-- `updated_at` (String)
 
 

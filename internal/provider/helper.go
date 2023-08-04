@@ -135,7 +135,7 @@ func parseComplexID(s string) (complexID, error) {
 }
 
 type t interface {
-	bool | string | int | int32 | int64 | float64 | float32 | neon.PgVersion | neon.ComputeUnit | neon.Provisioner
+	bool | string | int | int32 | int64 | float64 | float32 | neon.PgVersion | neon.ComputeUnit | neon.Provisioner | neon.EndpointPoolerMode
 }
 
 func pointer[V t](v V) *V {
