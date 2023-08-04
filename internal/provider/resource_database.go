@@ -117,8 +117,8 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		r.ProjectID, r.BranchID, r.Name,
 		neon.DatabaseUpdateRequest{
 			Database: neon.DatabaseUpdateRequestDatabase{
-				Name:      d.Get("name").(*string),
-				OwnerName: d.Get("owner_name").(*string),
+				Name:      pointer(d.Get("name").(string)),
+				OwnerName: pointer(d.Get("owner_name").(string)),
 			},
 		},
 	)
@@ -159,7 +159,7 @@ func resourceDatabaseImport(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	setResourceDataFromComplexID(d, r)
-	if err := resourceDatabaseUpdate(ctx, d, meta); err != nil {
+	if err := resourceDatabaseRead(ctx, d, meta); err != nil {
 		return nil, err
 	}
 
