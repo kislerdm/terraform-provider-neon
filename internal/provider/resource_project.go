@@ -146,7 +146,7 @@ func expandSchemaProjectDefaultEndpointSettings(v []interface{}) *neon.DefaultEn
 		o.AutoscalingLimitMaxCu = neon.ComputeUnit(v)
 	}
 
-	if v, ok := mConf["suspend_timeout_seconds"].(int64); ok && v > 0 {
+	if v, ok := mConf["suspend_timeout_seconds"].(int); ok && v > 0 {
 		o.SuspendTimeoutSeconds = neon.SuspendTimeoutSeconds(v)
 	}
 
