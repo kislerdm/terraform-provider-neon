@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - current_state
   - pending_state
 
+- `resource_branch`:
+  - connection_uri
+
 ### Changed
 
 - `resource_endpoint`:
