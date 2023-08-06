@@ -156,6 +156,12 @@ resource "neon_project" "this" {
 									}
 
 									if err := resource.TestCheckResourceAttr(
+										resourceName, "default_branch_id", defaultBranchID,
+									)(state); err != nil {
+										return err
+									}
+
+									if err := resource.TestCheckResourceAttr(
 										resourceName, "branch.0.name", branches[0].Name,
 									)(state); err != nil {
 										return err

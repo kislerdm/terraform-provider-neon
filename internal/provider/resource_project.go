@@ -236,6 +236,11 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 			"default_endpoint_settings": newSchemaDefaultEndpointSettings(),
 			"branch":                    newBranchSchema(),
 			// computed fields
+			"default_branch_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default branch ID.",
+			},
 			"database_host": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -488,6 +493,10 @@ func updateDefaultBranchDBEndpoint(
 		return err
 	}
 
+	if err := d.Set("default_branch_id", mainBranch.ID); err != nil {
+		return err
+	}
+
 	if err := d.Set("database_password", mainRole.Password); err != nil {
 		return err
 	}
@@ -638,6 +647,9 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 		return err
 	}
 	if err := d.Set("connection_uri", ""); err != nil {
+		return err
+	}
+	if err := d.Set("default_branch_id", ""); err != nil {
 		return err
 	}
 	for _, k := range []string{
