@@ -39,27 +39,30 @@ resource "neon_endpoint" "example" {
 
 - `branch_id` (String) Branch ID.
 - `project_id` (String) Project ID.
-- `type` (String) Access type. **Note** that "read_write" is the only supported type yet.
 
 ### Optional
 
 - `autoscaling_limit_max_cu` (Number)
 - `autoscaling_limit_min_cu` (Number)
+- `compute_provisioner` (String) Provisioner The Neon compute provisioner.
+Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
 - `disabled` (Boolean) Disable the endpoint.
-- `passwordless_access` (Boolean) Allow passwordless access.
 - `pg_settings` (Map of String)
 - `pooler_enabled` (Boolean) Activate connection pooling.
 See details: https://neon.tech/docs/connect/connection-pooling
 - `pooler_mode` (String) Mode of connections pooling.
 See details: https://neon.tech/docs/connect/connection-pooling
 - `region_id` (String) AWS Region.
+- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+The value 0 means use the global default.
+The value -1 means never suspend. The default value is 300 seconds (5 minutes).
+The maximum value is 604800 seconds (1 week)
+- `type` (String) Access type. **Note** that "read_write" is the only supported type yet.
 
 ### Read-Only
 
-- `current_state` (String) Endpoint state.
 - `host` (String) Endpoint URI.
-- `id` (String) The ID of this resource.
-- `pending_state` (String) Endpoint pending state.
+- `id` (String) Endpoint ID.
 - `proxy_host` (String)
 
 

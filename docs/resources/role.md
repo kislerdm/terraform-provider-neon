@@ -45,10 +45,8 @@ resource "neon_role" "example" {
 
 ### Read-Only
 
-- `created_at` (String) Role creation timestamp.
 - `id` (String) The ID of this resource.
 - `password` (String, Sensitive) Database authentication password.
 - `protected` (Boolean)
-- `updated_at` (String) Role last update timestamp.
 
 

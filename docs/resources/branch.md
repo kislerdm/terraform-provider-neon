@@ -41,7 +41,6 @@ See details: https://neon.tech/docs/reference/glossary/#lsn
 
 ### Read-Only
 
-- `connection_uri` (String, Sensitive) Default connection uri. **Note** that it contains access credentials.
 - `id` (String) Branch ID.
 - `logical_size` (Number) Branch logical size in MB.
 

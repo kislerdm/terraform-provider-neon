@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -164,4 +166,32 @@ func resourceDatabaseImport(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	return []*schema.ResourceData{d}, nil
+}
+
+type complexID struct {
+	ProjectID, BranchID, Name string
+}
+
+func setResourceDataFromComplexID(d *schema.ResourceData, r complexID) {
+	_ = d.Set("project_id", r.ProjectID)
+	_ = d.Set("branch_id", r.BranchID)
+	_ = d.Set("name", r.Name)
+}
+
+func (v complexID) toString() string {
+	return v.ProjectID + "/" + v.BranchID + "/" + v.Name
+}
+
+func parseComplexID(s string) (complexID, error) {
+	spl := strings.Split(s, "/")
+	if len(spl) != 3 {
+		return complexID{}, errors.New(
+			"ID of this resource type shall follow the template: {{.ProjectID}}/{{.BranchID}}/{{.Name}}",
+		)
+	}
+	return complexID{
+		ProjectID: spl[0],
+		BranchID:  spl[1],
+		Name:      spl[2],
+	}, nil
 }

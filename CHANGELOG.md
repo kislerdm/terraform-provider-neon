@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2023-08-07
+
+### Added
+
+- Acceptance e2e tests
+- `resource_project`:
+  - default_branch_id
+
+- `resource_endpoint`:
+  - id
+  - compute_provisioner
+  - suspend_timeout_seconds
+
+### Removed
+- `resource_role`:
+    - created_at
+    - updated_at
+
+- `resource_endpoint`:
+  - passwordless_access: it's not implemented yet by Neon
+  - current_state
+  - pending_state
+
+### Changed
+
+- `resource_endpoint`:
+  - autoscaling_limit_min_cu set to 0.25 by default 
+  - autoscaling_limit_max_cu set to 0.25 by default
+  - type set to "read_write" by default
+
 ## [0.2.0] - 2023-08-04
 
 The release follows update of the [Neon Go SDK](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.2.1).
@@ -19,56 +49,56 @@ The release follows update of the [Neon Go SDK](https://github.com/kislerdm/neon
 ### Added
 
 - `resource_project`:
-  - store_password (_Note that Neon does not support "false" value yet_)
-  - history_retention_seconds
-  - compute_provisioner
-  - quota:
-    - active_time_seconds
-    - compute_time_seconds
-    - written_data_bytes
-    - data_transfer_bytes
-    - logical_size_bytes
-  - default_endpoint_settings:
-    - autoscaling_limit_min_cu
-    - autoscaling_limit_max_cu
-    - suspend_timeout_seconds
-  - branch:
-    - id
-    - name
-    - role_name
-    - database_name
+    - store_password (_Note that Neon does not support "false" value yet_)
+    - history_retention_seconds
+    - compute_provisioner
+    - quota:
+        - active_time_seconds
+        - compute_time_seconds
+        - written_data_bytes
+        - data_transfer_bytes
+        - logical_size_bytes
+    - default_endpoint_settings:
+        - autoscaling_limit_min_cu
+        - autoscaling_limit_max_cu
+        - suspend_timeout_seconds
+    - branch:
+        - id
+        - name
+        - role_name
+        - database_name
 
 - `resource_branch`:
-  - id
-  - connection_uri
+    - id
+    - connection_uri
 
 ### Removed
 
 - `resource_project`:
-  - pg_settings
-  - cpu_quota_sec
-  - autoscaling_limit_min_cu
-  - autoscaling_limit_max_cu
-  - branch_logical_size_limit
-  - created_at
-  - updated_at
+    - pg_settings
+    - cpu_quota_sec
+    - autoscaling_limit_min_cu
+    - autoscaling_limit_max_cu
+    - branch_logical_size_limit
+    - created_at
+    - updated_at
 
 - `resource_branch`:
-  - physical_size_size
-  - endpoint
-  - host
-  - current_state
-  - pending_state
-  - created_at
-  - updated_at
+    - physical_size_size
+    - endpoint
+    - host
+    - current_state
+    - pending_state
+    - created_at
+    - updated_at
 
 - `resource_database`:
-  - created_at
-  - updated_at
+    - created_at
+    - updated_at
 
 - `resource_endpoint`:
-  - created_at
-  - updated_at
+    - created_at
+    - updated_at
 
 ## [0.1.0] - 2023-01-08
 
@@ -86,7 +116,7 @@ The release follows update of the [Neon Go SDK](https://github.com/kislerdm/neon
 ### Changed
 
 - Improved documentation
-- Added an end-to-end guide to provision resources for AWS application to communicate with the Neon database  
+- Added an end-to-end guide to provision resources for AWS application to communicate with the Neon database
 
 ## [0.0.8] - 2023-01-08
 
