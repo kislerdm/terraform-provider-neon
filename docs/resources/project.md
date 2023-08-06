@@ -57,6 +57,7 @@ The zero value per attributed means 'unlimited'. (see [below for nested schema](
 - `database_name` (String) Default database name.
 - `database_password` (String, Sensitive) Default database access password.
 - `database_user` (String) Default database role.
+- `default_branch_id` (String) Default branch ID.
 - `id` (String) Project ID.
 
 <a id="nestedblock--branch"></a>

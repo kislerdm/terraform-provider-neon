@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -53,28 +52,18 @@ See details: https://neon.tech/docs/manage/users/
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Role creation timestamp.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Role last update timestamp.",
-			},
 		},
 	}
 }
 
 func updateStateRole(d *schema.ResourceData, v neon.Role) error {
+	if err := d.Set("name", v.Name); err != nil {
+		return err
+	}
+	if err := d.Set("password", v.Password); err != nil {
+		return err
+	}
 	if err := d.Set("protected", v.Protected); err != nil {
-		return err
-	}
-	if err := d.Set("created_at", v.CreatedAt.Format(time.RFC3339)); err != nil {
-		return err
-	}
-	if err := d.Set("updated_at", v.UpdatedAt.Format(time.RFC3339)); err != nil {
 		return err
 	}
 	return nil
@@ -104,10 +93,6 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	d.SetId(r.toString())
-
-	if err := d.Set("password", resp.Role.Password); err != nil {
-		return err
-	}
 
 	return updateStateRole(d, resp.Role)
 }
@@ -143,6 +128,12 @@ func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, meta interf
 		return err
 	}
 	d.SetId("")
+	if err := d.Set("project_id", ""); err != nil {
+		return err
+	}
+	if err := d.Set("branch_id", ""); err != nil {
+		return err
+	}
 	return updateStateRole(d, neon.Role{})
 }
 

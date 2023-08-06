@@ -2,7 +2,7 @@ terraform {
   required_providers {
     neon = {
       source  = "kislerdm/neon"
-      version = ">= 0.0.9"
+      version = ">= 0.2.1"
     }
 
     aws = {
@@ -22,8 +22,14 @@ resource "neon_project" "this" {
   name = "myproject"
 }
 
+resource "neon_endpoint" "this" {
+  project_id = neon_project.this.id
+  branch_id  = neon_branch.this.id
+}
+
 resource "neon_branch" "this" {
   project_id = neon_project.this.id
+  parent_id  = neon_project.this.default_branch_id
   name       = "mybranch"
 }
 
@@ -36,8 +42,8 @@ resource "neon_role" "this" {
 resource "neon_database" "this" {
   project_id = neon_project.this.id
   branch_id  = neon_branch.this.id
-  name       = "mydb"
   owner_name = neon_role.this.name
+  name       = "mydb"
 }
 
 resource "aws_secretsmanager_secret" "this" {
