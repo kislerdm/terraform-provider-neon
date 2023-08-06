@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -64,18 +65,10 @@ See details: https://neon.tech/docs/reference/glossary/#lsn`,
 				Description: `Timestamp horizon for the data to be present in the new branch. 
 **Note**: it's defined as Unix epoch.'`,
 			},
-
 			"logical_size": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "Branch logical size in MB.",
-			},
-
-			"connection_uri": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Sensitive:   true,
-				Description: "Default connection uri. **Note** that it contains access credentials.",
 			},
 		},
 	}
@@ -146,12 +139,6 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		return err
 	}
 
-	if len(resp.ConnectionUris) > 0 {
-		if err := d.Set("connection_uri", resp.ConnectionUris[0].ConnectionURI); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -204,6 +191,10 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 ) {
 	tflog.Trace(ctx, "import Branch")
 
+	if !isValidBranchID(d.Id()) {
+		return nil, errors.New("branch ID " + d.Id() + " is not valid")
+	}
+
 	resp, err := meta.(neon.Client).ListProjects(nil, nil)
 	if err != nil {
 		return nil, err
@@ -228,4 +219,8 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	return nil, errors.New("no branch " + d.Id() + " found")
+}
+
+func isValidBranchID(s string) bool {
+	return strings.HasPrefix("br-", s)
 }
