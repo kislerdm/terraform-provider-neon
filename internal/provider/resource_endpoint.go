@@ -27,6 +27,11 @@ func resourceEndpoint() *schema.Resource {
 		UpdateContext: resourceEndpointUpdateRetry,
 		DeleteContext: resourceEndpointDeleteRetry,
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Endpoint ID.",
+			},
 			"project_id": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -39,7 +44,8 @@ func resourceEndpoint() *schema.Resource {
 			},
 			"type": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
+				Default:     "read_write",
 				Description: `Access type. **Note** that "read_write" is the only supported type yet.`,
 				ValidateFunc: func(d interface{}, k string) (warn []string, errs []error) {
 					switch v := d.(string); v {
@@ -64,24 +70,18 @@ func resourceEndpoint() *schema.Resource {
 				Type:         schema.TypeFloat,
 				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
-				Computed:     true,
+				Default:      0.25,
 			},
 			"autoscaling_limit_max_cu": {
 				Type:         schema.TypeFloat,
 				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
-				Computed:     true,
+				Default:      0.25,
 			},
 			"pg_settings": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
-			},
-			"passwordless_access": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Computed:    true,
-				Description: "Allow passwordless access.",
 			},
 			"pooler_enabled": {
 				Type:     schema.TypeBool,
@@ -106,15 +106,36 @@ See details: https://neon.tech/docs/connect/connection-pooling`,
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"current_state": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Endpoint state.",
+			"compute_provisioner": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: `Provisioner The Neon compute provisioner.
+Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
+`,
+				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+					switch v := i.(string); v {
+					case "k8s-pod", "k8s-neonvm":
+					default:
+						errs = append(
+							errs,
+							errors.New(
+								v+" is not supported for "+s+
+									". See details: https://api-docs.neon.tech/reference/createproject",
+							),
+						)
+					}
+					return
+				},
 			},
-			"pending_state": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Endpoint pending state.",
+			"suspend_timeout_seconds": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+The value 0 means use the global default.
+The value -1 means never suspend. The default value is 300 seconds (5 minutes).
+The maximum value is 604800 seconds (1 week)`,
 			},
 		},
 	}
@@ -139,9 +160,6 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	if err := d.Set("pg_settings", pgSettingsToMap(v.Settings.PgSettings)); err != nil {
 		return err
 	}
-	if err := d.Set("passwordless_access", v.PasswordlessAccess); err != nil {
-		return err
-	}
 	if err := d.Set("pooler_enabled", v.PoolerEnabled); err != nil {
 		return err
 	}
@@ -154,10 +172,10 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	if err := d.Set("proxy_host", v.ProxyHost); err != nil {
 		return err
 	}
-	if err := d.Set("current_state", v.CurrentState); err != nil {
+	if err := d.Set("compute_provisioner", string(v.Provisioner)); err != nil {
 		return err
 	}
-	if err := d.Set("pending_state", v.PendingState); err != nil {
+	if err := d.Set("suspend_timeout_seconds", int64(v.SuspendTimeoutSeconds)); err != nil {
 		return err
 	}
 	return nil
@@ -178,8 +196,9 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
 		AutoscalingLimitMaxCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_max_cu").(float64))),
 		PoolerMode:            pointer(neon.EndpointPoolerMode(d.Get("pooler_mode").(string))),
-		PasswordlessAccess:    pointer(d.Get("passwordless_access").(bool)),
 		Disabled:              pointer(d.Get("disabled").(bool)),
+		Provisioner:           pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
+		SuspendTimeoutSeconds: pointer(neon.SuspendTimeoutSeconds(d.Get("suspend_timeout_seconds").(int))),
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok {
@@ -229,10 +248,11 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
 		PoolerMode:            pointer(neon.EndpointPoolerMode(d.Get("pooler_mode").(string))),
 		Disabled:              pointer(d.Get("disabled").(bool)),
-		PasswordlessAccess:    pointer(d.Get("passwordless_access").(bool)),
 		BranchID:              pointer(d.Get("branch_id").(string)),
 		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
 		AutoscalingLimitMaxCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_max_cu").(float64))),
+		Provisioner:           pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
+		SuspendTimeoutSeconds: pointer(neon.SuspendTimeoutSeconds(d.Get("suspend_timeout_seconds").(int))),
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok {
