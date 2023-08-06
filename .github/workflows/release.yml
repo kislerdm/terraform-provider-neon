@@ -31,6 +31,8 @@ jobs:
       -
         name: Run testsacc
         run: make testacc
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
       -
         name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v5

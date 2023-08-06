@@ -97,15 +97,25 @@ jobs:
       run: |
         go mod download
         
-    - name: TF acceptance tests
-      timeout-minutes: 10
-      env:
-        TF_ACC: "1"
+    - name: Run tests
+      run: make test
 
-        # Set whatever additional acceptance test env vars here. You can
-        # optionally use data from your repository secrets using the
-        # following syntax:
-        # SOME_VAR: ${{ secrets.SOME_VAR }}
+  acc-test:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
 
-      run: |
-        go test -v -cover ./internal/provider/
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+        id: go
+      - name: Run testsacc
+        run: make testacc
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
