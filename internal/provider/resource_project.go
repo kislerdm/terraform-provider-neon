@@ -408,35 +408,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("database_host", resp.Endpoints[0].Host); err != nil {
-		return diag.FromErr(err)
-	}
-
-	defaultDatabaseName := resp.Databases[0].Name
-
-	if err := d.Set("database_name", defaultDatabaseName); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("connection_uri", resp.ConnectionUris[0].ConnectionURI); err != nil {
-		return diag.FromErr(err)
-	}
-
-	// TODO: verify if the logic works for project import given that many non "web_access" roles exist
-	var defaultRole string
-	for _, role := range resp.Roles {
-		if role.Name == "web_access" {
-			continue
-		}
-		defaultRole = role.Name
-		if err := d.Set("database_user", role.Name); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("database_password", role.Password); err != nil {
-			return diag.FromErr(err)
-		}
-		break
-	}
-
 	quota := project.Settings.Quota
 	if err := d.Set(
 		"quota", []interface{}{
@@ -453,19 +424,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	if err := d.Set(
-		"branch", []interface{}{
-			map[string]interface{}{
-				"id":            resp.Branch.ID,
-				"name":          resp.Branch.Name,
-				"role_name":     defaultRole,
-				"database_name": defaultDatabaseName,
-			},
-		},
-	); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set(
 		"default_endpoint_settings", []interface{}{
 			map[string]interface{}{
 				"autoscaling_limit_min_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMinCu),
@@ -475,6 +433,79 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		},
 	); err != nil {
 		return diag.FromErr(err)
+	}
+
+	if err := updateDefaultBranchDBEndpoint(
+		resp.BranchResponse.Branch, resp.EndpointsResponse.Endpoints, resp.DatabasesResponse.Databases,
+		resp.RolesResponse.Roles, d,
+	); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
+func updateDefaultBranchDBEndpoint(
+	mainBranch neon.Branch, endpoints []neon.Endpoint, databases []neon.Database, roles []neon.Role,
+	d *schema.ResourceData,
+) error {
+	var mainEndpoint neon.Endpoint
+	for _, el := range endpoints {
+		if !el.Disabled && el.BranchID == mainBranch.ID {
+			mainEndpoint = el
+			break
+		}
+	}
+
+	var mainDB neon.Database
+	for _, el := range databases {
+		if el.BranchID == mainBranch.ID {
+			mainDB = el
+			break
+		}
+	}
+
+	var mainRole neon.Role
+	for _, el := range roles {
+		if el.BranchID == mainBranch.ID && el.Name == mainDB.OwnerName {
+			mainRole = el
+			if el.Protected {
+				mainRole = el
+				break
+			}
+		}
+	}
+
+	if err := d.Set(
+		"branch", []interface{}{
+			map[string]interface{}{
+				"id":            mainBranch.ID,
+				"name":          mainBranch.Name,
+				"role_name":     mainRole.Name,
+				"database_name": mainDB.Name,
+			},
+		},
+	); err != nil {
+		return err
+	}
+
+	if err := d.Set("database_password", mainRole.Password); err != nil {
+		return err
+	}
+
+	connectionURI := "postgres://" + mainRole.Name + ":" + mainRole.Password + "@" + mainEndpoint.Host +
+		"/" + mainDB.Name
+	if err := d.Set("connection_uri", connectionURI); err != nil {
+		return err
+	}
+
+	if err := d.Set("database_host", mainEndpoint.Host); err != nil {
+		return err
+	}
+	if err := d.Set("database_name", mainDB.Name); err != nil {
+		return err
+	}
+	if err := d.Set("database_user", mainRole.Name); err != nil {
+		return err
 	}
 
 	return nil
@@ -507,11 +538,6 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 	client := meta.(neon.Client)
 
 	resp, err := client.GetProject(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	branches, err := client.ListProjectBranches(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -549,7 +575,26 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	branchMain := selectMainBranch(branches.Branches)
+	branches, err := client.ListProjectBranches(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	var branchMain neon.Branch
+	for _, v := range branches.Branches {
+		if v.Primary {
+			branchMain = v
+			break
+		}
+	}
+	if branchMain.ID == "" {
+		return nil
+	}
+
+	endpoints, err := client.ListProjectBranchEndpoints(d.Id(), branchMain.ID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	roles, err := client.ListProjectBranchRoles(d.Id(), branchMain.ID)
 	if err != nil {
@@ -561,78 +606,12 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	var defaultRole string
-	var pass string
-	for _, v := range roles.Roles {
-		if !v.Protected && v.Name != "web_access" {
-			defaultRole = v.Name
-			pass = v.Password
-		}
-	}
-
-	dbName := dbs.Databases[0].Name
-	if err := d.Set(
-		"branch", []interface{}{
-			map[string]interface{}{
-				"id":            branchMain.ID,
-				"name":          branchMain.Name,
-				"role_name":     defaultRole,
-				"database_name": dbName,
-			},
-		},
+	if err := updateDefaultBranchDBEndpoint(
+		branchMain, endpoints.Endpoints, dbs.Databases, roles.Roles, d,
 	); err != nil {
 		return diag.FromErr(err)
 	}
-
-	if err := d.Set("database_user", defaultRole); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("database_password", pass); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("database_name", dbName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	endpoints, err := client.ListProjectBranchEndpoints(d.Id(), branchMain.ID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	endpoint := selectFirstActiveRWEndpoint(endpoints.Endpoints)
-
-	if endpoint != nil {
-		if err := d.Set("database_host", endpoint.Host); err != nil {
-			return diag.FromErr(err)
-		}
-		connectionURI := "postgres://" + defaultRole + ":" + pass + "@" + endpoint.Host + "/" + dbName
-		if err := d.Set("connection_uri", connectionURI); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
 	return nil
-}
-
-func selectFirstActiveRWEndpoint(endpoints []neon.Endpoint) *neon.Endpoint {
-	for _, v := range endpoints {
-		if !v.Disabled && v.Type == "read_write" {
-			return &v
-		}
-	}
-	return nil
-}
-
-func selectMainBranch(branches []neon.Branch) neon.Branch {
-	if len(branches) == 0 {
-		return neon.Branch{}
-	}
-	for _, v := range branches {
-		if v.Name == "main" {
-			return v
-		}
-	}
-	return branches[0]
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
