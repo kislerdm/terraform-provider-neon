@@ -5,38 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+- [[#40](https://github.com/kislerdm/terraform-provider-neon/issues/40)] Fixes types conversion for the terraform
+  resource attributes of the
+  type [`TypeInt`]([`TypeInt`](https://github.com/hashicorp/terraform-plugin-sdk/blob/af738e0d482f699504d9e35e134766da459ef1f6/helper/schema/schema.go#L55)).
+
 ## [0.2.1] - 2023-08-07
 
 ### Added
 
 - Acceptance e2e tests
 - `resource_project`:
-  - default_branch_id
+    - default_branch_id
 
 - `resource_endpoint`:
-  - id
-  - compute_provisioner
-  - suspend_timeout_seconds
+    - id
+    - compute_provisioner
+    - suspend_timeout_seconds
 
 ### Removed
+
 - `resource_role`:
     - created_at
     - updated_at
 
 - `resource_endpoint`:
-  - passwordless_access: it's not implemented yet by Neon
-  - current_state
-  - pending_state
+    - passwordless_access: it's not implemented yet by Neon
+    - current_state
+    - pending_state
 
 - `resource_branch`:
-  - connection_uri
+    - connection_uri
 
 ### Changed
 
 - `resource_endpoint`:
-  - autoscaling_limit_min_cu set to 0.25 by default 
-  - autoscaling_limit_max_cu set to 0.25 by default
-  - type set to "read_write" by default
+    - autoscaling_limit_min_cu set to 0.25 by default
+    - autoscaling_limit_max_cu set to 0.25 by default
+    - type set to "read_write" by default
 
 ## [0.2.0] - 2023-08-04
 

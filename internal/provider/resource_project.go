@@ -74,24 +74,24 @@ func expandSchemaProjectQuota(v []interface{}) neon.ProjectQuota {
 
 	o := neon.ProjectQuota{}
 
-	if v, ok := mConf["active_time_seconds"].(int64); ok && v > 0 {
-		o.ActiveTimeSeconds = v
+	if v, ok := mConf["active_time_seconds"].(int); ok && v > 0 {
+		o.ActiveTimeSeconds = int64(v)
 	}
 
-	if v, ok := mConf["compute_time_seconds"].(int64); ok && v > 0 {
-		o.ComputeTimeSeconds = v
+	if v, ok := mConf["compute_time_seconds"].(int); ok && v > 0 {
+		o.ComputeTimeSeconds = int64(v)
 	}
 
-	if v, ok := mConf["written_data_bytes"].(int64); ok && v > 0 {
-		o.WrittenDataBytes = v
+	if v, ok := mConf["written_data_bytes"].(int); ok && v > 0 {
+		o.WrittenDataBytes = int64(v)
 	}
 
-	if v, ok := mConf["data_transfer_bytes"].(int64); ok && v > 0 {
-		o.DataTransferBytes = v
+	if v, ok := mConf["data_transfer_bytes"].(int); ok && v > 0 {
+		o.DataTransferBytes = int64(v)
 	}
 
-	if v, ok := mConf["logical_size_bytes"].(int64); ok && v > 0 {
-		o.LogicalSizeBytes = v
+	if v, ok := mConf["logical_size_bytes"].(int); ok && v > 0 {
+		o.LogicalSizeBytes = int64(v)
 	}
 
 	return o
@@ -417,11 +417,11 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 	if err := d.Set(
 		"quota", []interface{}{
 			map[string]interface{}{
-				"active_time_seconds":  quota.ActiveTimeSeconds,
-				"compute_time_seconds": quota.ComputeTimeSeconds,
-				"written_data_bytes":   quota.WrittenDataBytes,
-				"data_transfer_bytes":  quota.DataTransferBytes,
-				"logical_size_bytes":   quota.LogicalSizeBytes,
+				"active_time_seconds":  int(quota.ActiveTimeSeconds),
+				"compute_time_seconds": int(quota.ComputeTimeSeconds),
+				"written_data_bytes":   int(quota.WrittenDataBytes),
+				"data_transfer_bytes":  int(quota.DataTransferBytes),
+				"logical_size_bytes":   int(quota.LogicalSizeBytes),
 			},
 		},
 	); err != nil {
@@ -433,7 +433,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			map[string]interface{}{
 				"autoscaling_limit_min_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMinCu),
 				"autoscaling_limit_max_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMaxCu),
-				"suspend_timeout_seconds":  int64(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
+				"suspend_timeout_seconds":  int(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
 			},
 		},
 	); err != nil {
@@ -528,7 +528,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	req := neon.ProjectUpdateRequestProject{
-		HistoryRetentionSeconds: pointer(d.Get("history_retention_seconds").(int64)),
+		HistoryRetentionSeconds: pointer(int64(d.Get("history_retention_seconds").(int))),
 		Name:                    pointer(d.Get("name").(string)),
 	}
 	req.Settings.Quota = expandSchemaProjectQuota(d.Get("quota").([]interface{}))
@@ -561,11 +561,11 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 	if err := d.Set(
 		"quota", []interface{}{
 			map[string]interface{}{
-				"active_time_seconds":  quota.ActiveTimeSeconds,
-				"compute_time_seconds": quota.ComputeTimeSeconds,
-				"written_data_bytes":   quota.WrittenDataBytes,
-				"data_transfer_bytes":  quota.DataTransferBytes,
-				"logical_size_bytes":   quota.LogicalSizeBytes,
+				"active_time_seconds":  int(quota.ActiveTimeSeconds),
+				"compute_time_seconds": int(quota.ComputeTimeSeconds),
+				"written_data_bytes":   int(quota.WrittenDataBytes),
+				"data_transfer_bytes":  int(quota.DataTransferBytes),
+				"logical_size_bytes":   int(quota.LogicalSizeBytes),
 			},
 		},
 	); err != nil {
@@ -577,7 +577,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 			map[string]interface{}{
 				"autoscaling_limit_min_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMinCu),
 				"autoscaling_limit_max_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMaxCu),
-				"suspend_timeout_seconds":  int64(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
+				"suspend_timeout_seconds":  int(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
 			},
 		},
 	); err != nil {
