@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -67,9 +66,10 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Description: "Whether or not passwords are stored for roles in the Neon project. Storing passwords facilitates access to Neon features that require authorization.",
 			},
 			"history_retention_seconds": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  providerDefaultHistoryRetentionSeconds,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      providerDefaultHistoryRetentionSeconds,
+				ValidateFunc: intValidationNotNegative,
 				Description: `The number of seconds to retain the point-in-time restore (PITR) backup history for this project. 
 Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.`,
 			},
@@ -155,34 +155,39 @@ The zero value per attributed means 'unlimited'.`,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"active_time_seconds": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: `The total amount of wall-clock time allowed to be spent by the project's compute endpoints.`,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: intValidationNotNegative,
+				Description:  `The total amount of wall-clock time allowed to be spent by the project's compute endpoints.`,
 			},
 			"compute_time_seconds": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: `The total amount of CPU seconds allowed to be spent by the project's compute endpoints.`,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: intValidationNotNegative,
+				Description:  `The total amount of CPU seconds allowed to be spent by the project's compute endpoints.`,
 			},
 			"written_data_bytes": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: `Total amount of data written to all of a project's branches.`,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: intValidationNotNegative,
+				Description:  `Total amount of data written to all of a project's branches.`,
 			},
 			"data_transfer_bytes": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: `Total amount of data transferred from all of a project's branches using the proxy.`,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: intValidationNotNegative,
+				Description:  `Total amount of data transferred from all of a project's branches using the proxy.`,
 			},
 			"logical_size_bytes": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: `Limit on the logical size of every project's branch.`,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: intValidationNotNegative,
+				Description:  `Limit on the logical size of every project's branch.`,
 			},
 		},
 	},
@@ -234,9 +239,10 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 				Computed:     true,
 			},
 			"suspend_timeout_seconds": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: intValidationNotNegative,
 				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
@@ -479,13 +485,8 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		StorePasswords: pointer(d.Get("store_password").(bool)),
 	}
 
-	var isZeroRetention bool
-	if v, ok := d.GetOk("history_retention_seconds"); ok && v.(int) >= 0 {
-		projectDef.HistoryRetentionSeconds = pointer(int64(v.(int)))
-		tflog.Debug(ctx, fmt.Sprintf("history_retention_seconds: %d", v))
-		if v.(int) == 0 {
-			isZeroRetention = true
-		}
+	if v, ok := d.Get("history_retention_seconds").(int); ok && v >= 0 {
+		projectDef.HistoryRetentionSeconds = pointer(int64(v))
 	}
 
 	if v, ok := d.GetOk("pg_version"); ok && v.(int) > 0 {
@@ -524,7 +525,8 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	d.SetId(resp.ProjectResponse.Project.ID)
+	projectID := resp.ProjectResponse.Project.ID
+	d.SetId(projectID)
 
 	branch := resp.BranchResponse.Branch
 	if err := updateStateProject(
@@ -535,11 +537,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		),
 	); err != nil {
 		return diag.FromErr(err)
-	}
-
-	// NOTE: is the retention is set to zero, the default value is used by Neon upon creation
-	if isZeroRetention {
-		return resourceProjectUpdateRetry(ctx, d, meta)
 	}
 
 	return nil

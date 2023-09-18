@@ -205,4 +205,52 @@ func Test_resourceProjectCreate(t *testing.T) {
 			)
 		},
 	)
+
+	t.Run(
+		"shall request project with no data retention", func(t *testing.T) {
+			// GIVEN
+			meta := &sdkClientStub{
+				resp: neon.CreatedProject{},
+			}
+
+			resource := resourceProject()
+
+			definition := resource.TestResourceData()
+			err := definition.Set("name", "foo")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = definition.Set("history_retention_seconds", 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// WHEN
+			d := resourceProjectCreate(context.TODO(), definition, meta)
+
+			// THEN
+			if d != nil && d.HasError() {
+				t.Error("unexpected errors:")
+				for _, e := range d {
+					t.Error(e.Detail)
+				}
+				return
+			}
+
+			v, ok := meta.req.(neon.ProjectCreateRequest)
+			if !ok {
+				t.Error("unexpected request object type")
+			}
+
+			if v.Project.HistoryRetentionSeconds == nil {
+				t.Errorf("HistoryRetentionSeconds must be not nil")
+			}
+
+			if v.Project.HistoryRetentionSeconds != nil &&
+				*v.Project.HistoryRetentionSeconds != 0 {
+				t.Errorf("HistoryRetentionSeconds must be zero")
+			}
+		},
+	)
 }

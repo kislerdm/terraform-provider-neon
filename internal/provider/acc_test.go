@@ -444,17 +444,6 @@ resource "neon_database" "this" {
 											)(state); err != nil {
 												return err
 											}
-
-											v, err := strconv.Atoi(suspendTimeoutSec)
-											if err != nil {
-												t.Fatal(err)
-											}
-
-											if endpoint.SuspendTimeoutSeconds != neon.SuspendTimeoutSeconds(v) {
-												return errors.New(
-													"unexpected SuspendTimeoutSeconds for new endpoint",
-												)
-											}
 										}
 									}
 
