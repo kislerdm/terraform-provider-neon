@@ -408,10 +408,10 @@ resource "neon_database" "this" {
 							RefreshState: true,
 							Check: resource.ComposeTestCheckFunc(
 								resource.TestCheckResourceAttr(
-									"neon_endpoint.this", "autoscaling_limit_max_cu", "0.25",
+									"neon_endpoint.this", "autoscaling_limit_max_cu", autoscalingCUMax,
 								),
 								resource.TestCheckResourceAttr(
-									"neon_endpoint.this", "autoscaling_limit_min_cu", "0.25",
+									"neon_endpoint.this", "autoscaling_limit_min_cu", autoscalingCUMin,
 								),
 								resource.TestCheckResourceAttr(
 									"neon_endpoint.this", "disabled", "false",
