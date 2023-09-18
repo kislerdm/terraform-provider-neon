@@ -17,8 +17,9 @@ build:
 	@ go build -a -gcflags=all="-l -B -C" -ldflags="-w -s" -o ${BINARY} .
 
 install: build ## Builds and installs the provider.
-	@ mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
-	@ mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}/
+	@ mkdir -p ~/.terraform.d/plugins/local/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
+	@ mv ${BINARY} ~/.terraform.d/plugins/local/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}/
+	@ echo Local provider: local/${NAMESPACE}/${NAME}
 
 test: ## Runs unit tests.
 	@ go test $(TEST) || exit 1
