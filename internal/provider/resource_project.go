@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
 )
+
+const providerDefaultHistoryRetentionSeconds = int(time.Hour/time.Second) * 24 * 7
 
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
@@ -63,10 +66,11 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Description: "Whether or not passwords are stored for roles in the Neon project. Storing passwords facilitates access to Neon features that require authorization.",
 			},
 			"history_retention_seconds": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: "The number of seconds to retain the point-in-time restore (PITR) backup history for this project",
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  providerDefaultHistoryRetentionSeconds,
+				Description: `The number of seconds to retain the point-in-time restore (PITR) backup history for this project. 
+Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.`,
 			},
 			"compute_provisioner": {
 				Type:     schema.TypeString,
@@ -473,6 +477,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		RegionID:       pointer(d.Get("region_id").(string)),
 		StorePasswords: pointer(d.Get("store_password").(bool)),
 	}
+
 	if v, ok := d.GetOk("history_retention_seconds"); ok && v.(int) > 0 {
 		projectDef.HistoryRetentionSeconds = pointer(int64(v.(int)))
 	}
