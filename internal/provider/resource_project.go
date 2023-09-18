@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -478,8 +479,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		StorePasswords: pointer(d.Get("store_password").(bool)),
 	}
 
-	if v, ok := d.GetOk("history_retention_seconds"); ok && v.(int) > 0 {
+	var isZeroRetention bool
+	if v, ok := d.GetOk("history_retention_seconds"); ok && v.(int) >= 0 {
 		projectDef.HistoryRetentionSeconds = pointer(int64(v.(int)))
+		tflog.Debug(ctx, fmt.Sprintf("history_retention_seconds: %d", v))
+		if v.(int) == 0 {
+			isZeroRetention = true
+		}
 	}
 
 	if v, ok := d.GetOk("pg_version"); ok && v.(int) > 0 {
@@ -529,6 +535,11 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		),
 	); err != nil {
 		return diag.FromErr(err)
+	}
+
+	// NOTE: is the retention is set to zero, the default value is used by Neon upon creation
+	if isZeroRetention {
+		return resourceProjectUpdateRetry(ctx, d, meta)
 	}
 
 	return nil
