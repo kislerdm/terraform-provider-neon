@@ -11,15 +11,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	neon "github.com/kislerdm/neon-sdk-go"
 )
-
-func TestProvider(t *testing.T) {
-	if err := New("dev").InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
 
 func TestAccEndToEnd(t *testing.T) {
 	client, err := neon.NewClient()
@@ -128,7 +123,11 @@ resource "neon_database" "this" {
 
 			resource.UnitTest(
 				t, resource.TestCase{
-					ProviderFactories: providerFactoriesIntegration,
+					ProviderFactories: map[string]func() (*schema.Provider, error){
+						"neon": func() (*schema.Provider, error) {
+							return New("0.2.2"), nil
+						},
+					},
 					Steps: []resource.TestStep{
 						{
 							ResourceName: "resource",
@@ -224,7 +223,7 @@ resource "neon_database" "this" {
 									// list projects
 									resp, err := client.ListProjects(nil, nil)
 									if err != nil {
-										return err
+										return errors.New("listing error: " + err.Error())
 									}
 
 									// THEN

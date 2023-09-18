@@ -110,14 +110,3 @@ func configure(version string) schema.ConfigureContextFunc {
 		return c, nil
 	}
 }
-
-var providerFactoriesIntegration = newProviderFactories("0.3.0")
-var providerFactoriesUnitTests = newProviderFactories("dev")
-
-var newProviderFactories = func(ver string) map[string]func() (*schema.Provider, error) {
-	return map[string]func() (*schema.Provider, error){
-		"neon": func() (*schema.Provider, error) {
-			return New(ver), nil
-		},
-	}
-}
