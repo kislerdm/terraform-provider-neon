@@ -473,12 +473,12 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		RegionID:       pointer(d.Get("region_id").(string)),
 		StorePasswords: pointer(d.Get("store_password").(bool)),
 	}
-	if v, ok := d.Get("history_retention_seconds").(int); ok && v > 0 {
-		projectDef.HistoryRetentionSeconds = pointer(int64(v))
+	if v, ok := d.GetOk("history_retention_seconds"); ok && v.(int) > 0 {
+		projectDef.HistoryRetentionSeconds = pointer(int64(v.(int)))
 	}
 
-	if v, ok := d.Get("pg_version").(int); ok && v > 0 {
-		projectDef.PgVersion = pointer(neon.PgVersion(v))
+	if v, ok := d.GetOk("pg_version"); ok && v.(int) > 0 {
+		projectDef.PgVersion = pointer(neon.PgVersion(v.(int)))
 	}
 
 	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {

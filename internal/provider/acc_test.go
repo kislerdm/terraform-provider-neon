@@ -6,7 +6,9 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,27 +43,29 @@ func TestAccEndToEnd(t *testing.T) {
 	t.Run(
 		"shall successfully provision a project, a branch, an endpoint", func(t *testing.T) {
 
+			projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+
 			const (
 				historyRetentionSeconds = "100"
 				autoscalingCUMin        = "0.5"
 				autoscalingCUMax        = "2"
 				suspendTimeoutSec       = "10"
 
-				quotaActiveTimeSeconds  = "100"
-				quotaComputeTimeSeconds = "100"
-				quotaWrittenDataBytes   = "10000"
-				quotaDataTransferBytes  = "20000"
-				quotaLogicalSizeBytes   = "30000"
+				quotaActiveTimeSeconds  int = 100
+				quotaComputeTimeSeconds int = 100
+				quotaWrittenDataBytes   int = 10000
+				quotaDataTransferBytes  int = 20000
+				quotaLogicalSizeBytes   int = 30000
 
-				branchName     = "br-foo"
-				branchRoleName = "role-foo"
-				dbName         = "db-foo"
+				branchName     string = "br-foo"
+				branchRoleName string = "role-foo"
+				dbName         string = "db-foo"
 			)
 
 			resourceDefinition := fmt.Sprintf(
 				`
 resource "neon_project" "this" {
-	name      				  = "foo"
+	name      				  = "%s"
 	region_id 				  = "aws-us-west-2"
 	pg_version				  = 14
 	
@@ -74,11 +78,11 @@ resource "neon_project" "this" {
   	}
 
 	quota {
-		active_time_seconds  = %s
-		compute_time_seconds = %s
-		written_data_bytes 	 = %s
-		data_transfer_bytes  = %s
-		logical_size_bytes 	 = %s
+		active_time_seconds  = %d
+		compute_time_seconds = %d
+		written_data_bytes 	 = %d
+		data_transfer_bytes  = %d
+		logical_size_bytes 	 = %d
 	}
 
 	branch {
@@ -112,6 +116,7 @@ resource "neon_database" "this" {
 	owner_name = neon_role.this.name
 }
 `,
+				projectName,
 				historyRetentionSeconds,
 				autoscalingCUMin,
 				autoscalingCUMax,
@@ -138,7 +143,7 @@ resource "neon_database" "this" {
 							Check: resource.ComposeTestCheckFunc(
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"name", "foo",
+									"name", projectName,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
@@ -182,15 +187,18 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.autoscaling_limit_max_cu", autoscalingCUMax,
+									"default_endpoint_settings.0.autoscaling_limit_max_cu",
+									autoscalingCUMax,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.autoscaling_limit_min_cu", autoscalingCUMin,
+									"default_endpoint_settings.0.autoscaling_limit_min_cu",
+									autoscalingCUMin,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.suspend_timeout_seconds", suspendTimeoutSec,
+									"default_endpoint_settings.0.suspend_timeout_seconds",
+									suspendTimeoutSec,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
@@ -198,26 +206,26 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.active_time_seconds", quotaActiveTimeSeconds,
+									"quota.0.active_time_seconds", strconv.Itoa(quotaActiveTimeSeconds),
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.compute_time_seconds", quotaComputeTimeSeconds,
+									"quota.0.compute_time_seconds", strconv.Itoa(quotaComputeTimeSeconds),
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.written_data_bytes", quotaWrittenDataBytes,
+									"quota.0.written_data_bytes", strconv.Itoa(quotaWrittenDataBytes),
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.data_transfer_bytes", quotaDataTransferBytes,
+									"quota.0.data_transfer_bytes", strconv.Itoa(quotaDataTransferBytes),
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.logical_size_bytes", quotaLogicalSizeBytes,
+									"quota.0.logical_size_bytes", strconv.Itoa(quotaLogicalSizeBytes),
 								),
 
-								// check the number of created projects
+								// check the project and its settings
 								func(state *terraform.State) error {
 									// WHEN
 									// list projects
@@ -227,13 +235,56 @@ resource "neon_database" "this" {
 									}
 
 									// THEN
-									projects := resp.ProjectsResponse.Projects
-									if len(projects) != 1 {
-										return errors.New("only a single project is expected")
+									var ref neon.ProjectListItem
+									for _, project := range resp.ProjectsResponse.Projects {
+										if project.Name == projectName {
+											ref = project
+										}
+										break
 									}
 
-									projectID = projects[0].ID
-									defaultUser = projects[0].OwnerID
+									if ref.ID == "" {
+										return errors.New("project " + projectName + " shall be created")
+									}
+
+									if float64(ref.DefaultEndpointSettings.AutoscalingLimitMinCu) != mustParseFloat64(autoscalingCUMin) {
+										return errors.New("AutoscalingLimitMinCu was not set")
+									}
+
+									if float64(ref.DefaultEndpointSettings.AutoscalingLimitMaxCu) != mustParseFloat64(autoscalingCUMax) {
+										return errors.New("AutoscalingLimitMaxCu was not set")
+									}
+
+									v, err := strconv.Atoi(suspendTimeoutSec)
+									if err != nil {
+										t.Fatal(err)
+									}
+
+									if int(ref.DefaultEndpointSettings.SuspendTimeoutSeconds) != v {
+										return errors.New("SuspendTimeoutSeconds was not set")
+									}
+
+									projectID = ref.ID
+									defaultUser = ref.OwnerID
+
+									return nil
+								},
+
+								// check data retention
+								func(state *terraform.State) error {
+									resp, err := client.GetProject(projectID)
+									if err != nil {
+										return err
+									}
+
+									v, err := strconv.Atoi(historyRetentionSeconds)
+									if err != nil {
+										t.Fatal(err)
+									}
+
+									if resp.Project.HistoryRetentionSeconds != int64(v) {
+										return errors.New("HistoryRetentionSeconds was not set")
+									}
 
 									return nil
 								},
@@ -427,4 +478,12 @@ resource "neon_database" "this" {
 			)
 		},
 	)
+}
+
+func mustParseFloat64(s string) float64 {
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
