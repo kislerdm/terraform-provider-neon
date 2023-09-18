@@ -7,9 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [[#40](https://github.com/kislerdm/terraform-provider-neon/issues/40)] Fixes types conversion for the terraform
-  resource attributes of the
-  type [`TypeInt`]([`TypeInt`](https://github.com/hashicorp/terraform-plugin-sdk/blob/af738e0d482f699504d9e35e134766da459ef1f6/helper/schema/schema.go#L55)).
+### Fixed
+
+- `resource_project`:
+    - [[#40](https://github.com/kislerdm/terraform-provider-neon/issues/40)] Fixed types conversion for the terraform
+      resource attributes of the
+      type [`TypeInt`]([`TypeInt`](https://github.com/hashicorp/terraform-plugin-sdk/blob/af738e0d482f699504d9e35e134766da459ef1f6/helper/schema/schema.go#L55)).
+
+    - [[#42](https://github.com/kislerdm/terraform-provider-neon/issues/42)] Fixed default branch configuration
+    - [[#48](https://github.com/kislerdm/terraform-provider-neon/issues/48)] Fixed default endpoint settings
+      configuration
+    - Fixed history retention configuration. Now, the retention period of 7 days will be set by default, and zero will 
+      be set if `history_retention_seconds` is set to zero explicitly.
+
+**Note** web console will reflect the data retention period correctly only if `history_retention_seconds` was set to an 
+int number of days because the web console shows the total number of full days only. Moreover, "7 days - default" 
+will be displayed for any `history_retention_seconds` value below 86400 (1 day).
+
+| history_retention_seconds | web console       | human-friendly duration |
+|:--------------------------|:------------------|:------------------------|
+| 0                         | 7 days - default  | 0                       |
+| 300                       | 7 days - default  | 5 min                   |
+| 3600                      | 7 days - default  | 1 hour                  |
+| 43200                     | 7 days - default  | 12 hours                |
+| 164160                    | 1 day             | 1.9 days                |
+| 198720                    | 2 days            | 2.3 days                |
+| 604800                    | 7 days - default  | 7 days                  |
 
 ## [0.2.1] - 2023-08-07
 
