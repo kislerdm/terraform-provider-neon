@@ -11,16 +11,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	neon "github.com/kislerdm/neon-sdk-go"
 )
-
-var providerFactories = map[string]func() (*schema.Provider, error){
-	"neon": func() (*schema.Provider, error) {
-		return New("0.3.0"), nil
-	},
-}
 
 func TestProvider(t *testing.T) {
 	if err := New("dev").InternalValidate(); err != nil {
@@ -135,7 +128,7 @@ resource "neon_database" "this" {
 
 			resource.UnitTest(
 				t, resource.TestCase{
-					ProviderFactories: providerFactories,
+					ProviderFactories: providerFactoriesIntegration,
 					Steps: []resource.TestStep{
 						{
 							ResourceName: "resource",

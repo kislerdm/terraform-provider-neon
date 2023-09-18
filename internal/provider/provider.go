@@ -70,7 +70,8 @@ func init() {
 // 0.1.4: 3
 // 0.2.0: 4
 // 0.2.1: 5
-const versionSchema = 5
+// 0.2.2: 6
+const versionSchema = 6
 
 func New(version string) *schema.Provider {
 	return &schema.Provider{
@@ -107,5 +108,16 @@ func configure(version string) schema.ConfigureContextFunc {
 			return nil, diag.FromErr(err)
 		}
 		return c, nil
+	}
+}
+
+var providerFactoriesIntegration = newProviderFactories("0.3.0")
+var providerFactoriesUnitTests = newProviderFactories("dev")
+
+var newProviderFactories = func(ver string) map[string]func() (*schema.Provider, error) {
+	return map[string]func() (*schema.Provider, error){
+		"neon": func() (*schema.Provider, error) {
+			return New(ver), nil
+		},
 	}
 }
