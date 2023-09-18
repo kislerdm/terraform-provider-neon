@@ -11,148 +11,6 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
-func newSchemaQuota() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		Computed: true,
-		Description: `Per-project consumption quota. If the quota is exceeded, all active computes
-are automatically suspended and it will not be possible to start them with
-an API method call or incoming proxy connections. The only exception is
-logical_size_bytes, which is applied on per-branch basis, i.e., only the
-compute on the branch that exceeds the logical_size quota will be suspended.
-
-Quotas are enforced based on per-project consumption metrics with the same names,
-which are reset at the end of each billing period (the first day of the month).
-Logical size is also an exception in this case, as it represents the total size
-of data stored in a branch, so it is not reset.
-
-The zero value per attributed means 'unlimited'.`,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"active_time_seconds": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Computed:    true,
-					Description: `The total amount of wall-clock time allowed to be spent by the project's compute endpoints.`,
-				},
-				"compute_time_seconds": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Computed:    true,
-					Description: `The total amount of CPU seconds allowed to be spent by the project's compute endpoints.`,
-				},
-				"written_data_bytes": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Computed:    true,
-					Description: `Total amount of data written to all of a project's branches.`,
-				},
-				"data_transfer_bytes": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Computed:    true,
-					Description: `Total amount of data transferred from all of a project's branches using the proxy.`,
-				},
-				"logical_size_bytes": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Computed:    true,
-					Description: `Limit on the logical size of every project's branch.`,
-				},
-			},
-		},
-	}
-}
-
-func expandSchemaProjectQuota(v []interface{}) neon.ProjectQuota {
-	if len(v) == 0 || v[0] == nil {
-		return neon.ProjectQuota{}
-	}
-
-	mConf := v[0].(map[string]interface{})
-
-	o := neon.ProjectQuota{}
-
-	if v, ok := mConf["active_time_seconds"].(int); ok && v > 0 {
-		o.ActiveTimeSeconds = int64(v)
-	}
-
-	if v, ok := mConf["compute_time_seconds"].(int); ok && v > 0 {
-		o.ComputeTimeSeconds = int64(v)
-	}
-
-	if v, ok := mConf["written_data_bytes"].(int); ok && v > 0 {
-		o.WrittenDataBytes = int64(v)
-	}
-
-	if v, ok := mConf["data_transfer_bytes"].(int); ok && v > 0 {
-		o.DataTransferBytes = int64(v)
-	}
-
-	if v, ok := mConf["logical_size_bytes"].(int); ok && v > 0 {
-		o.LogicalSizeBytes = int64(v)
-	}
-
-	return o
-}
-
-func newSchemaDefaultEndpointSettings() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Computed: true,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"autoscaling_limit_min_cu": {
-					Type:         schema.TypeFloat,
-					ValidateFunc: validateAutoscallingLimit,
-					Optional:     true,
-					Computed:     true,
-				},
-				"autoscaling_limit_max_cu": {
-					Type:         schema.TypeFloat,
-					ValidateFunc: validateAutoscallingLimit,
-					Optional:     true,
-					Computed:     true,
-				},
-				"suspend_timeout_seconds": {
-					Type:     schema.TypeInt,
-					Optional: true,
-					Computed: true,
-					Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
-The value 0 means use the global default.
-The value -1 means never suspend. The default value is 300 seconds (5 minutes).
-The maximum value is 604800 seconds (1 week)`,
-				},
-			},
-		},
-	}
-}
-
-func expandSchemaProjectDefaultEndpointSettings(v []interface{}) *neon.DefaultEndpointSettings {
-	if v == nil || len(v) == 0 {
-		return nil
-	}
-
-	mConf := v[0].(map[string]interface{})
-
-	o := &neon.DefaultEndpointSettings{}
-	if v, ok := mConf["autoscaling_limit_min_cu"].(float64); ok && v > 0 {
-		o.AutoscalingLimitMinCu = neon.ComputeUnit(v)
-	}
-
-	if v, ok := mConf["autoscaling_limit_max_cu"].(float64); ok && v > 0 {
-		o.AutoscalingLimitMaxCu = neon.ComputeUnit(v)
-	}
-
-	if v, ok := mConf["suspend_timeout_seconds"].(int); ok && v > 0 {
-		o.SuspendTimeoutSeconds = neon.SuspendTimeoutSeconds(v)
-	}
-
-	return o
-}
-
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
 		Description: `Neon Project. 
@@ -232,9 +90,9 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 					return
 				},
 			},
-			"quota":                     newSchemaQuota(),
-			"default_endpoint_settings": newSchemaDefaultEndpointSettings(),
-			"branch":                    newBranchSchema(),
+			"quota":                     schemaQuota,
+			"default_endpoint_settings": schemaDefaultEndpointSettings,
+			"branch":                    schemaDefaultBranch,
 			// computed fields
 			"default_branch_id": {
 				Type:        schema.TypeString,
@@ -272,69 +130,247 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 	}
 }
 
-func newBranchSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		Computed: true,
-		ForceNew: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"id": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "Branch ID.",
-				},
-				"name": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Computed:    true,
-					ForceNew:    true,
-					Description: "The branch name. If not specified, the default branch name will be used.",
-				},
-				"role_name": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Computed:    true,
-					ForceNew:    true,
-					Description: "The role name. If not specified, the default role name will be used.",
-				},
-				"database_name": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Computed:    true,
-					ForceNew:    true,
-					Description: "The database name. If not specified, the default database name will be used.",
-				},
+var schemaQuota = &schema.Schema{
+	Type:     schema.TypeList,
+	MaxItems: 1,
+	Optional: true,
+	Computed: true,
+	Description: `Per-project consumption quota. If the quota is exceeded, all active computes
+are automatically suspended and it will not be possible to start them with
+an API method call or incoming proxy connections. The only exception is
+logical_size_bytes, which is applied on per-branch basis, i.e., only the
+compute on the branch that exceeds the logical_size quota will be suspended.
+
+Quotas are enforced based on per-project consumption metrics with the same names,
+which are reset at the end of each billing period (the first day of the month).
+Logical size is also an exception in this case, as it represents the total size
+of data stored in a branch, so it is not reset.
+
+The zero value per attributed means 'unlimited'.`,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"active_time_seconds": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: `The total amount of wall-clock time allowed to be spent by the project's compute endpoints.`,
+			},
+			"compute_time_seconds": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: `The total amount of CPU seconds allowed to be spent by the project's compute endpoints.`,
+			},
+			"written_data_bytes": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: `Total amount of data written to all of a project's branches.`,
+			},
+			"data_transfer_bytes": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: `Total amount of data transferred from all of a project's branches using the proxy.`,
+			},
+			"logical_size_bytes": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: `Limit on the logical size of every project's branch.`,
 			},
 		},
-	}
+	},
 }
 
-func expandSchemaCreateProjectBranch(v []interface{}) *neon.ProjectCreateRequestProjectBranch {
-	if v == nil || len(v) == 0 {
-		return nil
+func mapToQuotaSettings(v map[string]interface{}) neon.ProjectQuota {
+	o := neon.ProjectQuota{}
+
+	if v, ok := v["active_time_seconds"].(int); ok && v > 0 {
+		o.ActiveTimeSeconds = int64(v)
 	}
 
-	mConf := v[0].(map[string]interface{})
-
-	o := &neon.ProjectCreateRequestProjectBranch{}
-	if v, ok := mConf["name"].(string); ok && v != "" {
-		o.Name = &v
+	if v, ok := v["compute_time_seconds"].(int); ok && v > 0 {
+		o.ComputeTimeSeconds = int64(v)
 	}
 
-	if v, ok := mConf["role_name"].(string); ok && v != "" {
-		o.RoleName = &v
+	if v, ok := v["written_data_bytes"].(int); ok && v > 0 {
+		o.WrittenDataBytes = int64(v)
 	}
 
-	if v, ok := mConf["database_name"].(string); ok && v != "" {
-		o.RoleName = &v
+	if v, ok := v["data_transfer_bytes"].(int); ok && v > 0 {
+		o.DataTransferBytes = int64(v)
+	}
+
+	if v, ok := v["logical_size_bytes"].(int); ok && v > 0 {
+		o.LogicalSizeBytes = int64(v)
 	}
 
 	return o
 }
 
-func updateStateProject(d *schema.ResourceData, r neon.Project) error {
+var schemaDefaultEndpointSettings = &schema.Schema{
+	Type:     schema.TypeList,
+	MaxItems: 1,
+	Computed: true,
+	Optional: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"autoscaling_limit_min_cu": {
+				Type:         schema.TypeFloat,
+				ValidateFunc: validateAutoscallingLimit,
+				Optional:     true,
+				Computed:     true,
+			},
+			"autoscaling_limit_max_cu": {
+				Type:         schema.TypeFloat,
+				ValidateFunc: validateAutoscallingLimit,
+				Optional:     true,
+				Computed:     true,
+			},
+			"suspend_timeout_seconds": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+The value 0 means use the global default.
+The value -1 means never suspend. The default value is 300 seconds (5 minutes).
+The maximum value is 604800 seconds (1 week)`,
+			},
+		},
+	},
+}
+
+func mapToDfaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpointSettings {
+	o := neon.DefaultEndpointSettings{}
+	if v, ok := v["autoscaling_limit_min_cu"].(float64); ok && v > 0 {
+		o.AutoscalingLimitMinCu = neon.ComputeUnit(v)
+	}
+
+	if v, ok := v["autoscaling_limit_max_cu"].(float64); ok && v > 0 {
+		o.AutoscalingLimitMaxCu = neon.ComputeUnit(v)
+	}
+
+	if v, ok := v["suspend_timeout_seconds"].(int); ok && v > 0 {
+		o.SuspendTimeoutSeconds = neon.SuspendTimeoutSeconds(v)
+	}
+	return &o
+}
+
+var schemaDefaultBranch = &schema.Schema{
+	Type:     schema.TypeList,
+	MaxItems: 1,
+	Optional: true,
+	Computed: true,
+	ForceNew: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Branch ID.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "The branch name. If not specified, the default branch name will be used.",
+			},
+			"role_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "The role name. If not specified, the default role name will be used.",
+			},
+			"database_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "The database name. If not specified, the default database name will be used.",
+			},
+		},
+	},
+}
+
+func mapToBranchSettings(v map[string]interface{}) *neon.ProjectCreateRequestProjectBranch {
+	o := &neon.ProjectCreateRequestProjectBranch{}
+
+	if v, ok := v["name"].(string); ok && v != "" {
+		o.Name = pointer(v)
+	}
+
+	if v, ok := v["database_name"].(string); ok && v != "" {
+		o.DatabaseName = pointer(v)
+	}
+
+	if v, ok := v["role_name"].(string); ok && v != "" {
+		o.RoleName = pointer(v)
+	}
+
+	return o
+}
+
+func newDbConnectionInfo(
+	branchID string,
+	endpoints []neon.Endpoint,
+	databases []neon.Database,
+	roles []neon.Role,
+) dbConnectionInfo {
+	o := dbConnectionInfo{}
+
+	if endpoints == nil || databases == nil || roles == nil {
+		return o
+	}
+
+	for _, el := range endpoints {
+		if !el.Disabled && el.BranchID == branchID {
+			o.host = el.Host
+			break
+		}
+	}
+
+	for _, el := range databases {
+		if el.BranchID == branchID {
+			o.dbName = el.Name
+			o.userName = el.OwnerName
+			break
+		}
+	}
+
+	for _, el := range roles {
+		if el.BranchID == branchID && el.Name == o.userName {
+			if el.Protected {
+				o.pass = el.Password
+				break
+			}
+		}
+	}
+
+	return o
+}
+
+type dbConnectionInfo struct {
+	userName string
+	pass     string
+	dbName   string
+	host     string
+}
+
+func (i dbConnectionInfo) connectionURI() string {
+	if i.userName == "" || i.host == "" || i.dbName == "" || i.pass == "" {
+		return ""
+	}
+	return "postgres://" + i.userName + ":" + i.pass + "@" + i.host + "/" + i.dbName
+}
+
+func updateStateProject(
+	d *schema.ResourceData, r neon.Project,
+	defaultBranchID, defaultBranchName string,
+	dbConnectionInfo dbConnectionInfo,
+) error {
 	if err := d.Set("name", r.Name); err != nil {
 		return err
 	}
@@ -353,6 +389,70 @@ func updateStateProject(d *schema.ResourceData, r neon.Project) error {
 	if err := d.Set("store_password", r.StorePasswords); err != nil {
 		return err
 	}
+
+	if err := d.Set(
+		"default_endpoint_settings", []interface{}{
+			map[string]interface{}{
+				"autoscaling_limit_min_cu": float64(r.DefaultEndpointSettings.AutoscalingLimitMinCu),
+				"autoscaling_limit_max_cu": float64(r.DefaultEndpointSettings.AutoscalingLimitMaxCu),
+				"suspend_timeout_seconds":  int(r.DefaultEndpointSettings.SuspendTimeoutSeconds),
+			},
+		},
+	); err != nil {
+		return err
+	}
+
+	if err := d.Set(
+		"quota", []interface{}{
+			map[string]interface{}{
+				"active_time_seconds":  int(r.Settings.Quota.ActiveTimeSeconds),
+				"compute_time_seconds": int(r.Settings.Quota.ComputeTimeSeconds),
+				"written_data_bytes":   int(r.Settings.Quota.WrittenDataBytes),
+				"data_transfer_bytes":  int(r.Settings.Quota.DataTransferBytes),
+				"logical_size_bytes":   int(r.Settings.Quota.LogicalSizeBytes),
+			},
+		},
+	); err != nil {
+		return err
+	}
+
+	if err := d.Set(
+		"branch", []interface{}{
+			map[string]interface{}{
+				"id":            defaultBranchID,
+				"name":          defaultBranchName,
+				"role_name":     dbConnectionInfo.userName,
+				"database_name": dbConnectionInfo.dbName,
+			},
+		},
+	); err != nil {
+		return err
+	}
+
+	if err := d.Set("default_branch_id", defaultBranchID); err != nil {
+		return err
+	}
+
+	if err := d.Set("database_host", dbConnectionInfo.host); err != nil {
+		return err
+	}
+
+	if err := d.Set("database_name", dbConnectionInfo.dbName); err != nil {
+		return err
+	}
+
+	if err := d.Set("database_user", dbConnectionInfo.userName); err != nil {
+		return err
+	}
+
+	if err := d.Set("database_password", dbConnectionInfo.pass); err != nil {
+		return err
+	}
+
+	if err := d.Set("connection_uri", dbConnectionInfo.connectionURI()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -381,16 +481,24 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		projectDef.PgVersion = pointer(neon.PgVersion(v))
 	}
 
-	if v, ok := d.Get("quota").([]interface{}); ok && len(v) > 0 && v[0] != nil {
-		projectDef.Settings = &neon.ProjectSettingsData{Quota: expandSchemaProjectQuota(v)}
+	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+			projectDef.DefaultEndpointSettings = mapToDfaultEndpointsSettings(v)
+		}
 	}
 
-	if v, ok := d.Get("branch").([]interface{}); ok && len(v) > 0 && v[0] != nil {
-		projectDef.Branch = expandSchemaCreateProjectBranch(v)
+	if v, ok := d.GetOk("quota"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+			projectDef.Settings = &neon.ProjectSettingsData{
+				Quota: mapToQuotaSettings(v),
+			}
+		}
 	}
 
-	if v, ok := d.Get("default_endpoint_settings").([]interface{}); ok && len(v) > 0 && v[0] != nil {
-		projectDef.DefaultEndpointSettings = expandSchemaProjectDefaultEndpointSettings(v)
+	if v, ok := d.GetOk("branch"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+			projectDef.Branch = mapToBranchSettings(v)
+		}
 	}
 
 	client := meta.(neon.Client)
@@ -405,116 +513,17 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	project := resp.ProjectResponse.Project
+	d.SetId(resp.ProjectResponse.Project.ID)
 
-	d.SetId(project.ID)
-
-	if err := updateStateProject(d, project); err != nil {
-		return diag.FromErr(err)
-	}
-
-	quota := project.Settings.Quota
-	if err := d.Set(
-		"quota", []interface{}{
-			map[string]interface{}{
-				"active_time_seconds":  int(quota.ActiveTimeSeconds),
-				"compute_time_seconds": int(quota.ComputeTimeSeconds),
-				"written_data_bytes":   int(quota.WrittenDataBytes),
-				"data_transfer_bytes":  int(quota.DataTransferBytes),
-				"logical_size_bytes":   int(quota.LogicalSizeBytes),
-			},
-		},
+	branch := resp.BranchResponse.Branch
+	if err := updateStateProject(
+		d, resp.ProjectResponse.Project, branch.ID, branch.Name,
+		newDbConnectionInfo(
+			branch.ID, resp.EndpointsResponse.Endpoints, resp.DatabasesResponse.Databases,
+			resp.RolesResponse.Roles,
+		),
 	); err != nil {
 		return diag.FromErr(err)
-	}
-
-	if err := d.Set(
-		"default_endpoint_settings", []interface{}{
-			map[string]interface{}{
-				"autoscaling_limit_min_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMinCu),
-				"autoscaling_limit_max_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMaxCu),
-				"suspend_timeout_seconds":  int(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
-			},
-		},
-	); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := updateDefaultBranchDBEndpoint(
-		resp.BranchResponse.Branch, resp.EndpointsResponse.Endpoints, resp.DatabasesResponse.Databases,
-		resp.RolesResponse.Roles, d,
-	); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
-}
-
-func updateDefaultBranchDBEndpoint(
-	mainBranch neon.Branch, endpoints []neon.Endpoint, databases []neon.Database, roles []neon.Role,
-	d *schema.ResourceData,
-) error {
-	var mainEndpoint neon.Endpoint
-	for _, el := range endpoints {
-		if !el.Disabled && el.BranchID == mainBranch.ID {
-			mainEndpoint = el
-			break
-		}
-	}
-
-	var mainDB neon.Database
-	for _, el := range databases {
-		if el.BranchID == mainBranch.ID {
-			mainDB = el
-			break
-		}
-	}
-
-	var mainRole neon.Role
-	for _, el := range roles {
-		if el.BranchID == mainBranch.ID && el.Name == mainDB.OwnerName {
-			mainRole = el
-			if el.Protected {
-				mainRole = el
-				break
-			}
-		}
-	}
-
-	if err := d.Set(
-		"branch", []interface{}{
-			map[string]interface{}{
-				"id":            mainBranch.ID,
-				"name":          mainBranch.Name,
-				"role_name":     mainRole.Name,
-				"database_name": mainDB.Name,
-			},
-		},
-	); err != nil {
-		return err
-	}
-
-	if err := d.Set("default_branch_id", mainBranch.ID); err != nil {
-		return err
-	}
-
-	if err := d.Set("database_password", mainRole.Password); err != nil {
-		return err
-	}
-
-	connectionURI := "postgres://" + mainRole.Name + ":" + mainRole.Password + "@" + mainEndpoint.Host +
-		"/" + mainDB.Name
-	if err := d.Set("connection_uri", connectionURI); err != nil {
-		return err
-	}
-
-	if err := d.Set("database_host", mainEndpoint.Host); err != nil {
-		return err
-	}
-	if err := d.Set("database_name", mainDB.Name); err != nil {
-		return err
-	}
-	if err := d.Set("database_user", mainRole.Name); err != nil {
-		return err
 	}
 
 	return nil
@@ -531,10 +540,20 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		HistoryRetentionSeconds: pointer(int64(d.Get("history_retention_seconds").(int))),
 		Name:                    pointer(d.Get("name").(string)),
 	}
-	req.Settings.Quota = expandSchemaProjectQuota(d.Get("quota").([]interface{}))
-	req.DefaultEndpointSettings = expandSchemaProjectDefaultEndpointSettings(
-		d.Get("default_endpoint_settings").([]interface{}),
-	)
+
+	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+			req.DefaultEndpointSettings = mapToDfaultEndpointsSettings(v)
+		}
+	}
+
+	if v, ok := d.GetOk("quota"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+			req.Settings = &neon.ProjectSettingsData{
+				Quota: mapToQuotaSettings(v),
+			}
+		}
+	}
 
 	_, err := meta.(neon.Client).UpdateProject(d.Id(), neon.ProjectUpdateRequest{Project: req})
 
@@ -553,37 +572,6 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	project := resp.Project
 
-	if err := updateStateProject(d, project); err != nil {
-		return diag.FromErr(err)
-	}
-
-	quota := project.Settings.Quota
-	if err := d.Set(
-		"quota", []interface{}{
-			map[string]interface{}{
-				"active_time_seconds":  int(quota.ActiveTimeSeconds),
-				"compute_time_seconds": int(quota.ComputeTimeSeconds),
-				"written_data_bytes":   int(quota.WrittenDataBytes),
-				"data_transfer_bytes":  int(quota.DataTransferBytes),
-				"logical_size_bytes":   int(quota.LogicalSizeBytes),
-			},
-		},
-	); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set(
-		"default_endpoint_settings", []interface{}{
-			map[string]interface{}{
-				"autoscaling_limit_min_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMinCu),
-				"autoscaling_limit_max_cu": float64(project.DefaultEndpointSettings.AutoscalingLimitMaxCu),
-				"suspend_timeout_seconds":  int(project.DefaultEndpointSettings.SuspendTimeoutSeconds),
-			},
-		},
-	); err != nil {
-		return diag.FromErr(err)
-	}
-
 	branches, err := client.ListProjectBranches(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -596,8 +584,9 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 			break
 		}
 	}
+
 	if branchMain.ID == "" {
-		return nil
+		return diag.FromErr(updateStateProject(d, project, branchMain.ID, branchMain.Name, dbConnectionInfo{}))
 	}
 
 	endpoints, err := client.ListProjectBranchEndpoints(d.Id(), branchMain.ID)
@@ -615,12 +604,12 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	if err := updateDefaultBranchDBEndpoint(
-		branchMain, endpoints.Endpoints, dbs.Databases, roles.Roles, d,
-	); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	return diag.FromErr(
+		updateStateProject(
+			d, project, branchMain.ID, branchMain.Name,
+			newDbConnectionInfo(branchMain.ID, endpoints.Endpoints, dbs.Databases, roles.Roles),
+		),
+	)
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -631,37 +620,7 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	d.SetId("")
-	if err := updateStateProject(d, neon.Project{}); err != nil {
-		return err
-	}
-	if err := d.Set("database_name", ""); err != nil {
-		return err
-	}
-	if err := d.Set("database_host", ""); err != nil {
-		return err
-	}
-	if err := d.Set("database_user", ""); err != nil {
-		return err
-	}
-	if err := d.Set("database_password", ""); err != nil {
-		return err
-	}
-	if err := d.Set("connection_uri", ""); err != nil {
-		return err
-	}
-	if err := d.Set("default_branch_id", ""); err != nil {
-		return err
-	}
-	for _, k := range []string{
-		"quota",
-		"branch",
-		"default_endpoint_settings",
-	} {
-		if err := d.Set(k, nil); err != nil {
-			return err
-		}
-	}
-	return nil
+	return updateStateProject(d, neon.Project{}, "", "", dbConnectionInfo{})
 }
 
 func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (

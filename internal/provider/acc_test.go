@@ -5,6 +5,7 @@ package provider
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -40,12 +41,51 @@ func TestAccEndToEnd(t *testing.T) {
 	t.Run(
 		"shall successfully provision a project, a branch, an endpoint", func(t *testing.T) {
 
-			const resourceDefinition = `
+			const (
+				historyRetentionSeconds = "100"
+				autoscalingCUMin        = "0.5"
+				autoscalingCUMax        = "2"
+				suspendTimeoutSec       = "10"
+
+				quotaActiveTimeSeconds  = "100"
+				quotaComputeTimeSeconds = "100"
+				quotaWrittenDataBytes   = "10000"
+				quotaDataTransferBytes  = "20000"
+				quotaLogicalSizeBytes   = "30000"
+
+				branchName     = "br-foo"
+				branchRoleName = "role-foo"
+				dbName         = "db-foo"
+			)
+
+			resourceDefinition := fmt.Sprintf(
+				`
 resource "neon_project" "this" {
 	name      				  = "foo"
 	region_id 				  = "aws-us-west-2"
-	history_retention_seconds = 30
 	pg_version				  = 14
+	
+	history_retention_seconds = %s
+
+	default_endpoint_settings {
+    	autoscaling_limit_min_cu = %s
+   	 	autoscaling_limit_max_cu = %s
+    	suspend_timeout_seconds  = %s
+  	}
+
+	quota {
+		active_time_seconds  = %s
+		compute_time_seconds = %s
+		written_data_bytes 	 = %s
+		data_transfer_bytes  = %s
+		logical_size_bytes 	 = %s
+	}
+
+	branch {
+		name 	  	  = "%s"
+		role_name 	  = "%s"
+		database_name = "%s"
+	}
 }
 
 resource "neon_branch" "this" {
@@ -71,7 +111,20 @@ resource "neon_database" "this" {
 	name 	   = "quxx"
 	owner_name = neon_role.this.name
 }
-`
+`,
+				historyRetentionSeconds,
+				autoscalingCUMin,
+				autoscalingCUMax,
+				suspendTimeoutSec,
+				quotaActiveTimeSeconds,
+				quotaComputeTimeSeconds,
+				quotaWrittenDataBytes,
+				quotaDataTransferBytes,
+				quotaLogicalSizeBytes,
+				branchName,
+				branchRoleName,
+				dbName,
+			)
 
 			const resourceNameProject = "neon_project.this"
 
@@ -93,7 +146,7 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"history_retention_seconds", "30",
+									"history_retention_seconds", historyRetentionSeconds,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
@@ -113,7 +166,15 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.#", "1",
+									"branch.0.name", branchName,
+								),
+								resource.TestCheckResourceAttr(
+									resourceNameProject,
+									"branch.0.role_name", branchRoleName,
+								),
+								resource.TestCheckResourceAttr(
+									resourceNameProject,
+									"branch.0.database_name", dbName,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
@@ -121,39 +182,39 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.autoscaling_limit_max_cu", "0.25",
+									"default_endpoint_settings.0.autoscaling_limit_max_cu", autoscalingCUMax,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.autoscaling_limit_min_cu", "0.25",
+									"default_endpoint_settings.0.autoscaling_limit_min_cu", autoscalingCUMin,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.suspend_timeout_seconds", "0",
+									"default_endpoint_settings.0.suspend_timeout_seconds", suspendTimeoutSec,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.active_time_seconds", "0",
+									"quota.#", "1",
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.active_time_seconds", "0",
+									"quota.0.active_time_seconds", quotaActiveTimeSeconds,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.compute_time_seconds", "0",
+									"quota.0.compute_time_seconds", quotaComputeTimeSeconds,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.written_data_bytes", "0",
+									"quota.0.written_data_bytes", quotaWrittenDataBytes,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.data_transfer_bytes", "0",
+									"quota.0.data_transfer_bytes", quotaDataTransferBytes,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"quota.0.logical_size_bytes", "0",
+									"quota.0.logical_size_bytes", quotaLogicalSizeBytes,
 								),
 
 								// check the number of created projects
@@ -269,8 +330,18 @@ resource "neon_database" "this" {
 												return err
 											}
 
+											if err := resource.TestCheckResourceAttr(
+												resourceNameProject, "branch.0.role_name", db.OwnerName,
+											)(state); err != nil {
+												return err
+											}
+
 											return resource.TestCheckResourceAttr(
 												resourceNameProject, "database_name", db.Name,
+											)(state)
+
+											return resource.TestCheckResourceAttr(
+												resourceNameProject, "branch.0.database_name", db.Name,
 											)(state)
 										}
 									}
