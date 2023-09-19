@@ -35,8 +35,8 @@ func TestAccEndToEnd(t *testing.T) {
 
 			const (
 				historyRetentionSeconds = "100"
-				autoscalingCUMin        = "0.5"
-				autoscalingCUMax        = "2"
+				autoscalingCUMin        = "0.25"
+				autoscalingCUMax        = "0.5"
 				suspendTimeoutSec       = "10"
 
 				quotaActiveTimeSeconds  int = 100
