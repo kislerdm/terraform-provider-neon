@@ -31,7 +31,7 @@ terraform {
   required_providers {
     neon = {
       source  = "kislerdm/neon"
-      version = ">= 0.2.1"
+      version = ">= 0.2.2"
     }
 
     aws = {
@@ -148,18 +148,20 @@ resource "aws_iam_policy" "neon_access_secret" {
    terraform plan
    ```
    Expected output in stdout:
-   ```commandline
-    Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
-      + create
-     <= read (data resources)
+
+    ```commandline
+    Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the
+    following symbols:
+    + create
+      <= read (data resources)
     
     Terraform will perform the following actions:
     
-      # data.aws_iam_policy_document.neon_access_secret will be read during apply
-      # (config refers to values not yet known)
-     <= data "aws_iam_policy_document" "neon_access_secret" {
-          + id   = (known after apply)
-          + json = (known after apply)
+    # data.aws_iam_policy_document.neon_access_secret will be read during apply
+    # (config refers to values not yet known)
+    <= data "aws_iam_policy_document" "neon_access_secret" {
+    + id   = (known after apply)
+    + json = (known after apply)
     
           + statement {
               + actions   = [
@@ -184,132 +186,145 @@ resource "aws_iam_policy" "neon_access_secret" {
             }
         }
     
-      # aws_iam_policy.neon_access_secret will be created
-      + resource "aws_iam_policy" "neon_access_secret" {
-          + arn       = (known after apply)
-          + id        = (known after apply)
-          + name      = "mybranch-mydb-myrole"
-          + path      = "/neon/read-only"
-          + policy    = (known after apply)
-          + policy_id = (known after apply)
-          + tags_all  = (known after apply)
-        }
+    # aws_iam_policy.neon_access_secret will be created
+    + resource "aws_iam_policy" "neon_access_secret" {
+        + arn         = (known after apply)
+        + id          = (known after apply)
+        + name        = "mybranch-mydb-myrole"
+        + name_prefix = (known after apply)
+        + path        = "/neon/read-only/"
+        + policy      = (known after apply)
+        + policy_id   = (known after apply)
+        + tags_all    = (known after apply)
+          }
     
-      # aws_secretsmanager_secret.this will be created
-      + resource "aws_secretsmanager_secret" "this" {
-          + arn                            = (known after apply)
-          + description                    = "Neon SaaS access details for mydb, myrole @ mybranch"
-          + force_overwrite_replica_secret = false
-          + id                             = (known after apply)
-          + name                           = "neon/mybranch/mydb/myrole"
-          + name_prefix                    = (known after apply)
-          + policy                         = (known after apply)
-          + recovery_window_in_days        = 0
-          + rotation_enabled               = (known after apply)
-          + rotation_lambda_arn            = (known after apply)
-          + tags                           = {
-              + "platform" = "neon"
-              + "project"  = "demo"
-            }
-          + tags_all                       = {
-              + "platform" = "neon"
-              + "project"  = "demo"
-            }
+    # aws_secretsmanager_secret.this will be created
+    + resource "aws_secretsmanager_secret" "this" {
+        + arn                            = (known after apply)
+        + description                    = "Neon SaaS access details for mydb, myrole @ mybranch"
+        + force_overwrite_replica_secret = false
+        + id                             = (known after apply)
+        + name                           = "neon/mybranch/mydb/myrole"
+        + name_prefix                    = (known after apply)
+        + policy                         = (known after apply)
+        + recovery_window_in_days        = 0
+        + rotation_enabled               = (known after apply)
+        + rotation_lambda_arn            = (known after apply)
+        + tags                           = {
+            + "platform" = "neon"
+            + "project"  = "demo"
+              }
+        + tags_all                       = {
+            + "platform" = "neon"
+            + "project"  = "demo"
+              }
+              }
     
-          + replica {
-              + kms_key_id         = (known after apply)
-              + last_accessed_date = (known after apply)
-              + region             = (known after apply)
-              + status             = (known after apply)
-              + status_message     = (known after apply)
-            }
+    # aws_secretsmanager_secret_version.this will be created
+    + resource "aws_secretsmanager_secret_version" "this" {
+        + arn            = (known after apply)
+        + id             = (known after apply)
+        + secret_id      = (known after apply)
+        + secret_string  = (sensitive value)
+        + version_id     = (known after apply)
+        + version_stages = (known after apply)
+          }
     
-          + rotation_rules {
-              + automatically_after_days = (known after apply)
-            }
-        }
+    # neon_branch.this will be created
+    + resource "neon_branch" "this" {
+        + id               = (known after apply)
+        + logical_size     = (known after apply)
+        + name             = "mybranch"
+        + parent_id        = (known after apply)
+        + parent_lsn       = (known after apply)
+        + parent_timestamp = (known after apply)
+        + project_id       = (known after apply)
+          }
     
-      # aws_secretsmanager_secret_version.this will be created
-      + resource "aws_secretsmanager_secret_version" "this" {
-          + arn            = (known after apply)
-          + id             = (known after apply)
-          + secret_id      = (known after apply)
-          + secret_string  = (sensitive value)
-          + version_id     = (known after apply)
-          + version_stages = (known after apply)
-        }
+    # neon_database.this will be created
+    + resource "neon_database" "this" {
+        + branch_id  = (known after apply)
+        + id         = (known after apply)
+        + name       = "mydb"
+        + owner_name = "myrole"
+        + project_id = (known after apply)
+          }
     
-      # neon_branch.this will be created
-      + resource "neon_branch" "this" {
-          + created_at         = (known after apply)
-          + current_state      = (known after apply)
-          + endpoint           = (known after apply)
-          + host               = (known after apply)
-          + id                 = (known after apply)
-          + logical_size       = (known after apply)
-          + name               = "mybranch"
-          + parent_id          = (known after apply)
-          + parent_lsn         = (known after apply)
-          + parent_timestamp   = (known after apply)
-          + pending_state      = (known after apply)
-          + physical_size_size = (known after apply)
-          + project_id         = (known after apply)
-          + updated_at         = (known after apply)
-        }
+    # neon_endpoint.this will be created
+    + resource "neon_endpoint" "this" {
+        + autoscaling_limit_max_cu = (known after apply)
+        + autoscaling_limit_min_cu = (known after apply)
+        + branch_id                = (known after apply)
+        + compute_provisioner      = (known after apply)
+        + disabled                 = (known after apply)
+        + host                     = (known after apply)
+        + id                       = (known after apply)
+        + pg_settings              = (known after apply)
+        + pooler_enabled           = (known after apply)
+        + pooler_mode              = (known after apply)
+        + project_id               = (known after apply)
+        + proxy_host               = (known after apply)
+        + region_id                = (known after apply)
+        + suspend_timeout_seconds  = (known after apply)
+        + type                     = "read_write"
+          }
     
-      # neon_database.this will be created
-      + resource "neon_database" "this" {
-          + branch_id  = (known after apply)
-          + created_at = (known after apply)
-          + id         = (known after apply)
-          + name       = "mydb"
-          + owner_name = "myrole"
-          + project_id = (known after apply)
-          + updated_at = (known after apply)
-        }
+    # neon_project.this will be created
+    + resource "neon_project" "this" {
+        + compute_provisioner       = (known after apply)
+        + connection_uri            = (sensitive value)
+        + database_host             = (known after apply)
+        + database_name             = (known after apply)
+        + database_password         = (sensitive value)
+        + database_user             = (known after apply)
+        + default_branch_id         = (known after apply)
+        + history_retention_seconds = 604800
+        + id                        = (known after apply)
+        + name                      = "myproject"
+        + pg_version                = (known after apply)
+        + region_id                 = (known after apply)
+        + store_password            = true
+          }
     
-      # neon_project.this will be created
-      + resource "neon_project" "this" {
-          + autoscaling_limit_max_cu  = (known after apply)
-          + autoscaling_limit_min_cu  = (known after apply)
-          + branch_logical_size_limit = (known after apply)
-          + connection_uri            = (sensitive value)
-          + cpu_quota_sec             = (known after apply)
-          + created_at                = (known after apply)
-          + database_host             = (known after apply)
-          + database_name             = (known after apply)
-          + database_password         = (sensitive value)
-          + database_user             = (known after apply)
-          + id                        = (known after apply)
-          + name                      = "myproject"
-          + pg_settings               = (known after apply)
-          + pg_version                = (known after apply)
-          + region_id                 = (known after apply)
-          + updated_at                = (known after apply)
-        }
+    # neon_role.this will be created
+    + resource "neon_role" "this" {
+        + branch_id  = (known after apply)
+        + id         = (known after apply)
+        + name       = "myrole"
+        + password   = (sensitive value)
+        + project_id = (known after apply)
+        + protected  = (known after apply)
+          }
     
-      # neon_role.this will be created
-      + resource "neon_role" "this" {
-          + branch_id  = (known after apply)
-          + created_at = (known after apply)
-          + id         = (known after apply)
-          + name       = "myrole"
-          + password   = (sensitive value)
-          + project_id = (known after apply)
-          + protected  = (known after apply)
-          + updated_at = (known after apply)
-        }
-    
-    Plan: 7 to add, 0 to change, 0 to destroy.
-   ```
+    Plan: 8 to add, 0 to change, 0 to destroy.
+    ```
+
 6. Run terraform apply:
    ```commandline
    terraform apply -auto-approve
    ```
    Expected output in stdout:
-   ```commandline
-   Apply complete! Resources: 7 added, 0 changed, 0 destroyed.
-   ```
+
+    ```commandline
+    Apply complete! Resources: 8 added, 0 changed, 0 destroyed.
+    ```
+    
+    **Note** that the steps 5-6 may need to be repeated if a provisioned endpoint `neon_endpoint.this` is not ready to 
+    provision the role `neon_role.this`. In such case the following error is expected:
+    
+    ```commandline
+    neon_endpoint.this: Creating...
+    neon_endpoint.this: Creation complete after 0s [id=ep-xxxx-yyyy-01234567]
+    ╷
+    │ Error: [HTTP Code: 404][Error Code: ] no read-write endpoint for branch
+    │ 
+    │   with neon_role.this,
+    │   on main.tf line 36, in resource "neon_role" "this":
+    │   36: resource "neon_role" "this" {
+    │ 
+    ╵
+    ```
+
 7. Done! The database can be accessed using the connection details from the AWS secretsmanager.
 8. Clean the demo infrastructure:
    ```commandline
@@ -317,7 +332,7 @@ resource "aws_iam_policy" "neon_access_secret" {
    ```
    Expected output in stdout:
    ```commandline
-   Destroy complete! Resources: 7 destroyed.
+   Destroy complete! Resources: 8 destroyed.
    ```
 9. Unset environment variables:
    ```commandline
