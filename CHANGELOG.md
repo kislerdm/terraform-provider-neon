@@ -34,6 +34,10 @@ will be displayed for any `history_retention_seconds` value below 86400 (1 day).
 | 198720                    | 2 days            | 2.3 days                |
 | 604800                    | 7 days - default  | 7 days                  |
 
+### Changed
+
+- Updated dependencies: Neon Go SDK [v0.2.2](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.2.2)
+
 ## [0.2.1] - 2023-08-07
 
 ### Added
