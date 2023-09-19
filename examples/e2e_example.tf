@@ -2,12 +2,12 @@ terraform {
   required_providers {
     neon = {
       source  = "kislerdm/neon"
-      version = ">= 0.2.1"
+      version = ">= 0.2.2"
     }
 
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.49"
+      version = "~> 4.67"
     }
   }
 }
@@ -25,6 +25,10 @@ resource "neon_project" "this" {
 resource "neon_endpoint" "this" {
   project_id = neon_project.this.id
   branch_id  = neon_branch.this.id
+
+  autoscaling_limit_min_cu = 0.25
+  autoscaling_limit_max_cu = 1
+  suspend_timeout_seconds  = 10
 }
 
 resource "neon_branch" "this" {
@@ -60,7 +64,7 @@ resource "aws_secretsmanager_secret" "this" {
 resource "aws_secretsmanager_secret_version" "this" {
   secret_id = aws_secretsmanager_secret.this.id
   secret_string = jsonencode({
-    host     = neon_branch.this.host
+    host     = neon_endpoint.this.host
     user     = neon_role.this.name
     password = neon_role.this.password
     dbname   = neon_database.this.name
