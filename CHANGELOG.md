@@ -34,13 +34,14 @@ will be displayed for any `history_retention_seconds` value below 86400 (1 day).
 | 604800                    | 7 days - default | 7 days                  |
 
 - Documentation:
-  - Link to the Neon logo
-  - End-to-end example
+    - Link to the Neon logo
+    - End-to-end example
 
 ### Changed
 
-- Updated dependencies: Neon Go SDK [v0.2.2](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.2.2).
 - Documentation: examples of project provisioning
+- Updated dependencies: Neon Go SDK [v0.2.2](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.2.2),
+  terraform plugin SDK to 2.29.0
 
 ## [0.2.1] - 2023-08-07
 
