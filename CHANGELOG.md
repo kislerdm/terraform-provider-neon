@@ -5,38 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.2] - 2023-09-19
+
+### Fixed
+
+- `resource_project`:
+    - ([#40](https://github.com/kislerdm/terraform-provider-neon/issues/40)) Fixed types conversion for the terraform
+      resource attributes of the
+      type [`TypeInt`](https://github.com/hashicorp/terraform-plugin-sdk/blob/af738e0d482f699504d9e35e134766da459ef1f6/helper/schema/schema.go#L55).
+    - ([#42](https://github.com/kislerdm/terraform-provider-neon/issues/42)) Fixed default branch configuration.
+    - ([#48](https://github.com/kislerdm/terraform-provider-neon/issues/48)) Fixed default endpoint settings
+      configuration.
+    - Fixed history retention configuration. Now, the retention period of 7 days will be set by default, and zero will
+      be set if `history_retention_seconds` is set to zero explicitly.
+
+**Note** web console will reflect the data retention period correctly only if `history_retention_seconds` was set to an
+integral number of days because the web console shows the total number of full days only. Moreover, "7 days - default"
+will be displayed for any `history_retention_seconds` value below 86400 (1 day).
+
+| history_retention_seconds | web console      | human-friendly duration |
+|:--------------------------|:-----------------|:------------------------|
+| 0                         | 7 days - default | 0                       |
+| 300                       | 7 days - default | 5 min                   |
+| 3600                      | 7 days - default | 1 hour                  |
+| 43200                     | 7 days - default | 12 hours                |
+| 164160                    | 1 day            | 1.9 days                |
+| 198720                    | 2 days           | 2.3 days                |
+| 604800                    | 7 days - default | 7 days                  |
+
+- Documentation:
+    - Link to the Neon logo
+    - End-to-end example
+
+### Changed
+
+- Documentation: examples of project provisioning
+- Updated dependencies: Neon Go SDK [v0.2.2](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.2.2),
+  terraform plugin SDK to 2.29.0
+
 ## [0.2.1] - 2023-08-07
 
 ### Added
 
 - Acceptance e2e tests
 - `resource_project`:
-  - default_branch_id
+    - default_branch_id
 
 - `resource_endpoint`:
-  - id
-  - compute_provisioner
-  - suspend_timeout_seconds
+    - id
+    - compute_provisioner
+    - suspend_timeout_seconds
 
 ### Removed
+
 - `resource_role`:
     - created_at
     - updated_at
 
 - `resource_endpoint`:
-  - passwordless_access: it's not implemented yet by Neon
-  - current_state
-  - pending_state
+    - passwordless_access: it's not implemented yet by Neon
+    - current_state
+    - pending_state
 
 - `resource_branch`:
-  - connection_uri
+    - connection_uri
 
 ### Changed
 
 - `resource_endpoint`:
-  - autoscaling_limit_min_cu set to 0.25 by default 
-  - autoscaling_limit_max_cu set to 0.25 by default
-  - type set to "read_write" by default
+    - autoscaling_limit_min_cu set to 0.25 by default
+    - autoscaling_limit_max_cu set to 0.25 by default
+    - type set to "read_write" by default
 
 ## [0.2.0] - 2023-08-04
 

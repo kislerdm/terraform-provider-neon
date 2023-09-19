@@ -70,13 +70,13 @@ func resourceEndpoint() *schema.Resource {
 				Type:         schema.TypeFloat,
 				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
-				Default:      0.25,
+				Computed:     true,
 			},
 			"autoscaling_limit_max_cu": {
 				Type:         schema.TypeFloat,
 				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
-				Default:      0.25,
+				Computed:     true,
 			},
 			"pg_settings": {
 				Type:     schema.TypeMap,
@@ -86,6 +86,7 @@ func resourceEndpoint() *schema.Resource {
 			"pooler_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Computed: true,
 				Description: `Activate connection pooling.
 See details: https://neon.tech/docs/connect/connection-pooling`,
 			},
@@ -151,10 +152,10 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	if err := d.Set("region_id", v.RegionID); err != nil {
 		return err
 	}
-	if err := d.Set("autoscaling_limit_min_cu", v.AutoscalingLimitMinCu); err != nil {
+	if err := d.Set("autoscaling_limit_min_cu", float64(v.AutoscalingLimitMinCu)); err != nil {
 		return err
 	}
-	if err := d.Set("autoscaling_limit_max_cu", v.AutoscalingLimitMaxCu); err != nil {
+	if err := d.Set("autoscaling_limit_max_cu", float64(v.AutoscalingLimitMaxCu)); err != nil {
 		return err
 	}
 	if err := d.Set("pg_settings", pgSettingsToMap(v.Settings.PgSettings)); err != nil {
@@ -193,12 +194,18 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		Type:                  neon.EndpointType(d.Get("type").(string)),
 		RegionID:              pointer(d.Get("region_id").(string)),
 		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
-		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
-		AutoscalingLimitMaxCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_max_cu").(float64))),
 		PoolerMode:            pointer(neon.EndpointPoolerMode(d.Get("pooler_mode").(string))),
 		Disabled:              pointer(d.Get("disabled").(bool)),
 		Provisioner:           pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 		SuspendTimeoutSeconds: pointer(neon.SuspendTimeoutSeconds(d.Get("suspend_timeout_seconds").(int))),
+	}
+
+	if v, ok := d.GetOk("autoscaling_limit_min_cu"); ok {
+		cfg.AutoscalingLimitMinCu = pointer(neon.ComputeUnit(v.(float64)))
+	}
+
+	if v, ok := d.GetOk("autoscaling_limit_max_cu"); ok {
+		cfg.AutoscalingLimitMaxCu = pointer(neon.ComputeUnit(v.(float64)))
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok {

@@ -18,8 +18,41 @@ API: https://api-docs.neon.tech/reference/createproject
 ## Example Usage
 
 ```terraform
+### Default
+
 resource "neon_project" "example" {
   name = "foo"
+}
+
+### Turn off data retention
+
+resource "neon_project" "example" {
+  name                      = "foo"
+  history_retention_seconds = 0
+}
+
+### Set custom compute limits
+
+resource "neon_project" "example" {
+  name = "foo"
+
+  default_endpoint_settings {
+    autoscaling_limit_min_cu = 0.5
+    autoscaling_limit_max_cu = 1
+    suspend_timeout_seconds  = 10
+  }
+}
+
+### Define custom default branch
+
+resource "neon_project" "example" {
+  name = "foo"
+
+  branch {
+    name          = "bar"
+    database_name = "baz"
+    role_name     = "qux"
+  }
 }
 ```
 
@@ -28,14 +61,15 @@ resource "neon_project" "example" {
 
 ### Optional
 
-- `branch` (Block Set) (see [below for nested schema](#nestedblock--branch))
+- `branch` (Block List, Max: 1) (see [below for nested schema](#nestedblock--branch))
 - `compute_provisioner` (String) Provisioner The Neon compute provisioner.
 Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
-- `default_endpoint_settings` (Block Set) (see [below for nested schema](#nestedblock--default_endpoint_settings))
-- `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project
+- `default_endpoint_settings` (Block List, Max: 1) (see [below for nested schema](#nestedblock--default_endpoint_settings))
+- `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project. 
+Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.
 - `name` (String) Project name.
 - `pg_version` (Number) Postgres version
-- `quota` (Block Set) Per-project consumption quota. If the quota is exceeded, all active computes
+- `quota` (Block List, Max: 1) Per-project consumption quota. If the quota is exceeded, all active computes
 are automatically suspended and it will not be possible to start them with
 an API method call or incoming proxy connections. The only exception is
 logical_size_bytes, which is applied on per-branch basis, i.e., only the
