@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - [[#51](https://github.com/kislerdm/terraform-provider-neon/issues/51)] Fixed credentials content.
-- Fixed the `resource_role` resource management:
-  - Password reading into the state;
+- Fixed management of the `resource_role` state:
+  - Fixed password reading.
   - Removed the side effect upon the resource import: the role's password won't be reset now. 
 
 ### Changed
