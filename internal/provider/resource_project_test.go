@@ -14,9 +14,7 @@ func Test_resourceProjectCreate(t *testing.T) {
 	t.Run(
 		"shall request project with custom settings", func(t *testing.T) {
 			// GIVEN
-			meta := &sdkClientStub{
-				resp: neon.CreatedProject{},
-			}
+			meta := &sdkClientStub{}
 
 			resource := resourceProject()
 
@@ -209,9 +207,7 @@ func Test_resourceProjectCreate(t *testing.T) {
 	t.Run(
 		"shall request project with no data retention", func(t *testing.T) {
 			// GIVEN
-			meta := &sdkClientStub{
-				resp: neon.CreatedProject{},
-			}
+			meta := &sdkClientStub{}
 
 			resource := resourceProject()
 

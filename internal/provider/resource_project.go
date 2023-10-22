@@ -252,7 +252,7 @@ The maximum value is 604800 seconds (1 week)`,
 	},
 }
 
-func mapToDfaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpointSettings {
+func mapToDefaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpointSettings {
 	o := neon.DefaultEndpointSettings{}
 	if v, ok := v["autoscaling_limit_min_cu"].(float64); ok && v > 0 {
 		o.AutoscalingLimitMinCu = neon.ComputeUnit(v)
@@ -325,16 +325,13 @@ func mapToBranchSettings(v map[string]interface{}) *neon.ProjectCreateRequestPro
 }
 
 func newDbConnectionInfo(
+	c neon.Client,
+	projectID string,
 	branchID string,
 	endpoints []neon.Endpoint,
 	databases []neon.Database,
-	roles []neon.Role,
-) dbConnectionInfo {
+) (dbConnectionInfo, error) {
 	o := dbConnectionInfo{}
-
-	if endpoints == nil || databases == nil || roles == nil {
-		return o
-	}
 
 	for _, el := range endpoints {
 		if !el.Disabled && el.BranchID == branchID {
@@ -351,16 +348,14 @@ func newDbConnectionInfo(
 		}
 	}
 
-	for _, el := range roles {
-		if el.BranchID == branchID && el.Name == o.userName {
-			if el.Protected {
-				o.pass = el.Password
-				break
-			}
-		}
+	resp, err := c.GetProjectBranchRolePassword(projectID, branchID, o.userName)
+	if err != nil {
+		return dbConnectionInfo{}, err
 	}
 
-	return o
+	o.pass = resp.Password
+
+	return o, nil
 }
 
 type dbConnectionInfo struct {
@@ -495,7 +490,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 
 	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
 		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
-			projectDef.DefaultEndpointSettings = mapToDfaultEndpointsSettings(v)
+			projectDef.DefaultEndpointSettings = mapToDefaultEndpointsSettings(v)
 		}
 	}
 
@@ -529,13 +524,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 	d.SetId(projectID)
 
 	branch := resp.BranchResponse.Branch
-	if err := updateStateProject(
-		d, resp.ProjectResponse.Project, branch.ID, branch.Name,
-		newDbConnectionInfo(
-			branch.ID, resp.EndpointsResponse.Endpoints, resp.DatabasesResponse.Databases,
-			resp.RolesResponse.Roles,
-		),
-	); err != nil {
+	info, err := newDbConnectionInfo(client, projectID, branch.ID, resp.EndpointsResponse.Endpoints,
+		resp.DatabasesResponse.Databases)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := updateStateProject(d, resp.ProjectResponse.Project, branch.ID, branch.Name, info); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -556,7 +551,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
 		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
-			req.DefaultEndpointSettings = mapToDfaultEndpointsSettings(v)
+			req.DefaultEndpointSettings = mapToDefaultEndpointsSettings(v)
 		}
 	}
 
@@ -607,22 +602,17 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	roles, err := client.ListProjectBranchRoles(d.Id(), branchMain.ID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	dbs, err := client.ListProjectBranchDatabases(d.Id(), branchMain.ID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return diag.FromErr(
-		updateStateProject(
-			d, project, branchMain.ID, branchMain.Name,
-			newDbConnectionInfo(branchMain.ID, endpoints.Endpoints, dbs.Databases, roles.Roles),
-		),
-	)
+	info, err := newDbConnectionInfo(client, project.ID, branchMain.ID, endpoints.Endpoints, dbs.Databases)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.FromErr(updateStateProject(d, project, branchMain.ID, branchMain.Name, info))
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {

@@ -48,6 +48,7 @@ func TestAccEndToEnd(t *testing.T) {
 				branchName     string = "br-foo"
 				branchRoleName string = "role-foo"
 				dbName         string = "db-foo"
+				customRoleName string = "qux"
 			)
 
 			resourceDefinition := fmt.Sprintf(
@@ -94,7 +95,7 @@ resource "neon_endpoint" "this" {
 resource "neon_role" "this" {
 	project_id = neon_project.this.id
 	branch_id  = neon_project.this.default_branch_id
-	name 	   = "qux"
+	name 	   = "%s"
 }
 
 resource "neon_database" "this" {
@@ -117,6 +118,7 @@ resource "neon_database" "this" {
 				branchName,
 				branchRoleName,
 				dbName,
+				customRoleName,
 			)
 
 			const resourceNameProject = "neon_project.this"
@@ -379,16 +381,61 @@ resource "neon_database" "this" {
 												return err
 											}
 
-											return resource.TestCheckResourceAttr(
+											if err := resource.TestCheckResourceAttr(
 												resourceNameProject, "database_name", db.Name,
-											)(state)
+											)(state); err != nil {
+												return err
+											}
 
-											return resource.TestCheckResourceAttr(
+											if err := resource.TestCheckResourceAttr(
 												resourceNameProject, "branch.0.database_name", db.Name,
-											)(state)
+											)(state); err != nil {
+												return err
+											}
 										}
 									}
 
+									return nil
+								},
+
+								// check the roles
+								func(state *terraform.State) error {
+									// WHEN
+									// list projects
+									resp, err := client.ListProjectBranchRoles(projectID, defaultBranchID)
+									if err != nil {
+										return err
+									}
+
+									// THEN
+									roles := resp.Roles
+									if len(roles) != 2 {
+										return errors.New("two roles are expected for the branch " + defaultBranchID)
+									}
+
+									for _, role := range roles {
+										// validate password
+										resp, err := client.GetProjectBranchRolePassword(projectID,
+											defaultBranchID, role.Name)
+										if err != nil {
+											return err
+										}
+
+										switch role.Name {
+										case customRoleName:
+											if err := resource.TestCheckResourceAttr(
+												"neon_role.this", "password", resp.Password,
+											)(state); err != nil {
+												return err
+											}
+										default:
+											if err := resource.TestCheckResourceAttr(
+												resourceNameProject, "database_password", resp.Password,
+											)(state); err != nil {
+												return err
+											}
+										}
+									}
 									return nil
 								},
 							),

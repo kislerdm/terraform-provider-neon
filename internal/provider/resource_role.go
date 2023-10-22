@@ -94,7 +94,16 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	d.SetId(r.toString())
 
-	return updateStateRole(d, resp.Role)
+	role := resp.Role
+	if role.Password == "" {
+		r, err := meta.(neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.ProjectID, role.Name)
+		if err != nil {
+			return err
+		}
+		role.Password = r.Password
+	}
+
+	return updateStateRole(d, role)
 }
 
 func resourceRoleReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -111,7 +120,17 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	return updateStateRole(d, resp.Role)
+	role := resp.Role
+	if role.Password == "" {
+		r, err := meta.(neon.Client).GetProjectBranchRolePassword(d.Get("project_id").(string),
+			d.Get("branch_id").(string), d.Get("name").(string))
+		if err != nil {
+			return err
+		}
+		role.Password = r.Password
+	}
+
+	return updateStateRole(d, role)
 }
 
 func resourceRoleDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -147,19 +166,20 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 		return nil, err
 	}
 
-	resp, err := meta.(neon.Client).ResetProjectBranchRolePassword(
-		r.ProjectID,
-		r.BranchID,
-		r.Name,
-	)
+	resp, err := meta.(neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.BranchID, r.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := updateStateRole(d, resp.Role); err != nil {
+	role := neon.Role{
+		BranchID: r.BranchID,
+		Name:     r.Name,
+		Password: resp.Password,
+	}
+
+	if err := updateStateRole(d, role); err != nil {
 		return nil, err
 	}
-	setResourceDataFromComplexID(d, r)
 
 	return []*schema.ResourceData{d}, nil
 }
