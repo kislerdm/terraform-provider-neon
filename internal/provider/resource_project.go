@@ -252,7 +252,7 @@ The maximum value is 604800 seconds (1 week)`,
 	},
 }
 
-func mapToDfaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpointSettings {
+func mapToDefaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpointSettings {
 	o := neon.DefaultEndpointSettings{}
 	if v, ok := v["autoscaling_limit_min_cu"].(float64); ok && v > 0 {
 		o.AutoscalingLimitMinCu = neon.ComputeUnit(v)
@@ -495,7 +495,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 
 	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
 		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
-			projectDef.DefaultEndpointSettings = mapToDfaultEndpointsSettings(v)
+			projectDef.DefaultEndpointSettings = mapToDefaultEndpointsSettings(v)
 		}
 	}
 
@@ -556,7 +556,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
 		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
-			req.DefaultEndpointSettings = mapToDfaultEndpointsSettings(v)
+			req.DefaultEndpointSettings = mapToDefaultEndpointsSettings(v)
 		}
 	}
 
