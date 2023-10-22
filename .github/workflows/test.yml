@@ -113,8 +113,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
-          cache: true
-        id: go
+      - run: go mod download
       - name: Run testsacc
         run: make testacc
         env:
