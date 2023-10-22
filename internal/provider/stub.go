@@ -3,9 +3,12 @@ package provider
 import neon "github.com/kislerdm/neon-sdk-go"
 
 type sdkClientStub struct {
-	req  interface{}
-	resp interface{}
-	err  error
+	req interface{}
+	err error
+}
+
+func (s *sdkClientStub) GetCurrentUserInfo() (neon.CurrentUserInfoResponse, error) {
+	panic("not implemented")
 }
 
 func (s *sdkClientStub) ListApiKeys() ([]neon.ApiKeysListResponseItem, error) {
@@ -30,14 +33,16 @@ func (s *sdkClientStub) ListProjects(cursor *string, limit *int) (neon.ListProje
 
 func (s *sdkClientStub) CreateProject(cfg neon.ProjectCreateRequest) (neon.CreatedProject, error) {
 	s.req = cfg
-	return s.resp.(neon.CreatedProject), s.err
+	return neon.CreatedProject{}, s.err
 }
 
 func (s *sdkClientStub) GetProject(projectID string) (neon.ProjectResponse, error) {
 	panic("not implemented")
 }
 
-func (s *sdkClientStub) UpdateProject(projectID string, cfg neon.ProjectUpdateRequest) (neon.ProjectOperations, error) {
+func (s *sdkClientStub) UpdateProject(projectID string, cfg neon.ProjectUpdateRequest) (
+	neon.UpdateProjectRespObj, error,
+) {
 	panic("not implemented")
 }
 
@@ -136,7 +141,10 @@ func (s *sdkClientStub) DeleteProjectBranchRole(projectID string, branchID strin
 func (s *sdkClientStub) GetProjectBranchRolePassword(
 	projectID string, branchID string, roleName string,
 ) (neon.RolePasswordResponse, error) {
-	panic("not implemented")
+	if s.err != nil {
+		return neon.RolePasswordResponse{}, s.err
+	}
+	return neon.RolePasswordResponse{}, nil
 }
 
 func (s *sdkClientStub) ResetProjectBranchRolePassword(
