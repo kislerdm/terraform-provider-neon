@@ -414,20 +414,26 @@ resource "neon_database" "this" {
 									}
 
 									for _, role := range roles {
-										if role.Name != customRoleName {
-											// validate password
-											resp, err := client.GetProjectBranchRolePassword(projectID,
-												defaultBranchID, role.Name)
-											if err != nil {
+										// validate password
+										resp, err := client.GetProjectBranchRolePassword(projectID,
+											defaultBranchID, role.Name)
+										if err != nil {
+											return err
+										}
+
+										switch role.Name {
+										case customRoleName:
+											if err := resource.TestCheckResourceAttr(
+												"neon_role.this", "password", resp.Password,
+											)(state); err != nil {
 												return err
 											}
-
+										default:
 											if err := resource.TestCheckResourceAttr(
 												resourceNameProject, "database_password", resp.Password,
 											)(state); err != nil {
 												return err
 											}
-											break
 										}
 									}
 									return nil
