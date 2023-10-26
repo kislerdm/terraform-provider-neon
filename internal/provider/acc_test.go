@@ -6,6 +6,7 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -17,7 +18,7 @@ import (
 )
 
 func TestAccEndToEnd(t *testing.T) {
-	client, err := neon.NewClient()
+	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
 	if err != nil {
 		t.Fatal(err)
 	}

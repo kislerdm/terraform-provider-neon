@@ -5,15 +5,12 @@ subcategory: ""
 description: |-
   Project Role. Note that User and Role are synonymous terms in Neon.
   See details: https://neon.tech/docs/manage/users/
-  ~> Password will be reset upon import of the Role resource.
 ---
 
 # neon_role (Resource)
 
 Project Role. **Note** that User and Role are synonymous terms in Neon. 
 See details: https://neon.tech/docs/manage/users/
-
-~> Password will be reset upon import of the Role resource.
 
 ## Example Usage
 

@@ -126,7 +126,7 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		cfg.Branch.ParentTimestamp = &t
 	}
 
-	resp, err := meta.(neon.Client).CreateProjectBranch(
+	resp, err := meta.(*neon.Client).CreateProjectBranch(
 		d.Get("project_id").(string),
 		&cfg,
 	)
@@ -156,7 +156,7 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		},
 	}
 
-	resp, err := meta.(neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(), cfg)
+	resp, err := meta.(*neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(), cfg)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "read Branch")
 
-	resp, err := meta.(neon.Client).GetProjectBranch(d.Get("project_id").(string), d.Id())
+	resp, err := meta.(*neon.Client).GetProjectBranch(d.Get("project_id").(string), d.Id())
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interf
 func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Branch")
 
-	if _, err := meta.(neon.Client).DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
+	if _, err := meta.(*neon.Client).DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
 		return err
 	}
 
@@ -195,13 +195,13 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
-	resp, err := meta.(neon.Client).ListProjects(nil, nil)
+	resp, err := meta.(*neon.Client).ListProjects(nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, project := range resp.Projects {
-		r, err := meta.(neon.Client).ListProjectBranches(project.ID)
+		r, err := meta.(*neon.Client).ListProjectBranches(project.ID)
 		if err != nil {
 			return nil, err
 		}

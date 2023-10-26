@@ -6,7 +6,7 @@ description: |-
 
 # Neon Provider
 
-![logo](https://neon.tech/_next/static/svgs/9b5ae00331360361ba068980af7383ba.svg)
+![logo](https://raw.githubusercontent.com/kislerdm/terraform-provider-neon/master/fig/logo.svg)
 
 The terraform provider to manage [Neon Platform](https://neon.tech) resources.
 

@@ -98,13 +98,13 @@ func New(version string) *schema.Provider {
 func configure(version string) schema.ConfigureContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		if version == "dev" {
-			c, err := neon.NewClient(neon.WithHTTPClient(neon.NewMockHTTPClient()))
+			c, err := neon.NewClient(neon.Config{HTTPClient: neon.NewMockHTTPClient()})
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
 			return c, diag.FromErr(err)
 		}
-		c, err := neon.NewClient(neon.WithAPIKey(d.Get("api_key").(string)))
+		c, err := neon.NewClient(neon.Config{Key: d.Get("api_key").(string)})
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}

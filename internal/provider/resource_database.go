@@ -69,7 +69,7 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 		BranchID:  d.Get("branch_id").(string),
 		Name:      d.Get("name").(string),
 	}
-	resp, err := meta.(neon.Client).CreateProjectBranchDatabase(
+	resp, err := meta.(*neon.Client).CreateProjectBranchDatabase(
 		r.ProjectID, r.BranchID, neon.DatabaseCreateRequest{
 			Database: neon.DatabaseCreateRequestDatabase{
 				Name:      r.Name,
@@ -93,7 +93,7 @@ func resourceDatabaseReadRetry(ctx context.Context, d *schema.ResourceData, meta
 func resourceDatabaseRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "read Database")
 
-	resp, err := meta.(neon.Client).GetProjectBranchDatabase(
+	resp, err := meta.(*neon.Client).GetProjectBranchDatabase(
 		d.Get("project_id").(string), d.Get("branch_id").(string), d.Get("name").(string),
 	)
 	if err != nil {
@@ -115,7 +115,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		panic(err)
 	}
 
-	resp, err := meta.(neon.Client).UpdateProjectBranchDatabase(
+	resp, err := meta.(*neon.Client).UpdateProjectBranchDatabase(
 		r.ProjectID, r.BranchID, r.Name,
 		neon.DatabaseUpdateRequest{
 			Database: neon.DatabaseUpdateRequestDatabase{
@@ -139,7 +139,7 @@ func resourceDatabaseDeleteRetry(ctx context.Context, d *schema.ResourceData, me
 
 func resourceDatabaseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Database")
-	if _, err := meta.(neon.Client).DeleteProjectBranchDatabase(
+	if _, err := meta.(*neon.Client).DeleteProjectBranchDatabase(
 		d.Get("project_id").(string),
 		d.Get("branch_id").(string),
 		d.Get("name").(string),

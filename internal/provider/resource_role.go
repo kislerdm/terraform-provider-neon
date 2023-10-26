@@ -13,8 +13,6 @@ func resourceRole() *schema.Resource {
 	return &schema.Resource{
 		Description: `Project Role. **Note** that User and Role are synonymous terms in Neon. 
 See details: https://neon.tech/docs/manage/users/
-
-~> Password will be reset upon import of the Role resource.
 `,
 		SchemaVersion: versionSchema,
 		Importer: &schema.ResourceImporter{
@@ -81,7 +79,7 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		BranchID:  d.Get("branch_id").(string),
 		Name:      d.Get("name").(string),
 	}
-	resp, err := meta.(neon.Client).CreateProjectBranchRole(
+	resp, err := meta.(*neon.Client).CreateProjectBranchRole(
 		r.ProjectID, r.BranchID, neon.RoleCreateRequest{
 			Role: neon.RoleCreateRequestRole{
 				Name: r.Name,
@@ -96,7 +94,7 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	role := resp.Role
 	if role.Password == "" {
-		r, err := meta.(neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.ProjectID, role.Name)
+		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.ProjectID, role.Name)
 		if err != nil {
 			return err
 		}
@@ -113,7 +111,7 @@ func resourceRoleReadRetry(ctx context.Context, d *schema.ResourceData, meta int
 func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "read Role")
 
-	resp, err := meta.(neon.Client).GetProjectBranchRole(
+	resp, err := meta.(*neon.Client).GetProjectBranchRole(
 		d.Get("project_id").(string), d.Get("branch_id").(string), d.Get("name").(string),
 	)
 	if err != nil {
@@ -122,7 +120,7 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	role := resp.Role
 	if role.Password == "" {
-		r, err := meta.(neon.Client).GetProjectBranchRolePassword(d.Get("project_id").(string),
+		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(d.Get("project_id").(string),
 			d.Get("branch_id").(string), d.Get("name").(string))
 		if err != nil {
 			return err
@@ -139,7 +137,7 @@ func resourceRoleDeleteRetry(ctx context.Context, d *schema.ResourceData, meta i
 
 func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Role")
-	if _, err := meta.(neon.Client).DeleteProjectBranchRole(
+	if _, err := meta.(*neon.Client).DeleteProjectBranchRole(
 		d.Get("project_id").(string),
 		d.Get("branch_id").(string),
 		d.Get("name").(string),
@@ -166,7 +164,7 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 		return nil, err
 	}
 
-	resp, err := meta.(neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.BranchID, r.Name)
+	resp, err := meta.(*neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.BranchID, r.Name)
 	if err != nil {
 		return nil, err
 	}

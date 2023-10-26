@@ -325,7 +325,7 @@ func mapToBranchSettings(v map[string]interface{}) *neon.ProjectCreateRequestPro
 }
 
 func newDbConnectionInfo(
-	c neon.Client,
+	c sdkProject,
 	projectID string,
 	branchID string,
 	endpoints []neon.Endpoint,
@@ -508,7 +508,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	client := meta.(neon.Client)
+	client := meta.(sdkProject)
 
 	resp, err := client.CreateProject(
 		neon.ProjectCreateRequest{
@@ -563,7 +563,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	_, err := meta.(neon.Client).UpdateProject(d.Id(), neon.ProjectUpdateRequest{Project: req})
+	_, err := meta.(sdkProject).UpdateProject(d.Id(), neon.ProjectUpdateRequest{Project: req})
 
 	return err
 }
@@ -571,7 +571,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "get Project")
 
-	client := meta.(neon.Client)
+	client := meta.(sdkProject)
 
 	resp, err := client.GetProject(d.Id())
 	if err != nil {
@@ -618,7 +618,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Project")
 
-	if _, err := meta.(neon.Client).DeleteProject(d.Id()); err != nil {
+	if _, err := meta.(sdkProject).DeleteProject(d.Id()); err != nil {
 		return err
 	}
 
@@ -633,4 +633,15 @@ func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta int
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
+}
+
+type sdkProject interface {
+	GetProjectBranchRolePassword(string, string, string) (neon.RolePasswordResponse, error)
+	CreateProject(neon.ProjectCreateRequest) (neon.CreatedProject, error)
+	UpdateProject(string, neon.ProjectUpdateRequest) (neon.UpdateProjectRespObj, error)
+	GetProject(string) (neon.ProjectResponse, error)
+	ListProjectBranches(string) (neon.BranchesResponse, error)
+	ListProjectBranchEndpoints(string, string) (neon.EndpointsResponse, error)
+	DeleteProject(string) (neon.ProjectResponse, error)
+	ListProjectBranchDatabases(string, string) (neon.DatabasesResponse, error)
 }

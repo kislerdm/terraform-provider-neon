@@ -214,7 +214,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	resp, err := meta.(neon.Client).CreateProjectEndpoint(
+	resp, err := meta.(*neon.Client).CreateProjectEndpoint(
 		d.Get("project_id").(string),
 		neon.EndpointCreateRequest{Endpoint: cfg},
 	)
@@ -233,7 +233,7 @@ func resourceEndpointReadRetry(ctx context.Context, d *schema.ResourceData, meta
 func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "read Endpoint")
 
-	resp, err := meta.(neon.Client).GetProjectEndpoint(
+	resp, err := meta.(*neon.Client).GetProjectEndpoint(
 		d.Get("project_id").(string),
 		d.Id(),
 	)
@@ -268,7 +268,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	resp, err := meta.(neon.Client).UpdateProjectEndpoint(
+	resp, err := meta.(*neon.Client).UpdateProjectEndpoint(
 		d.Get("project_id").(string),
 		d.Id(),
 		neon.EndpointUpdateRequest{Endpoint: cfg},
@@ -284,13 +284,13 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 ) {
 	tflog.Trace(ctx, "import Endpoint")
 
-	resp, err := meta.(neon.Client).ListProjects(nil, nil)
+	resp, err := meta.(*neon.Client).ListProjects(nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, project := range resp.Projects {
-		r, err := meta.(neon.Client).ListProjectEndpoints(project.ID)
+		r, err := meta.(*neon.Client).ListProjectEndpoints(project.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -318,7 +318,7 @@ func resourceEndpointDeleteRetry(ctx context.Context, d *schema.ResourceData, me
 
 func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Endpoint")
-	if _, err := meta.(neon.Client).DeleteProjectEndpoint(d.Get("project_id").(string), d.Id()); err != nil {
+	if _, err := meta.(*neon.Client).DeleteProjectEndpoint(d.Get("project_id").(string), d.Id()); err != nil {
 		return err
 	}
 	d.SetId("")
