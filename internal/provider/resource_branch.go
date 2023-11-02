@@ -222,5 +222,6 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func isValidBranchID(s string) bool {
-	return strings.HasPrefix(s, "br-")
+	const prefix = "br-"
+	return strings.HasPrefix(s, prefix) && len(strings.TrimPrefix(s, prefix)) > 0
 }
