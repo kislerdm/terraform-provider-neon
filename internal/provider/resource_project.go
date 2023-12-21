@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -20,7 +21,7 @@ func resourceProject() *schema.Resource {
 
 See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
 API: https://api-docs.neon.tech/reference/createproject`,
-		SchemaVersion: versionSchema,
+		SchemaVersion: 8,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectImport,
 		},
@@ -98,6 +99,21 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 			"quota":                     schemaQuota,
 			"default_endpoint_settings": schemaDefaultEndpointSettings,
 			"branch":                    schemaDefaultBranch,
+			"allowed_ips": {
+				Type:     schema.TypeList,
+				MinItems: 1,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: `A list of IP addresses that are allowed to connect to the endpoints. 
+Note that the feature is available to the Neon Pro Plan only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow`,
+			},
+			"allowed_ips_primary_branch_only": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				Description: `Apply the allow-list to the primary branch only.
+Note that the feature is available to the Neon Pro Plan only.`,
+			},
 			// computed fields
 			"default_branch_id": {
 				Type:        schema.TypeString,
@@ -193,30 +209,30 @@ The zero value per attributed means 'unlimited'.`,
 	},
 }
 
-func mapToQuotaSettings(v map[string]interface{}) neon.ProjectQuota {
+func mapToQuotaSettings(v map[string]interface{}) *neon.ProjectQuota {
 	o := neon.ProjectQuota{}
 
 	if v, ok := v["active_time_seconds"].(int); ok && v > 0 {
-		o.ActiveTimeSeconds = int64(v)
+		o.ActiveTimeSeconds = pointer(int64(v))
 	}
 
 	if v, ok := v["compute_time_seconds"].(int); ok && v > 0 {
-		o.ComputeTimeSeconds = int64(v)
+		o.ComputeTimeSeconds = pointer(int64(v))
 	}
 
 	if v, ok := v["written_data_bytes"].(int); ok && v > 0 {
-		o.WrittenDataBytes = int64(v)
+		o.WrittenDataBytes = pointer(int64(v))
 	}
 
 	if v, ok := v["data_transfer_bytes"].(int); ok && v > 0 {
-		o.DataTransferBytes = int64(v)
+		o.DataTransferBytes = pointer(int64(v))
 	}
 
 	if v, ok := v["logical_size_bytes"].(int); ok && v > 0 {
-		o.LogicalSizeBytes = int64(v)
+		o.LogicalSizeBytes = pointer(int64(v))
 	}
 
-	return o
+	return &o
 }
 
 var schemaDefaultEndpointSettings = &schema.Schema{
@@ -255,15 +271,15 @@ The maximum value is 604800 seconds (1 week)`,
 func mapToDefaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpointSettings {
 	o := neon.DefaultEndpointSettings{}
 	if v, ok := v["autoscaling_limit_min_cu"].(float64); ok && v > 0 {
-		o.AutoscalingLimitMinCu = neon.ComputeUnit(v)
+		o.AutoscalingLimitMinCu = pointer(neon.ComputeUnit(v))
 	}
 
 	if v, ok := v["autoscaling_limit_max_cu"].(float64); ok && v > 0 {
-		o.AutoscalingLimitMaxCu = neon.ComputeUnit(v)
+		o.AutoscalingLimitMaxCu = pointer(neon.ComputeUnit(v))
 	}
 
 	if v, ok := v["suspend_timeout_seconds"].(int); ok && v > 0 {
-		o.SuspendTimeoutSeconds = neon.SuspendTimeoutSeconds(v)
+		o.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v))
 	}
 	return &o
 }
@@ -396,30 +412,20 @@ func updateStateProject(
 		return err
 	}
 
-	if err := d.Set(
-		"default_endpoint_settings", []interface{}{
-			map[string]interface{}{
-				"autoscaling_limit_min_cu": float64(r.DefaultEndpointSettings.AutoscalingLimitMinCu),
-				"autoscaling_limit_max_cu": float64(r.DefaultEndpointSettings.AutoscalingLimitMaxCu),
-				"suspend_timeout_seconds":  int(r.DefaultEndpointSettings.SuspendTimeoutSeconds),
-			},
-		},
-	); err != nil {
-		return err
-	}
-
-	if err := d.Set(
-		"quota", []interface{}{
-			map[string]interface{}{
-				"active_time_seconds":  int(r.Settings.Quota.ActiveTimeSeconds),
-				"compute_time_seconds": int(r.Settings.Quota.ComputeTimeSeconds),
-				"written_data_bytes":   int(r.Settings.Quota.WrittenDataBytes),
-				"data_transfer_bytes":  int(r.Settings.Quota.DataTransferBytes),
-				"logical_size_bytes":   int(r.Settings.Quota.LogicalSizeBytes),
-			},
-		},
-	); err != nil {
-		return err
+	if r.DefaultEndpointSettings != nil {
+		defaultEndpointSettings := map[string]interface{}{}
+		if r.DefaultEndpointSettings.AutoscalingLimitMinCu != nil {
+			defaultEndpointSettings["autoscaling_limit_min_cu"] = float64(*r.DefaultEndpointSettings.AutoscalingLimitMinCu)
+		}
+		if r.DefaultEndpointSettings.AutoscalingLimitMaxCu != nil {
+			defaultEndpointSettings["autoscaling_limit_max_cu"] = float64(*r.DefaultEndpointSettings.AutoscalingLimitMaxCu)
+		}
+		if r.DefaultEndpointSettings.SuspendTimeoutSeconds != nil {
+			defaultEndpointSettings["suspend_timeout_seconds"] = float64(*r.DefaultEndpointSettings.SuspendTimeoutSeconds)
+		}
+		if err := d.Set("default_endpoint_settings", []interface{}{defaultEndpointSettings}); err != nil {
+			return err
+		}
 	}
 
 	if err := d.Set(
@@ -433,6 +439,33 @@ func updateStateProject(
 		},
 	); err != nil {
 		return err
+	}
+
+	if r.Settings != nil {
+		if r.Settings.Quota != nil {
+			if err := d.Set(
+				"quota", []interface{}{
+					map[string]interface{}{
+						"active_time_seconds":  int(*r.Settings.Quota.ActiveTimeSeconds),
+						"compute_time_seconds": int(*r.Settings.Quota.ComputeTimeSeconds),
+						"written_data_bytes":   int(*r.Settings.Quota.WrittenDataBytes),
+						"data_transfer_bytes":  int(*r.Settings.Quota.DataTransferBytes),
+						"logical_size_bytes":   int(*r.Settings.Quota.LogicalSizeBytes),
+					},
+				},
+			); err != nil {
+				return err
+			}
+		}
+
+		if r.Settings.AllowedIps != nil {
+			if err := d.Set("allowed_ips", r.Settings.AllowedIps.Ips); err != nil {
+				return err
+			}
+			if err := d.Set("allowed_ips_primary_branch_only", r.Settings.AllowedIps.PrimaryBranchOnly); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := d.Set("default_branch_id", defaultBranchID); err != nil {
@@ -502,6 +535,25 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
+	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {
+		var ips = make([]string, len(v.([]interface{})))
+		for i, vv := range v.([]interface{}) {
+			ips[i] = fmt.Sprintf("%v", vv)
+		}
+
+		var q *neon.ProjectQuota
+		if projectDef.Settings != nil && projectDef.Settings.Quota != nil {
+			q = projectDef.Settings.Quota
+		}
+		projectDef.Settings = &neon.ProjectSettingsData{
+			AllowedIps: &neon.AllowedIps{
+				Ips:               ips,
+				PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
+			},
+			Quota: q,
+		}
+	}
+
 	if v, ok := d.GetOk("branch"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
 		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
 			projectDef.Branch = mapToBranchSettings(v)
@@ -560,6 +612,20 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 			req.Settings = &neon.ProjectSettingsData{
 				Quota: mapToQuotaSettings(v),
 			}
+		}
+	}
+
+	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {
+		var ips = make([]string, len(v.([]interface{})))
+		for i, vv := range v.([]interface{}) {
+			ips[i] = fmt.Sprintf("%v", vv)
+		}
+		req.Settings = &neon.ProjectSettingsData{
+			Quota: req.Settings.Quota,
+			AllowedIps: &neon.AllowedIps{
+				Ips:               ips,
+				PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
+			},
 		}
 	}
 

@@ -63,17 +63,6 @@ func init() {
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
-// version is mapped to the sdk: https://github.com/kislerdm/neon-sdk-go
-// 0.1.0: 0
-// 0.1.1: 1
-// 0.1.3: 2
-// 0.1.4: 3
-// 0.2.0: 4
-// 0.2.1: 5
-// 0.2.2: 6
-// 0.2.3: 7
-const versionSchema = 7
-
 func New(version string) *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{

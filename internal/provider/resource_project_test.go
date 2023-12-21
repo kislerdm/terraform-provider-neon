@@ -38,7 +38,18 @@ func Test_resourceProjectCreate(t *testing.T) {
 				branchName     = "foo"
 				branchRoleName = "bar"
 				dbName         = "baz"
+
+				ipsPrimaryBranchOnly = true
 			)
+
+			var (
+				ips    = []string{"192.168.1.15", "192.168.2.0/20"}
+				ipsMap = map[string]struct{}{}
+			)
+
+			for _, ip := range ips {
+				ipsMap[ip] = struct{}{}
+			}
 
 			err = definition.Set(
 				"default_endpoint_settings", []interface{}{
@@ -64,6 +75,14 @@ func Test_resourceProjectCreate(t *testing.T) {
 					},
 				},
 			); err != nil {
+				t.Fatal(err)
+			}
+
+			if err := definition.Set("allowed_ips", ips); err != nil {
+				t.Fatal(err)
+			}
+
+			if err := definition.Set("allowed_ips_primary_branch_only", ipsPrimaryBranchOnly); err != nil {
 				t.Fatal(err)
 			}
 
@@ -105,24 +124,24 @@ func Test_resourceProjectCreate(t *testing.T) {
 						return
 					}
 
-					if settings.AutoscalingLimitMinCu != autoScalingMin {
+					if *settings.AutoscalingLimitMinCu != autoScalingMin {
 						t.Errorf(
 							"unexpected AutoscalingLimitMinCu, want: %f, got: %f", autoScalingMin,
-							settings.AutoscalingLimitMinCu,
+							*settings.AutoscalingLimitMinCu,
 						)
 					}
 
-					if settings.AutoscalingLimitMaxCu != autoScalingMax {
+					if *settings.AutoscalingLimitMaxCu != autoScalingMax {
 						t.Errorf(
 							"unexpected AutoscalingLimitMaxCu, want: %f, got: %f", autoScalingMax,
-							settings.AutoscalingLimitMaxCu,
+							*settings.AutoscalingLimitMaxCu,
 						)
 					}
 
-					if settings.SuspendTimeoutSeconds != suspendTimeoutSeconds {
+					if *settings.SuspendTimeoutSeconds != suspendTimeoutSeconds {
 						t.Errorf(
 							"unexpected SuspendTimeoutSeconds, want: %d, got: %d", suspendTimeoutSeconds,
-							settings.SuspendTimeoutSeconds,
+							*settings.SuspendTimeoutSeconds,
 						)
 					}
 				},
@@ -136,38 +155,38 @@ func Test_resourceProjectCreate(t *testing.T) {
 					}
 
 					quota := v.Project.Settings.Quota
-					if quota.ActiveTimeSeconds != quotaActiveTimeSeconds {
+					if *quota.ActiveTimeSeconds != quotaActiveTimeSeconds {
 						t.Errorf(
 							"unexpected quota ActiveTimeSeconds, want: %d, got: %d", quotaActiveTimeSeconds,
 							quota.ActiveTimeSeconds,
 						)
 					}
 
-					if quota.DataTransferBytes != quotaDataTransferBytes {
+					if *quota.DataTransferBytes != quotaDataTransferBytes {
 						t.Errorf(
 							"unexpected quota DataTransferBytes, want: %d, got: %d", quotaDataTransferBytes,
-							quota.DataTransferBytes,
+							*quota.DataTransferBytes,
 						)
 					}
 
-					if quota.LogicalSizeBytes != quotaLogicalSizeBytes {
+					if *quota.LogicalSizeBytes != quotaLogicalSizeBytes {
 						t.Errorf(
 							"unexpected quota LogicalSizeBytes, want: %d, got: %d", quotaLogicalSizeBytes,
-							quota.LogicalSizeBytes,
+							*quota.LogicalSizeBytes,
 						)
 					}
 
-					if quota.WrittenDataBytes != quotaWrittenDataBytes {
+					if *quota.WrittenDataBytes != quotaWrittenDataBytes {
 						t.Errorf(
 							"unexpected quota WrittenDataBytes, want: %d, got: %d", quotaWrittenDataBytes,
-							quota.WrittenDataBytes,
+							*quota.WrittenDataBytes,
 						)
 					}
 
-					if quota.ComputeTimeSeconds != quotaComputeTimeSeconds {
+					if *quota.ComputeTimeSeconds != quotaComputeTimeSeconds {
 						t.Errorf(
 							"unexpected quota ComputeTimeSeconds, want: %d, got: %d", quotaComputeTimeSeconds,
-							quota.ComputeTimeSeconds,
+							*quota.ComputeTimeSeconds,
 						)
 					}
 				},
@@ -199,6 +218,29 @@ func Test_resourceProjectCreate(t *testing.T) {
 						)
 					}
 
+				},
+			)
+
+			t.Run(
+				"shall set allowed ips", func(t *testing.T) {
+					if v.Project.Settings == nil {
+						t.Fatal("unexpected Settings, shall be not nil")
+					}
+
+					got := v.Project.Settings.AllowedIps
+
+					var ipsExcess []string
+					for _, ip := range got.Ips {
+						if _, ok := ipsMap[ip]; ok {
+							delete(ipsMap, ip)
+						} else {
+							ipsExcess = append(ipsExcess, ip)
+						}
+					}
+
+					if len(ipsMap) > 0 || len(ipsExcess) > 0 {
+						t.Fatalf("unexpected allowed IPs. want = %v, got = %v\n", ips, got)
+					}
 				},
 			)
 		},

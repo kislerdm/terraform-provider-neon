@@ -26,7 +26,7 @@ test: ## Runs unit tests.
 	@ echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 testacc: ## Runs acceptance tests.
-	@ TF_ACC=1 go test ./... -v -tags acceptance -timeout 120m
+	@ TF_ACC=1 go test -v -timeout 120m ./... -run TestAcc
 
 docu: ## Generates docu.
 	@ go generate

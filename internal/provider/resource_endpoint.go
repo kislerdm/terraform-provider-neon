@@ -18,7 +18,7 @@ func resourceEndpoint() *schema.Resource {
 			`It means that no additional endpoints can be provisioned for branches with existing endpoints. ` +
 			`It also means that no endpoints can be created for branches provisioned with this terraform provider ` +
 			`because every branch has the default endpoint attached.`,
-		SchemaVersion: versionSchema,
+		SchemaVersion: 8,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceEndpointImport,
 		},
@@ -81,7 +81,6 @@ func resourceEndpoint() *schema.Resource {
 			"pg_settings": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Computed: true,
 			},
 			"pooler_enabled": {
 				Type:     schema.TypeBool,
@@ -158,8 +157,10 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	if err := d.Set("autoscaling_limit_max_cu", float64(v.AutoscalingLimitMaxCu)); err != nil {
 		return err
 	}
-	if err := d.Set("pg_settings", pgSettingsToMap(v.Settings.PgSettings)); err != nil {
-		return err
+	if v.Settings.PgSettings != nil {
+		if err := d.Set("pg_settings", pgSettingsToMap(*v.Settings.PgSettings)); err != nil {
+			return err
+		}
 	}
 	if err := d.Set("pooler_enabled", v.PoolerEnabled); err != nil {
 		return err
@@ -223,6 +224,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	d.SetId(resp.Endpoint.ID)
+
 	return updateStateEndpoint(d, resp.EndpointResponse.Endpoint)
 }
 
