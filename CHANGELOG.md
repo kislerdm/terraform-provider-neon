@@ -20,7 +20,10 @@ endpoints:
 
 ### Changed
 
-- Updated dependencies: Neon Go SDK [v0.4.0](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.0)
+- Updated dependencies: 
+  - Go version to 1.21
+  - Neon Go SDK [v0.4.0](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.0)
+  - Terraform plugin SDK [v2.31.0](https://github.com/hashicorp/terraform-plugin-sdk/releases/tag/v2.31.0)
 
 ## [v0.2.5] - 2023-11-02
 
