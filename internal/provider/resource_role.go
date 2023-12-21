@@ -14,7 +14,7 @@ func resourceRole() *schema.Resource {
 		Description: `Project Role. **Note** that User and Role are synonymous terms in Neon. 
 See details: https://neon.tech/docs/manage/users/
 `,
-		SchemaVersion: versionSchema,
+		SchemaVersion: 7,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceRoleImport,
 		},
@@ -58,8 +58,10 @@ func updateStateRole(d *schema.ResourceData, v neon.Role) error {
 	if err := d.Set("name", v.Name); err != nil {
 		return err
 	}
-	if err := d.Set("password", v.Password); err != nil {
-		return err
+	if v.Password != nil {
+		if err := d.Set("password", *v.Password); err != nil {
+			return err
+		}
 	}
 	if err := d.Set("protected", v.Protected); err != nil {
 		return err
@@ -93,12 +95,12 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	d.SetId(r.toString())
 
 	role := resp.Role
-	if role.Password == "" {
+	if role.Password == nil {
 		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.ProjectID, role.Name)
 		if err != nil {
 			return err
 		}
-		role.Password = r.Password
+		role.Password = pointer(r.Password)
 	}
 
 	return updateStateRole(d, role)
@@ -119,13 +121,13 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 
 	role := resp.Role
-	if role.Password == "" {
+	if role.Password == nil {
 		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(d.Get("project_id").(string),
 			d.Get("branch_id").(string), d.Get("name").(string))
 		if err != nil {
 			return err
 		}
-		role.Password = r.Password
+		role.Password = pointer(r.Password)
 	}
 
 	return updateStateRole(d, role)
@@ -172,7 +174,7 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 	role := neon.Role{
 		BranchID: r.BranchID,
 		Name:     r.Name,
-		Password: resp.Password,
+		Password: pointer(resp.Password),
 	}
 
 	if err := updateStateRole(d, role); err != nil {

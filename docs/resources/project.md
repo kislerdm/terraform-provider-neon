@@ -61,6 +61,10 @@ resource "neon_project" "example" {
 
 ### Optional
 
+- `allowed_ips` (List of String) A list of IP addresses that are allowed to connect to the endpoints. 
+Note that the feature is available to the Neon Pro Plan only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow
+- `allowed_ips_primary_branch_only` (Boolean) Apply the allow-list to the primary branch only.
+Note that the feature is available to the Neon Pro Plan only.
 - `branch` (Block List, Max: 1) (see [below for nested schema](#nestedblock--branch))
 - `compute_provisioner` (String) Provisioner The Neon compute provisioner.
 Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.

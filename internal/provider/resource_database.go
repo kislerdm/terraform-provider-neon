@@ -14,7 +14,7 @@ import (
 func resourceDatabase() *schema.Resource {
 	return &schema.Resource{
 		Description:   `Project Database. See details: https://neon.tech/docs/manage/databases/`,
-		SchemaVersion: versionSchema,
+		SchemaVersion: 7,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceDatabaseImport,
 		},

@@ -16,7 +16,7 @@ func pgSettingsToMap(v neon.PgSettingsData) map[string]interface{} {
 	return o
 }
 
-func mapToPgSettings(v map[string]interface{}) neon.PgSettingsData {
+func mapToPgSettings(v map[string]interface{}) *neon.PgSettingsData {
 	if len(v) == 0 {
 		return nil
 	}
@@ -24,7 +24,7 @@ func mapToPgSettings(v map[string]interface{}) neon.PgSettingsData {
 	for k, v := range v {
 		o[k] = v
 	}
-	return o
+	return &o
 }
 
 func intValidationNotNegative(v interface{}, s string) (warn []string, errs []error) {

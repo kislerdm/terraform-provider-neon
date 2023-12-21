@@ -15,7 +15,7 @@ import (
 func resourceBranch() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Project Branch. See details: https://neon.tech/docs/introduction/branching/",
-		SchemaVersion: versionSchema,
+		SchemaVersion: 7,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceBranchImport,
 		},
@@ -84,11 +84,15 @@ func updateStateBranch(d *schema.ResourceData, v neon.Branch) error {
 	if err := d.Set("parent_lsn", v.ParentLsn); err != nil {
 		return err
 	}
-	if err := d.Set("parent_timestamp", int(v.ParentTimestamp.Unix())); err != nil {
-		return err
+	if v.ParentTimestamp != nil {
+		if err := d.Set("parent_timestamp", int(v.ParentTimestamp.Unix())); err != nil {
+			return err
+		}
 	}
-	if err := d.Set("logical_size", int(v.LogicalSize)); err != nil {
-		return err
+	if v.LogicalSize != nil {
+		if err := d.Set("logical_size", int(*v.LogicalSize)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
