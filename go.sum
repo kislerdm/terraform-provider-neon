@@ -121,6 +121,8 @@ github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4
 github.com/kevinburke/ssh_config v1.2.0/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
 github.com/kislerdm/neon-sdk-go v0.4.0 h1:9HhG++QO1NCTOdz9fVIjK0a8i/JkrElJzXCf9lEj0yo=
 github.com/kislerdm/neon-sdk-go v0.4.0/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
+github.com/kislerdm/neon-sdk-go v0.4.1 h1:vhgtcPffKq7eUdAunFU+tuYVUkRIfEvqYDS2mXsHeqA=
+github.com/kislerdm/neon-sdk-go v0.4.1/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=
 github.com/kr/pretty v0.3.0/go.mod h1:640gp4NfQd8pI5XOwp5fnNeVWj67G7CFk/SaSQn7NBk=

@@ -50,7 +50,7 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Description: "Postgres version",
 				ValidateFunc: func(i interface{}, _ string) (warns []string, errs []error) {
 					switch v := i.(int); v {
-					case 14, 15:
+					case 14, 15, 16:
 						return
 					default:
 						errs = append(
@@ -113,6 +113,15 @@ Note that the feature is available to the Neon Pro Plan only. Details: https://n
 				Default:  false,
 				Description: `Apply the allow-list to the primary branch only.
 Note that the feature is available to the Neon Pro Plan only.`,
+			},
+			"enable_logical_replication": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Description: `Sets wal_level=logical for all compute endpoints in this project.
+All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
+See details: https://neon.tech/docs/introduction/logical-replication 
+`,
 			},
 			// computed fields
 			"default_branch_id": {
@@ -466,6 +475,12 @@ func updateStateProject(
 				return err
 			}
 		}
+
+		if r.Settings.EnableLogicalReplication != nil {
+			if err := d.Set("enable_logical_replication", *r.Settings.EnableLogicalReplication); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := d.Set("default_branch_id", defaultBranchID); err != nil {
@@ -541,17 +556,20 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			ips[i] = fmt.Sprintf("%v", vv)
 		}
 
-		var q *neon.ProjectQuota
-		if projectDef.Settings != nil && projectDef.Settings.Quota != nil {
-			q = projectDef.Settings.Quota
+		if projectDef.Settings == nil {
+			projectDef.Settings = &neon.ProjectSettingsData{}
 		}
-		projectDef.Settings = &neon.ProjectSettingsData{
-			AllowedIps: &neon.AllowedIps{
-				Ips:               ips,
-				PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
-			},
-			Quota: q,
+		projectDef.Settings.AllowedIps = &neon.AllowedIps{
+			Ips:               ips,
+			PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
 		}
+	}
+
+	if v, ok := d.GetOk("enable_logical_replication"); ok {
+		if projectDef.Settings == nil {
+			projectDef.Settings = &neon.ProjectSettingsData{}
+		}
+		projectDef.Settings.EnableLogicalReplication = pointer(v.(bool))
 	}
 
 	if v, ok := d.GetOk("branch"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
@@ -620,13 +638,20 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		for i, vv := range v.([]interface{}) {
 			ips[i] = fmt.Sprintf("%v", vv)
 		}
-		req.Settings = &neon.ProjectSettingsData{
-			Quota: req.Settings.Quota,
-			AllowedIps: &neon.AllowedIps{
-				Ips:               ips,
-				PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
-			},
+		if req.Settings == nil {
+			req.Settings = &neon.ProjectSettingsData{}
 		}
+		req.Settings.AllowedIps = &neon.AllowedIps{
+			Ips:               ips,
+			PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
+		}
+	}
+
+	if v, ok := d.GetOk("enable_logical_replication"); ok {
+		if req.Settings == nil {
+			req.Settings = &neon.ProjectSettingsData{}
+		}
+		req.Settings.EnableLogicalReplication = pointer(v.(bool))
 	}
 
 	_, err := meta.(sdkProject).UpdateProject(d.Id(), neon.ProjectUpdateRequest{Project: req})

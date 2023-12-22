@@ -69,6 +69,9 @@ Note that the feature is available to the Neon Pro Plan only.
 - `compute_provisioner` (String) Provisioner The Neon compute provisioner.
 Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
 - `default_endpoint_settings` (Block List, Max: 1) (see [below for nested schema](#nestedblock--default_endpoint_settings))
+- `enable_logical_replication` (Boolean) Sets wal_level=logical for all compute endpoints in this project.
+All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
+See details: https://neon.tech/docs/introduction/logical-replication
 - `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project. 
 Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.
 - `name` (String) Project name.

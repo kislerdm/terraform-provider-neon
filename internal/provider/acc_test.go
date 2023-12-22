@@ -28,6 +28,8 @@ func TestAcc(t *testing.T) {
 	end2end(t, client)
 
 	projectAllowedIPs(t, client)
+
+	projectLogicalReplication(t, client)
 }
 
 func end2end(t *testing.T, client *neon.Client) {
@@ -714,6 +716,128 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 
 								if !ref.Settings.AllowedIps.PrimaryBranchOnly {
 									return errors.New("primary_branch_only is expected to be set to 'true'")
+								}
+
+								return nil
+							},
+						),
+					},
+				},
+			},
+		)
+	})
+}
+
+func projectLogicalReplication(t *testing.T, client *neon.Client) {
+	t.Run("shall create project without logical replication", func(t *testing.T) {
+		projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
+			name      				   = "%s"
+			region_id 				   = "aws-us-west-2"
+			pg_version				   = 16
+		}`, projectName)
+		const resourceNameProject = "neon_project.this"
+		resource.UnitTest(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return New("0.3.0"), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						ResourceName: "project",
+						Config:       resourceDefinition,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"name", projectName,
+							),
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"enable_logical_replication", "false",
+							),
+							func(state *terraform.State) error {
+								resp, err := client.ListProjects(nil, nil)
+								if err != nil {
+									return errors.New("listing error: " + err.Error())
+								}
+
+								var ref neon.ProjectListItem
+								for _, project := range resp.ProjectsResponse.Projects {
+									if project.Name == projectName {
+										ref = project
+									}
+									break
+								}
+
+								if ref.ID == "" {
+									return errors.New("project " + projectName + " shall be created")
+								}
+
+								if ref.Settings.EnableLogicalReplication == nil || *ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'false'")
+								}
+
+								return nil
+							},
+						),
+					},
+				},
+			})
+	})
+
+	t.Run("shall create project with logical replication", func(t *testing.T) {
+		projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+
+		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
+			name      				   = "%s"
+			region_id 				   = "aws-us-west-2"
+			pg_version				   = 16
+			enable_logical_replication = true
+		}`, projectName)
+
+		const resourceNameProject = "neon_project.this"
+		resource.UnitTest(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return New("0.3.0"), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						ResourceName: "project",
+						Config:       resourceDefinition,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"name", projectName,
+							),
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"enable_logical_replication", "true",
+							),
+							func(state *terraform.State) error {
+								resp, err := client.ListProjects(nil, nil)
+								if err != nil {
+									return errors.New("listing error: " + err.Error())
+								}
+
+								var ref neon.ProjectListItem
+								for _, project := range resp.ProjectsResponse.Projects {
+									if project.Name == projectName {
+										ref = project
+									}
+									break
+								}
+
+								if ref.ID == "" {
+									return errors.New("project " + projectName + " shall be created")
+								}
+
+								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'true'")
 								}
 
 								return nil
