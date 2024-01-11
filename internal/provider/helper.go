@@ -41,20 +41,6 @@ var schemaRegionID = &schema.Schema{
 	Computed:    true,
 	ForceNew:    true,
 	Description: "AWS Region.",
-	ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
-		switch v := i.(string); v {
-		case "aws-us-east-1", "aws-us-east-2", "aws-us-west-2", "aws-eu-central-1", "aws-ap-southeast-1", "aws-il-central-1":
-			return
-		default:
-			errs = append(
-				errs,
-				errors.New(
-					"region "+v+" is not supported yet: https://neon.tech/docs/introduction/regions/",
-				),
-			)
-			return
-		}
-	},
 }
 
 type t interface {
