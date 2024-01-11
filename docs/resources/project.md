@@ -88,7 +88,7 @@ Logical size is also an exception in this case, as it represents the total size
 of data stored in a branch, so it is not reset.
 
 The zero value per attributed means 'unlimited'. (see [below for nested schema](#nestedblock--quota))
-- `region_id` (String) AWS Region.
+- `region_id` (String) Deployment region: https://neon.tech/docs/introduction/regions
 - `store_password` (Boolean) Whether or not passwords are stored for roles in the Neon project. Storing passwords facilitates access to Neon features that require authorization.
 
 ### Read-Only

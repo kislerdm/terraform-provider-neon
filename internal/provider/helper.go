@@ -40,7 +40,7 @@ var schemaRegionID = &schema.Schema{
 	Optional:    true,
 	Computed:    true,
 	ForceNew:    true,
-	Description: "AWS Region.",
+	Description: "Deployment region: https://neon.tech/docs/introduction/regions",
 }
 
 type t interface {
