@@ -57,7 +57,7 @@ var projectReadiness = delay{
 }
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	rand.New(rand.NewSource(time.Now().Unix()))
 	// Set descriptions to support markdown syntax, this will be used in document generation
 	// and the language server.
 	schema.DescriptionKind = schema.StringMarkdown
@@ -74,11 +74,12 @@ func New(version string) *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"neon_project":  resourceProject(),
-			"neon_branch":   resourceBranch(),
-			"neon_endpoint": resourceEndpoint(),
-			"neon_role":     resourceRole(),
-			"neon_database": resourceDatabase(),
+			"neon_project":            resourceProject(),
+			"neon_branch":             resourceBranch(),
+			"neon_endpoint":           resourceEndpoint(),
+			"neon_role":               resourceRole(),
+			"neon_database":           resourceDatabase(),
+			"neon_project_permission": resourceProjectPermission(),
 		},
 		ConfigureContextFunc: configure(version),
 	}

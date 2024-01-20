@@ -230,7 +230,7 @@ func Test_resourceProjectCreate(t *testing.T) {
 					got := v.Project.Settings.AllowedIps
 
 					var ipsExcess []string
-					for _, ip := range got.Ips {
+					for _, ip := range *got.Ips {
 						if _, ok := ipsMap[ip]; ok {
 							delete(ipsMap, ip)
 						} else {

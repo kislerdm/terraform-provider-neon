@@ -603,7 +603,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 									missingIPs[ip] = struct{}{}
 								}
 
-								for _, ip := range ref.Settings.AllowedIps.Ips {
+								for _, ip := range *ref.Settings.AllowedIps.Ips {
 									if _, ok := missingIPs[ip]; ok {
 										delete(missingIPs, ip)
 										continue
@@ -700,7 +700,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 									missingIPs[ip] = struct{}{}
 								}
 
-								for _, ip := range ref.Settings.AllowedIps.Ips {
+								for _, ip := range *ref.Settings.AllowedIps.Ips {
 									if _, ok := missingIPs[ip]; ok {
 										delete(missingIPs, ip)
 										continue
