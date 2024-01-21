@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	neon "github.com/kislerdm/neon-sdk-go"
 )
@@ -157,5 +158,187 @@ func Test_resourceProjectPermissionDelete(t *testing.T) {
 }
 
 func Test_resourceProjectPermissionRead(t *testing.T) {
+	t.Parallel()
+	const (
+		projectID    = "myproject"
+		permissionID = "mypermission"
+		id           = projectID + "/" + permissionID
+	)
 
+	t.Run("shall find the permission given the resource id", func(t *testing.T) {
+		const email = "foo@bar.baz"
+		resource := resourceProjectPermission()
+		definition := resource.TestResourceData()
+		definition.SetId(id)
+
+		meta := &sdkClientStub{
+			stubProjectPermission: stubProjectPermission{
+				ProjectPermissions: neon.ProjectPermissions{
+					ProjectPermissions: []neon.ProjectPermission{
+						{
+							GrantedAt:      time.Now().UTC(),
+							GrantedToEmail: email,
+							ID:             permissionID,
+						},
+					},
+				},
+			},
+		}
+
+		d := resourceProjectPermissionRead(context.TODO(), definition, meta)
+		if d.HasError() {
+			t.Fatalf("unexpected errors: %v", d)
+		}
+
+		gotEmail := definition.Get("grantee").(string)
+		if gotEmail != email {
+			t.Fatalf("unexpected grantee email found: want=%s, got=%s", email, gotEmail)
+		}
+
+		gotProjectID := definition.Get("project_id").(string)
+		if gotProjectID != projectID {
+			t.Fatalf("unexpected projectID found: want=%s, got=%s", projectID, gotProjectID)
+		}
+	})
+
+	t.Run("shall find no permission by its id", func(t *testing.T) {
+		resource := resourceProjectPermission()
+		definition := resource.TestResourceData()
+		definition.SetId(id)
+
+		meta := &sdkClientStub{
+			stubProjectPermission: stubProjectPermission{
+				ProjectPermissions: neon.ProjectPermissions{},
+			},
+		}
+
+		d := resourceProjectPermissionRead(context.TODO(), definition, meta)
+		if d.HasError() {
+			t.Fatalf("unexpected errors: %v", d)
+		}
+
+		gotEmail := definition.Get("grantee").(string)
+		if gotEmail != "" {
+			t.Fatalf("unexpected grantee email found: want=%s, got=%s", "", gotEmail)
+		}
+
+		gotProjectID := definition.Get("project_id").(string)
+		if gotProjectID != "" {
+			t.Fatalf("unexpected projectID found: want=%s, got=%s", "", gotProjectID)
+		}
+	})
+
+	t.Run("shall fail when listing project's permissions", func(t *testing.T) {
+		resource := resourceProjectPermission()
+		definition := resource.TestResourceData()
+		definition.SetId(id)
+
+		meta := &sdkClientStub{
+			stubProjectPermission: stubProjectPermission{
+				err: errors.New("foobar"),
+			},
+		}
+
+		d := resourceProjectPermissionRead(context.TODO(), definition, meta)
+		if !d.HasError() {
+			t.Fatal("error expected")
+		}
+	})
+}
+
+func Test_resourceProjectPermissionImport(t *testing.T) {
+	t.Parallel()
+
+	const (
+		projectID    = "foo"
+		permissionID = "bar"
+		id           = projectID + "/" + permissionID
+		email        = "foo@bar.baz"
+	)
+
+	t.Run("shall import the permission given its id", func(t *testing.T) {
+		resource := resourceProjectPermission()
+		definition := resource.TestResourceData()
+		definition.SetId(id)
+
+		meta := &sdkClientStub{
+			stubProjectPermission: stubProjectPermission{
+				ProjectPermissions: neon.ProjectPermissions{
+					ProjectPermissions: []neon.ProjectPermission{
+						{
+							GrantedAt:      time.Now().UTC(),
+							GrantedToEmail: email,
+							ID:             permissionID,
+						},
+					},
+				},
+			},
+		}
+
+		resources, err := resourceProjectPermissionImport(context.TODO(), definition, meta)
+		if err != nil {
+			t.Fatalf("unexpected errors: %v", err)
+		}
+
+		d := resources[0]
+
+		gotEmail := d.Get("grantee").(string)
+		if gotEmail != email {
+			t.Fatalf("unexpected grantee email found: want=%s, got=%s", email, gotEmail)
+		}
+
+		gotProjectID := d.Get("project_id").(string)
+		if gotProjectID != projectID {
+			t.Fatalf("unexpected projectID found: want=%s, got=%s", projectID, gotProjectID)
+		}
+	})
+
+	t.Run("shall fail because no permission was found by its id", func(t *testing.T) {
+		resource := resourceProjectPermission()
+		definition := resource.TestResourceData()
+		definition.SetId(id)
+
+		meta := &sdkClientStub{
+			stubProjectPermission: stubProjectPermission{
+				ProjectPermissions: neon.ProjectPermissions{},
+			},
+		}
+
+		_, err := resourceProjectPermissionImport(context.TODO(), definition, meta)
+		const wantErrStr = "no permission found"
+		if err.Error() != wantErrStr {
+			t.Fatalf("'%s' error expected", wantErrStr)
+		}
+	})
+
+	t.Run("shall fail because provided id is not correct", func(t *testing.T) {
+		resource := resourceProjectPermission()
+		definition := resource.TestResourceData()
+		definition.SetId("qux")
+
+		meta := &sdkClientStub{}
+		_, err := resourceProjectPermissionImport(context.TODO(), definition, meta)
+
+		const wantErrStr = "not recognized format of the project permission resource's ID"
+		if err.Error() != wantErrStr {
+			t.Fatalf("'%s' error expected", wantErrStr)
+		}
+	})
+
+	t.Run("shall fail when listing project's permissions", func(t *testing.T) {
+		resource := resourceProjectPermission()
+		definition := resource.TestResourceData()
+		definition.SetId(id)
+
+		meta := &sdkClientStub{
+			stubProjectPermission: stubProjectPermission{
+				err: errors.New("foobar"),
+			},
+		}
+
+		_, err := resourceProjectPermissionImport(context.TODO(), definition, meta)
+		if err == nil {
+			t.Fatal("error expected")
+		}
+	})
 }
