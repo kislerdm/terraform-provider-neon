@@ -168,7 +168,7 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"compute_provisioner", "k8s-pod",
+									"compute_provisioner", "k8s-neonvm",
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
@@ -232,26 +232,12 @@ resource "neon_database" "this" {
 
 								// check the project and its settings
 								func(state *terraform.State) error {
-									// WHEN
-									// list projects
-									resp, err := client.ListProjects(nil, nil)
+									ref, err := readProjectInfo(client, projectName)
 									if err != nil {
-										return errors.New("listing error: " + err.Error())
+										return err
 									}
 
-									// THEN
-									var ref neon.ProjectListItem
-									for _, project := range resp.ProjectsResponse.Projects {
-										if project.Name == projectName {
-											ref = project
-										}
-										break
-									}
-
-									if ref.ID == "" {
-										return errors.New("project " + projectName + " shall be created")
-									}
-
+									// check autoscaling
 									if float64(*ref.DefaultEndpointSettings.AutoscalingLimitMinCu) != mustParseFloat64(autoscalingCUMin) {
 										return errors.New("AutoscalingLimitMinCu was not set")
 									}
@@ -272,22 +258,13 @@ resource "neon_database" "this" {
 									projectID = ref.ID
 									defaultUser = ref.OwnerID
 
-									return nil
-								},
-
-								// check data retention
-								func(state *terraform.State) error {
-									resp, err := client.GetProject(projectID)
-									if err != nil {
-										return err
-									}
-
-									v, err := strconv.Atoi(historyRetentionSeconds)
+									// check data retention
+									v, err = strconv.Atoi(historyRetentionSeconds)
 									if err != nil {
 										t.Fatal(err)
 									}
 
-									if resp.Project.HistoryRetentionSeconds != int64(v) {
+									if ref.HistoryRetentionSeconds != int64(v) {
 										return errors.New("HistoryRetentionSeconds was not set")
 									}
 
@@ -296,14 +273,11 @@ resource "neon_database" "this" {
 
 								// check the branches
 								func(state *terraform.State) error {
-									// WHEN
-									// list projects
 									resp, err := client.ListProjectBranches(projectID)
 									if err != nil {
 										return err
 									}
 
-									// THEN
 									if len(resp.Branches) != 2 {
 										return errors.New("only two branches are expected")
 									}
@@ -337,14 +311,11 @@ resource "neon_database" "this" {
 
 								// check the endpoints
 								func(state *terraform.State) error {
-									// WHEN
-									// list projects
 									resp, err := client.ListProjectEndpoints(projectID)
 									if err != nil {
 										return err
 									}
 
-									// THEN
 									endpoints := resp.Endpoints
 									if len(endpoints) != 2 {
 										return errors.New("only two endpoints are expected")
@@ -365,14 +336,11 @@ resource "neon_database" "this" {
 
 								// check the databases
 								func(state *terraform.State) error {
-									// WHEN
-									// list projects
 									resp, err := client.ListProjectBranchDatabases(projectID, defaultBranchID)
 									if err != nil {
 										return err
 									}
 
-									// THEN
 									dbs := resp.Databases
 									if len(dbs) != 2 {
 										return errors.New("only two databases is expected")
@@ -411,14 +379,11 @@ resource "neon_database" "this" {
 
 								// check the roles
 								func(state *terraform.State) error {
-									// WHEN
-									// list projects
 									resp, err := client.ListProjectBranchRoles(projectID, defaultBranchID)
 									if err != nil {
 										return err
 									}
 
-									// THEN
 									roles := resp.Roles
 									if len(roles) != 2 {
 										return errors.New("two roles are expected for the branch " + defaultBranchID)
@@ -477,7 +442,7 @@ resource "neon_database" "this" {
 									"neon_endpoint.this", "suspend_timeout_seconds", "0",
 								),
 								resource.TestCheckResourceAttr(
-									"neon_endpoint.this", "compute_provisioner", "k8s-pod",
+									"neon_endpoint.this", "compute_provisioner", "k8s-neonvm",
 								),
 								resource.TestCheckResourceAttr(
 									"neon_endpoint.this", "type", "read_write",
@@ -487,13 +452,11 @@ resource "neon_database" "this" {
 								),
 
 								func(state *terraform.State) error {
-									// WHEN
 									resp, err := client.ListProjectEndpoints(projectID)
 									if err != nil {
 										return err
 									}
 
-									// THEN
 									for _, endpoint := range resp.Endpoints {
 										if endpoint.BranchID != defaultBranchID {
 											if err := resource.TestCheckResourceAttr(
@@ -576,28 +539,12 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 
 							// check the project and its settings
 							func(state *terraform.State) error {
-								// WHEN
-								// list projects
-								resp, err := client.ListProjects(nil, nil)
+								ref, err := readProjectInfo(client, projectName)
 								if err != nil {
-									return errors.New("listing error: " + err.Error())
-								}
-
-								// THEN
-								var ref neon.ProjectListItem
-								for _, project := range resp.ProjectsResponse.Projects {
-									if project.Name == projectName {
-										ref = project
-									}
-									break
-								}
-
-								if ref.ID == "" {
-									return errors.New("project " + projectName + " shall be created")
+									return err
 								}
 
 								var exceedingAllowedIPs []string
-
 								missingIPs := map[string]struct{}{}
 								for _, ip := range wantAllowedIPs {
 									missingIPs[ip] = struct{}{}
@@ -608,7 +555,6 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 										delete(missingIPs, ip)
 										continue
 									}
-
 									exceedingAllowedIPs = append(exceedingAllowedIPs, ip)
 								}
 
@@ -673,24 +619,9 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 
 							// check the project and its settings
 							func(state *terraform.State) error {
-								// WHEN
-								// list projects
-								resp, err := client.ListProjects(nil, nil)
+								ref, err := readProjectInfo(client, projectName)
 								if err != nil {
-									return errors.New("listing error: " + err.Error())
-								}
-
-								// THEN
-								var ref neon.ProjectListItem
-								for _, project := range resp.ProjectsResponse.Projects {
-									if project.Name == projectName {
-										ref = project
-									}
-									break
-								}
-
-								if ref.ID == "" {
-									return errors.New("project " + projectName + " shall be created")
+									return err
 								}
 
 								var exceedingAllowedIPs []string
@@ -758,21 +689,9 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 								"enable_logical_replication", "false",
 							),
 							func(state *terraform.State) error {
-								resp, err := client.ListProjects(nil, nil)
+								ref, err := readProjectInfo(client, projectName)
 								if err != nil {
-									return errors.New("listing error: " + err.Error())
-								}
-
-								var ref neon.ProjectListItem
-								for _, project := range resp.ProjectsResponse.Projects {
-									if project.Name == projectName {
-										ref = project
-									}
-									break
-								}
-
-								if ref.ID == "" {
-									return errors.New("project " + projectName + " shall be created")
+									return err
 								}
 
 								if ref.Settings.EnableLogicalReplication == nil || *ref.Settings.EnableLogicalReplication {
@@ -819,21 +738,9 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 								"enable_logical_replication", "true",
 							),
 							func(state *terraform.State) error {
-								resp, err := client.ListProjects(nil, nil)
+								ref, err := readProjectInfo(client, projectName)
 								if err != nil {
-									return errors.New("listing error: " + err.Error())
-								}
-
-								var ref neon.ProjectListItem
-								for _, project := range resp.ProjectsResponse.Projects {
-									if project.Name == projectName {
-										ref = project
-									}
-									break
-								}
-
-								if ref.ID == "" {
-									return errors.New("project " + projectName + " shall be created")
+									return err
 								}
 
 								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
@@ -848,6 +755,32 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 			},
 		)
 	})
+}
+
+func readProjectInfo(client *neon.Client, projectName string) (neon.Project, error) {
+	resp, err := client.ListProjects(nil, nil)
+	if err != nil {
+		return neon.Project{}, errors.New("listing error: " + err.Error())
+	}
+
+	var id string
+	for _, project := range resp.ProjectsResponse.Projects {
+		if project.Name == projectName {
+			id = project.ID
+		}
+		break
+	}
+
+	if id == "" {
+		return neon.Project{}, errors.New("project " + projectName + " shall be created")
+	}
+
+	p, err := client.GetProject(id)
+	if err != nil {
+		return neon.Project{}, errors.New("project details error: " + err.Error())
+	}
+
+	return p.Project, nil
 }
 
 func mustParseFloat64(s string) float64 {
