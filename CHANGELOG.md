@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated dependencies: Neon Go SDK [v0.4.3](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.3)
+- Updated dependencies: 
+  - Neon Go SDK [v0.4.3](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.3)
+  - Terraform docs [v0.18.0](https://github.com/hashicorp/terraform-plugin-docs/releases/tag/v0.18.0)
 
 ## [v0.3.2] - 2024-01-11
 

@@ -49,5 +49,3 @@ resource "neon_database" "example" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

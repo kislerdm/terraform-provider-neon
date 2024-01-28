@@ -45,5 +45,3 @@ resource "neon_role" "example" {
 - `id` (String) The ID of this resource.
 - `password` (String, Sensitive) Database authentication password.
 - `protected` (Boolean)
-
-

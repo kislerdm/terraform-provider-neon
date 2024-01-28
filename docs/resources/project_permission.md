@@ -35,5 +35,3 @@ resource "neon_project_permission" "share" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-
