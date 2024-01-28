@@ -43,5 +43,3 @@ See details: https://neon.tech/docs/reference/glossary/#lsn
 
 - `id` (String) Branch ID.
 - `logical_size` (Number) Branch logical size in MB.
-
-

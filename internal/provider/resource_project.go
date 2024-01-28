@@ -560,7 +560,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			projectDef.Settings = &neon.ProjectSettingsData{}
 		}
 		projectDef.Settings.AllowedIps = &neon.AllowedIps{
-			Ips:               ips,
+			Ips:               &ips,
 			PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
 		}
 	}
@@ -642,7 +642,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 			req.Settings = &neon.ProjectSettingsData{}
 		}
 		req.Settings.AllowedIps = &neon.AllowedIps{
-			Ips:               ips,
+			Ips:               &ips,
 			PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
 		}
 	}
@@ -735,4 +735,7 @@ type sdkProject interface {
 	ListProjectBranchEndpoints(string, string) (neon.EndpointsResponse, error)
 	DeleteProject(string) (neon.ProjectResponse, error)
 	ListProjectBranchDatabases(string, string) (neon.DatabasesResponse, error)
+	GrantPermissionToProject(projectID string, cfg neon.GrantPermissionToProjectRequest) (neon.ProjectPermission, error)
+	RevokePermissionFromProject(projectID string, permissionID string) (neon.ProjectPermission, error)
+	ListProjectPermissions(projectID string) (neon.ProjectPermissions, error)
 }

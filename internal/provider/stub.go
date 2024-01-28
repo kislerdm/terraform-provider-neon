@@ -1,8 +1,14 @@
 package provider
 
-import neon "github.com/kislerdm/neon-sdk-go"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	neon "github.com/kislerdm/neon-sdk-go"
+)
 
 type sdkClientStub struct {
+	stubProjectPermission
 	req interface{}
 	err error
 }
@@ -41,4 +47,45 @@ func (s *sdkClientStub) GetProjectBranchRolePassword(_ string, _ string, _ strin
 		return neon.RolePasswordResponse{}, s.err
 	}
 	return neon.RolePasswordResponse{}, nil
+}
+
+type stubProjectPermission struct {
+	ProjectPermissions neon.ProjectPermissions
+	err                error
+}
+
+func (s *stubProjectPermission) GrantPermissionToProject(_ string, cfg neon.GrantPermissionToProjectRequest) (neon.ProjectPermission, error) {
+	if s.err != nil {
+		return neon.ProjectPermission{}, s.err
+	}
+
+	resp := neon.ProjectPermission{
+		GrantedAt:      time.Now().UTC(),
+		GrantedToEmail: cfg.Email,
+		ID:             uuid.NewString(),
+	}
+
+	s.ProjectPermissions.ProjectPermissions = append(s.ProjectPermissions.ProjectPermissions, resp)
+	return resp, nil
+}
+
+func (s *stubProjectPermission) RevokePermissionFromProject(_ string, permissionID string) (neon.ProjectPermission, error) {
+	if s.err != nil {
+		return neon.ProjectPermission{}, s.err
+	}
+
+	now := time.Now().UTC()
+	return neon.ProjectPermission{
+		GrantedAt:      now.Add(-1 * time.Second),
+		GrantedToEmail: "foo@bar.baz",
+		ID:             permissionID,
+		RevokedAt:      &now,
+	}, nil
+}
+
+func (s *stubProjectPermission) ListProjectPermissions(_ string) (neon.ProjectPermissions, error) {
+	if s.err != nil {
+		return neon.ProjectPermissions{}, s.err
+	}
+	return s.ProjectPermissions, nil
 }

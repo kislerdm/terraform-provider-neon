@@ -64,5 +64,3 @@ The maximum value is 604800 seconds (1 week)
 - `host` (String) Endpoint URI.
 - `id` (String) Endpoint ID.
 - `proxy_host` (String)
-
-

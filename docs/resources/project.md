@@ -138,5 +138,3 @@ Optional:
 - `data_transfer_bytes` (Number) Total amount of data transferred from all of a project's branches using the proxy.
 - `logical_size_bytes` (Number) Limit on the logical size of every project's branch.
 - `written_data_bytes` (Number) Total amount of data written to all of a project's branches.
-
-
