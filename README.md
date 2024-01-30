@@ -1,5 +1,13 @@
 # Terraform Provider Neon
 
+-----
+
+<div align="center">
+    ⭐ The project needs your support! Please leave a star and become a GitHub sponsor! ⭐
+</div>
+
+-----
+
 Terraform provider to manage the [Neon](https://neon.tech/) Postgres projects.
 
 ## Using the provider
