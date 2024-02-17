@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/kislerdm/terraform-provider-neon/internal/provider"
+	"github.com/kislerdm/terraform-provider-neon/provider"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
