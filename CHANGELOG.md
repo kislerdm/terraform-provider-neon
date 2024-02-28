@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.4.1] - 2024-02-28
+
+### Changed
+
+- Updated dependencies:
+    - Neon Go SDK [v0.4.6](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.6)
+    - terraform-plugin-sdk [v2.33.0](https://github.com/hashicorp/terraform-plugin-sdk/releases/tag/v2.33.0)
+    - Google UUID module [v1.6.0](https://github.com/google/uuid/releases/tag/v1.6.0)
+
 ## [v0.4.0] - 2024-01-28
 
 ### Added

@@ -286,7 +286,7 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 ) {
 	tflog.Trace(ctx, "import Endpoint")
 
-	resp, err := meta.(*neon.Client).ListProjects(nil, nil)
+	resp, err := meta.(*neon.Client).ListProjects(nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

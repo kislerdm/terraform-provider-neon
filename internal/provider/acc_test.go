@@ -48,7 +48,7 @@ func end2end(t *testing.T, client *neon.Client) {
 				historyRetentionSeconds = "100"
 				autoscalingCUMin        = "0.25"
 				autoscalingCUMax        = "0.5"
-				suspendTimeoutSec       = "10"
+				suspendTimeoutSec       = "90"
 
 				quotaActiveTimeSeconds  int = 100
 				quotaComputeTimeSeconds int = 100
@@ -758,7 +758,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 }
 
 func readProjectInfo(client *neon.Client, projectName string) (neon.Project, error) {
-	resp, err := client.ListProjects(nil, nil)
+	resp, err := client.ListProjects(nil, nil, &projectName)
 	if err != nil {
 		return neon.Project{}, errors.New("listing error: " + err.Error())
 	}
