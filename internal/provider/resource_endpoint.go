@@ -132,7 +132,7 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)`,

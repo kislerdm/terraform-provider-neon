@@ -10,7 +10,7 @@ description: |-
 
 # neon_project (Resource)
 
-Neon Project. 
+Neon Project.
 
 See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
 API: https://api-docs.neon.tech/reference/createproject
@@ -61,7 +61,7 @@ resource "neon_project" "example" {
 
 ### Optional
 
-- `allowed_ips` (List of String) A list of IP addresses that are allowed to connect to the endpoints. 
+- `allowed_ips` (List of String) A list of IP addresses that are allowed to connect to the endpoints.
 Note that the feature is available to the Neon Pro Plan only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow
 - `allowed_ips_primary_branch_only` (Boolean) Apply the allow-list to the primary branch only.
 Note that the feature is available to the Neon Pro Plan only.
@@ -72,7 +72,7 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 - `enable_logical_replication` (Boolean) Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
 See details: https://neon.tech/docs/introduction/logical-replication
-- `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project. 
+- `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
 Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.
 - `name` (String) Project name.
 - `pg_version` (Number) Postgres version
@@ -122,7 +122,7 @@ Optional:
 
 - `autoscaling_limit_max_cu` (Number)
 - `autoscaling_limit_min_cu` (Number)
-- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)

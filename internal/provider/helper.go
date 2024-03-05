@@ -77,7 +77,7 @@ func validateAutoscallingLimit(val interface{}, name string) (warns []string, er
 	}
 	errs = append(
 		errs, fmt.Errorf(
-			`%v is unsopported value for %s, 
+			`%v is unsopported value for %s,
 details: https://neon.tech/docs/manage/endpoints#compute-size-and-autoscaling-configuration`, val, name,
 		),
 	)

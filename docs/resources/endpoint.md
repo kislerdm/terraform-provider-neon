@@ -53,7 +53,7 @@ See details: https://neon.tech/docs/connect/connection-pooling
 - `pooler_mode` (String) Mode of connections pooling.
 See details: https://neon.tech/docs/connect/connection-pooling
 - `region_id` (String) Deployment region: https://neon.tech/docs/introduction/regions
-- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)

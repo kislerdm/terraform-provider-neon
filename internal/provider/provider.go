@@ -81,6 +81,13 @@ func New(version string) *schema.Provider {
 			"neon_database":           resourceDatabase(),
 			"neon_project_permission": resourceProjectPermission(),
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"neon_project":              dataSourceProject(),
+			"neon_branches":             dataSourceBranches(),
+			"neon_branch_endpoints":     dataSourceBranchEndpoints(),
+			"neon_branch_roles":         dataSourceBranchRoles(),
+			"neon_branch_role_password": dataSourceBranchRolePassword(),
+		},
 		ConfigureContextFunc: configure(version),
 	}
 }
