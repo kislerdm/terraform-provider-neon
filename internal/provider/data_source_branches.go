@@ -13,7 +13,7 @@ import (
 func dataSourceBranches() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Fetch Project Branches.",
-		SchemaVersion: 8,
+		SchemaVersion: 1,
 		ReadContext:   dataSourceBranchesRead,
 		Schema: map[string]*schema.Schema{
 			"project_id": {

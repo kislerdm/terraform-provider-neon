@@ -13,7 +13,7 @@ import (
 func dataSourceBranchRolePassword() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Fetch Role Password.",
-		SchemaVersion: 8,
+		SchemaVersion: 1,
 		ReadContext:   dataSourceBranchRolePasswordRead,
 		Schema: map[string]*schema.Schema{
 			"project_id": {

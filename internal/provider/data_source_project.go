@@ -12,7 +12,7 @@ import (
 func dataSourceProject() *schema.Resource {
 	return &schema.Resource{
 		Description:   `Fetch Project.`,
-		SchemaVersion: 8,
+		SchemaVersion: 1,
 		ReadContext:   dataSourceProjectRead,
 		Schema: map[string]*schema.Schema{
 			"id": {

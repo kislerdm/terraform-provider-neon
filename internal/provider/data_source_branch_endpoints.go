@@ -12,7 +12,7 @@ import (
 func dataSourceBranchEndpoints() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Fetch Branch Endpoints",
-		SchemaVersion: 8,
+		SchemaVersion: 1,
 		ReadContext:   dataSourceBranchEndpointsRead,
 		Schema: map[string]*schema.Schema{
 			"project_id": {
