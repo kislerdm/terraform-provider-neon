@@ -62,7 +62,7 @@ See details: https://neon.tech/docs/reference/glossary/#lsn`,
 				ForceNew:      true,
 				ValidateFunc:  intValidationNotNegative,
 				ConflictsWith: []string{"parent_lsn"},
-				Description: `Timestamp horizon for the data to be present in the new branch. 
+				Description: `Timestamp horizon for the data to be present in the new branch.
 **Note**: it's defined as Unix epoch.'`,
 			},
 			"logical_size": {

@@ -30,6 +30,8 @@ func TestAcc(t *testing.T) {
 	projectAllowedIPs(t, client)
 
 	projectLogicalReplication(t, client)
+
+	fetchDataSources(t, client)
 }
 
 func end2end(t *testing.T, client *neon.Client) {
@@ -68,7 +70,7 @@ resource "neon_project" "this" {
 	name      				  = "%s"
 	region_id 				  = "aws-us-west-2"
 	pg_version				  = 14
-	
+
 	history_retention_seconds = %s
 
 	default_endpoint_settings {
@@ -755,6 +757,130 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 			},
 		)
 	})
+}
+
+func fetchDataSources(t *testing.T, _ *neon.Client) {
+	t.Run(
+		"shall successfully fetch project", func(t *testing.T) {
+			projectName := "p" + strconv.FormatInt(time.Now().UnixMilli(), 10)
+			branchName := "br-foo"
+			branchRoleName := "role-foo"
+
+			resource.UnitTest(t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return New("v0.3.0"), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`
+						resource "neon_project" "this" {
+							name = "%s"
+							branch {
+								name = "%s"
+							}
+						}
+
+						resource "neon_role" "this" {
+							project_id = neon_project.this.id
+							branch_id = neon_project.this.default_branch_id
+							name       = "%s"
+						}
+						`, projectName, branchName, branchRoleName),
+					},
+					{
+						Config: fmt.Sprintf(`
+						resource "neon_project" "this" {
+							name = "%s"
+							branch {
+								name = "%s"
+							}
+						}
+
+						resource "neon_role" "this" {
+							project_id = neon_project.this.id
+							branch_id = neon_project.this.default_branch_id
+							name       = "%s"
+						}
+
+						data "neon_project" "this" {
+							id = neon_project.this.id
+						}
+
+						data "neon_branches" "this" {
+							project_id = data.neon_project.this.id
+						}
+
+						data "neon_branch_endpoints" "this" {
+							project_id = data.neon_project.this.id
+							branch_id = data.neon_branches.this.branches.0.id
+						}
+
+						data "neon_branch_roles" "this" {
+							depends_on = [neon_role.this]
+							project_id = data.neon_project.this.id
+							branch_id = data.neon_branches.this.branches.0.id
+						}
+
+						data "neon_branch_role_password" "this" {
+							project_id = data.neon_project.this.id
+							branch_id = data.neon_branches.this.branches.0.id
+							role_name = "%s"
+						}`, projectName, branchName, branchRoleName, branchRoleName),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"data.neon_branches.this", "branches.0.name",
+								branchName,
+							),
+							resource.TestCheckResourceAttrSet(
+								"data.neon_branch_endpoints.this", "endpoints.0.host",
+							),
+							resource.TestCheckResourceAttr(
+								"data.neon_branch_roles.this", "roles.1.name",
+								branchRoleName,
+							),
+							resource.TestCheckResourceAttrSet(
+								"data.neon_branch_role_password.this", "password",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "id",
+								"neon_project.this", "id",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "name",
+								"neon_project.this", "name",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "default_branch_id",
+								"neon_project.this", "default_branch_id",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "database_host",
+								"neon_project.this", "database_host",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "database_name",
+								"neon_project.this", "database_name",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "database_user",
+								"neon_project.this", "database_user",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "database_password",
+								"neon_project.this", "database_password",
+							),
+							resource.TestCheckResourceAttrPair(
+								"data.neon_project.this", "connection_uri",
+								"neon_project.this", "connection_uri",
+							),
+						),
+					},
+				},
+			})
+		},
+	)
 }
 
 func readProjectInfo(client *neon.Client, projectName string) (neon.Project, error) {

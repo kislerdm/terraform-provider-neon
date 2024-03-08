@@ -36,7 +36,7 @@ resource "neon_branch" "example" {
 - `parent_id` (String) ID of the branch to checkout.
 - `parent_lsn` (String) Log Sequence Number (LSN) horizon for the data to be present in the new branch.
 See details: https://neon.tech/docs/reference/glossary/#lsn
-- `parent_timestamp` (Number) Timestamp horizon for the data to be present in the new branch. 
+- `parent_timestamp` (Number) Timestamp horizon for the data to be present in the new branch.
 **Note**: it's defined as Unix epoch.'
 
 ### Read-Only

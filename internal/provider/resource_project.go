@@ -17,7 +17,7 @@ const providerDefaultHistoryRetentionSeconds = int(time.Hour/time.Second) * 24 *
 
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
-		Description: `Neon Project. 
+		Description: `Neon Project.
 
 See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
 API: https://api-docs.neon.tech/reference/createproject`,
@@ -71,7 +71,7 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Optional:     true,
 				Default:      providerDefaultHistoryRetentionSeconds,
 				ValidateFunc: intValidationNotNegative,
-				Description: `The number of seconds to retain the point-in-time restore (PITR) backup history for this project. 
+				Description: `The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
 Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.`,
 			},
 			"compute_provisioner": {
@@ -104,7 +104,7 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 				MinItems: 1,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Description: `A list of IP addresses that are allowed to connect to the endpoints. 
+				Description: `A list of IP addresses that are allowed to connect to the endpoints.
 Note that the feature is available to the Neon Pro Plan only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow`,
 			},
 			"allowed_ips_primary_branch_only": {
@@ -120,7 +120,7 @@ Note that the feature is available to the Neon Pro Plan only.`,
 				ForceNew: true,
 				Description: `Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
-See details: https://neon.tech/docs/introduction/logical-replication 
+See details: https://neon.tech/docs/introduction/logical-replication
 `,
 			},
 			// computed fields
@@ -268,7 +268,7 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: intValidationNotNegative,
-				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended. 
+				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)`,
