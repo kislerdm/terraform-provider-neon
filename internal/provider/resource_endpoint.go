@@ -10,6 +10,8 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
+const endpointTypeRW = "read_write"
+
 func resourceEndpoint() *schema.Resource {
 	return &schema.Resource{
 		Description: `Project Endpoint. See details: https://neon.tech/docs/manage/endpoints/
@@ -45,7 +47,7 @@ func resourceEndpoint() *schema.Resource {
 			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "read_write",
+				Default:     endpointTypeRW,
 				Description: `Access type. **Note** that "read_write" is the only supported type yet.`,
 				ValidateFunc: func(d interface{}, k string) (warn []string, errs []error) {
 					switch v := d.(string); v {

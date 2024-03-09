@@ -31,7 +31,9 @@ func TestAcc(t *testing.T) {
 
 	projectLogicalReplication(t, client)
 
-	fetchDataSources(t, client)
+	fetchDataSources(t)
+
+	issue83(t)
 }
 
 func end2end(t *testing.T, client *neon.Client) {
@@ -759,10 +761,10 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 	})
 }
 
-func fetchDataSources(t *testing.T, _ *neon.Client) {
+func fetchDataSources(t *testing.T) {
 	t.Run(
 		"shall successfully fetch project", func(t *testing.T) {
-			projectName := "p" + strconv.FormatInt(time.Now().UnixMilli(), 10)
+			projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
 			branchName := "br-foo"
 			branchRoleName := "role-foo"
 
@@ -879,6 +881,72 @@ func fetchDataSources(t *testing.T, _ *neon.Client) {
 					},
 				},
 			})
+		},
+	)
+}
+
+// It's expected that the default database and role names will not be overwritten
+// if custom database and role would be created using the default branch.
+// See details: https://github.com/kislerdm/terraform-provider-neon/issues/83
+func issue83(t *testing.T) {
+	projectName := strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
+  name                = "%s"
+  region_id           = "aws-us-west-2"
+  pg_version          = "16"
+  compute_provisioner = "k8s-neonvm"
+
+  enable_logical_replication = false
+
+  history_retention_seconds = 604800 # 7 days
+
+  branch {
+    name          = "main"
+    database_name = "do_not_use_neon_default"
+    role_name     = "main"
+  }
+
+  default_endpoint_settings {
+    autoscaling_limit_min_cu = 0.25
+    autoscaling_limit_max_cu = 0.25
+    suspend_timeout_seconds  = 300 # 5 min
+  }
+}
+
+resource "neon_role" "this" {
+  project_id = neon_project.this.id
+  branch_id  = neon_project.this.default_branch_id
+
+  name = "app"
+}
+
+resource "neon_database" "this" {
+  name = "app"
+
+  project_id = neon_project.this.id
+  branch_id  = neon_project.this.default_branch_id
+  owner_name = neon_role.this.name
+}`, projectName)
+
+	resource.UnitTest(
+		t, resource.TestCase{
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"neon": func() (*schema.Provider, error) {
+					return New("0.5.0"), nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					ResourceName: "initial provisioning",
+					Config:       resourceDefinition,
+				},
+				{
+					ResourceName: "second plan",
+					Config:       resourceDefinition,
+					PlanOnly:     true,
+				},
+			},
 		},
 	)
 }

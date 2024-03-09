@@ -9,6 +9,7 @@ import (
 
 type sdkClientStub struct {
 	stubProjectPermission
+	stubProjectRolePassword
 	req interface{}
 	err error
 }
@@ -42,11 +43,16 @@ func (s *sdkClientStub) CreateProject(cfg neon.ProjectCreateRequest) (neon.Creat
 	return neon.CreatedProject{}, s.err
 }
 
-func (s *sdkClientStub) GetProjectBranchRolePassword(_ string, _ string, _ string) (neon.RolePasswordResponse, error) {
+type stubProjectRolePassword struct {
+	Password string
+	err      error
+}
+
+func (s *stubProjectRolePassword) GetProjectBranchRolePassword(_ string, _ string, _ string) (neon.RolePasswordResponse, error) {
 	if s.err != nil {
 		return neon.RolePasswordResponse{}, s.err
 	}
-	return neon.RolePasswordResponse{}, nil
+	return neon.RolePasswordResponse{Password: s.Password}, nil
 }
 
 type stubProjectPermission struct {
