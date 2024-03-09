@@ -157,6 +157,11 @@ See details: https://neon.tech/docs/introduction/logical-replication
 				Sensitive:   true,
 				Description: "Default connection uri. **Note** that it contains access credentials.",
 			},
+			"default_endpoint_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default endpoint ID.",
+			},
 		},
 	}
 }
@@ -252,7 +257,7 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 	Optional: true,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"default_endpoint_id": {
+			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Endpoint ID.",
@@ -489,7 +494,7 @@ func updateStateProject(
 	}
 
 	if dbConnectionInfo.endpointID != "" {
-		defaultEndpointSettings["default_endpoint_id"] = dbConnectionInfo.endpointID
+		defaultEndpointSettings["id"] = dbConnectionInfo.endpointID
 		if err := d.Set("default_endpoint_settings", []interface{}{defaultEndpointSettings}); err != nil {
 			return err
 		}
@@ -562,6 +567,10 @@ func updateStateProject(
 	}
 
 	if err := d.Set("connection_uri", dbConnectionInfo.connectionURI()); err != nil {
+		return err
+	}
+
+	if err := d.Set("default_endpoint_id", dbConnectionInfo.endpointID); err != nil {
 		return err
 	}
 

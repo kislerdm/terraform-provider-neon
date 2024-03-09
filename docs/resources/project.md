@@ -99,6 +99,7 @@ The zero value per attributed means 'unlimited'. (see [below for nested schema](
 - `database_password` (String, Sensitive) Default database access password.
 - `database_user` (String) Default database role.
 - `default_branch_id` (String) Default branch ID.
+- `default_endpoint_id` (String) Default endpoint ID.
 - `id` (String) Project ID.
 
 <a id="nestedblock--branch"></a>
@@ -106,9 +107,12 @@ The zero value per attributed means 'unlimited'. (see [below for nested schema](
 
 Optional:
 
-- `database_name` (String) The database name. If not specified, the default database name will be used.
-- `name` (String) The branch name. If not specified, the default branch name will be used.
-- `role_name` (String) The role name. If not specified, the default role name will be used.
+- `database_name` (String) The name of the default database provisioned upon creation of new project. It's owned by the default role (`role_name`).
+If not specified, the default database name will be used.
+- `name` (String) The name of the default branch provisioned upon creation of new project. 
+If not specified, the default branch name will be used.
+- `role_name` (String) The name of the default role provisioned upon creation of new project.
+If not specified, the default role name will be used.
 
 Read-Only:
 
@@ -126,6 +130,10 @@ Optional:
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)
+
+Read-Only:
+
+- `id` (String) Endpoint ID.
 
 
 <a id="nestedblock--quota"></a>
