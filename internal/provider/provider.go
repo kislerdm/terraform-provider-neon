@@ -52,7 +52,7 @@ func (r *delay) Retry(
 }
 
 var projectReadiness = delay{
-	delay:  5 * time.Second,
+	delay:  1 * time.Second,
 	maxCnt: 120,
 }
 
