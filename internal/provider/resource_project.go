@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -21,7 +22,7 @@ func resourceProject() *schema.Resource {
 
 See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
 API: https://api-docs.neon.tech/reference/createproject`,
-		SchemaVersion: 8,
+		SchemaVersion: 9,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectImport,
 		},
@@ -251,6 +252,11 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 	Optional: true,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			"default_endpoint_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Endpoint ID.",
+			},
 			"autoscaling_limit_min_cu": {
 				Type:         schema.TypeFloat,
 				ValidateFunc: validateAutoscallingLimit,
@@ -298,7 +304,6 @@ var schemaDefaultBranch = &schema.Schema{
 	MaxItems: 1,
 	Optional: true,
 	Computed: true,
-	ForceNew: true,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -307,25 +312,25 @@ var schemaDefaultBranch = &schema.Schema{
 				Description: "Branch ID.",
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "The branch name. If not specified, the default branch name will be used.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: `The name of the default branch provisioned upon creation of new project. 
+If not specified, the default branch name will be used.`,
 			},
 			"role_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "The role name. If not specified, the default role name will be used.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: `The name of the default role provisioned upon creation of new project.
+If not specified, the default role name will be used.`,
 			},
 			"database_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "The database name. If not specified, the default database name will be used.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: `The name of the default database provisioned upon creation of new project. It's owned by the default role (` + "`role_name`" + `).
+If not specified, the default database name will be used.`,
 			},
 		},
 	},
@@ -356,38 +361,78 @@ func newDbConnectionInfo(
 	endpoints []neon.Endpoint,
 	databases []neon.Database,
 ) (dbConnectionInfo, error) {
-	o := dbConnectionInfo{}
+	defaultEndpoint := findDefaultEndpoint(endpoints, branchID)
 
-	for _, el := range endpoints {
-		if !el.Disabled && el.BranchID == branchID {
-			o.host = el.Host
-			break
-		}
-	}
+	defaultDB := findDefaultDatabase(databases, branchID)
 
-	for _, el := range databases {
-		if el.BranchID == branchID {
-			o.dbName = el.Name
-			o.userName = el.OwnerName
-			break
-		}
-	}
-
-	resp, err := c.GetProjectBranchRolePassword(projectID, branchID, o.userName)
+	resp, err := c.GetProjectBranchRolePassword(projectID, branchID, defaultDB.OwnerName)
 	if err != nil {
 		return dbConnectionInfo{}, err
 	}
+	defaultRolePass := resp.Password
 
-	o.pass = resp.Password
+	return dbConnectionInfo{
+		userName:   defaultDB.OwnerName,
+		pass:       defaultRolePass,
+		dbName:     defaultDB.Name,
+		host:       defaultEndpoint.Host,
+		endpointID: defaultEndpoint.ID,
+	}, nil
+}
 
-	return o, nil
+func findDefaultDatabase(databases []neon.Database, defaultBranchID string) neon.Database {
+	o := neon.Database{}
+
+	if len(databases) > 0 {
+		if len(databases) > 0 {
+			var dbs []neon.Database
+			for _, el := range databases {
+				if el.BranchID == defaultBranchID {
+					dbs = append(dbs, el)
+				}
+			}
+
+			// select the default database based on the creation timestamp
+			slices.SortStableFunc(dbs, func(a, b neon.Database) int {
+				return a.CreatedAt.Compare(b.CreatedAt)
+			})
+
+			o = dbs[0]
+		}
+	}
+
+	return o
+}
+
+func findDefaultEndpoint(endpoints []neon.Endpoint, defaultBranchID string) neon.Endpoint {
+	o := neon.Endpoint{}
+
+	if len(endpoints) > 0 {
+		var eps []neon.Endpoint
+		for _, el := range endpoints {
+			// the default endpoint can only be of read_write type
+			if !el.Disabled && el.Type == endpointTypeRW && el.BranchID == defaultBranchID {
+				eps = append(eps, el)
+			}
+		}
+
+		// select the default endpoint based on the creation timestamp
+		slices.SortStableFunc(eps, func(a, b neon.Endpoint) int {
+			return a.CreatedAt.Compare(b.CreatedAt)
+		})
+
+		o = eps[0]
+	}
+
+	return o
 }
 
 type dbConnectionInfo struct {
-	userName string
-	pass     string
-	dbName   string
-	host     string
+	userName   string
+	pass       string
+	dbName     string
+	host       string
+	endpointID string
 }
 
 func (i dbConnectionInfo) connectionURI() string {
@@ -421,8 +466,14 @@ func updateStateProject(
 		return err
 	}
 
+	defaultEndpointSettings := map[string]interface{}{}
+	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+			defaultEndpointSettings = v
+		}
+	}
+
 	if r.DefaultEndpointSettings != nil {
-		defaultEndpointSettings := map[string]interface{}{}
 		if r.DefaultEndpointSettings.AutoscalingLimitMinCu != nil {
 			defaultEndpointSettings["autoscaling_limit_min_cu"] = float64(*r.DefaultEndpointSettings.AutoscalingLimitMinCu)
 		}
@@ -432,6 +483,13 @@ func updateStateProject(
 		if r.DefaultEndpointSettings.SuspendTimeoutSeconds != nil {
 			defaultEndpointSettings["suspend_timeout_seconds"] = float64(*r.DefaultEndpointSettings.SuspendTimeoutSeconds)
 		}
+		if err := d.Set("default_endpoint_settings", []interface{}{defaultEndpointSettings}); err != nil {
+			return err
+		}
+	}
+
+	if dbConnectionInfo.endpointID != "" {
+		defaultEndpointSettings["default_endpoint_id"] = dbConnectionInfo.endpointID
 		if err := d.Set("default_endpoint_settings", []interface{}{defaultEndpointSettings}); err != nil {
 			return err
 		}

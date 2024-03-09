@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	neon "github.com/kislerdm/neon-sdk-go"
 )
@@ -291,4 +292,102 @@ func Test_resourceProjectCreate(t *testing.T) {
 			}
 		},
 	)
+}
+
+func Test_newDbConnectionInfo(t *testing.T) {
+	t.Run("shall use the values with the lowest CreatedAt to define the default database, role and endpoint",
+		func(t *testing.T) {
+			// see for details: https://github.com/kislerdm/terraform-provider-neon/issues/83
+			// GIVEN
+			const (
+				projectID         = "foo"
+				defaultBranchID   = "br-bar"
+				defaultEndpointID = "ep-quiet-breeze-a6rnqy6s"
+				defaultHost       = defaultEndpointID + ".us-west-2.aws.neon.tech"
+				defaultRole       = "r-baz"
+				defaultDB         = "db-qux"
+				defaultRolePass   = "pass-foo"
+			)
+
+			client := &sdkClientStub{
+				stubProjectPermission:   stubProjectPermission{},
+				stubProjectRolePassword: stubProjectRolePassword{Password: defaultRolePass},
+			}
+
+			var (
+				endpoints = []neon.Endpoint{
+					{
+						BranchID:  defaultBranchID,
+						ID:        "ep-qux",
+						Host:      "ep-qux.us-west-2.aws.neon.tech",
+						CreatedAt: time.Now().Add(1 * time.Second),
+						UpdatedAt: time.Now().Add(1 * time.Second),
+						Disabled:  true,
+						Type:      endpointTypeRW,
+					},
+					{
+						BranchID:  defaultBranchID,
+						ID:        "ep-baz",
+						Host:      "ep-baz.us-west-2.aws.neon.tech",
+						CreatedAt: time.Now().Add(2 * time.Second),
+						UpdatedAt: time.Now().Add(2 * time.Second),
+						Disabled:  false,
+						Type:      endpointTypeRW,
+					},
+					{
+						BranchID:  defaultBranchID,
+						ID:        defaultEndpointID,
+						Host:      defaultHost,
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+						Disabled:  false,
+						Type:      endpointTypeRW,
+					},
+				}
+
+				databases = []neon.Database{
+					{
+						BranchID:  defaultBranchID,
+						CreatedAt: time.Now().Add(1 * time.Second),
+						UpdatedAt: time.Now().Add(1 * time.Second),
+						Name:      "db-foo",
+						OwnerName: "r-foo",
+					},
+					{
+						BranchID:  defaultBranchID,
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+						Name:      defaultDB,
+						OwnerName: defaultRole,
+					},
+				}
+			)
+
+			// WHEN
+			got, err := newDbConnectionInfo(client, projectID, defaultBranchID, endpoints, databases)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// THEN
+			if got.userName != defaultRole {
+				t.Errorf("unexpected userName. want: %s, got: %s", defaultRole, got.userName)
+			}
+
+			if got.dbName != defaultDB {
+				t.Errorf("unexpected dbName. want: %s, got: %s", defaultDB, got.dbName)
+			}
+
+			if got.pass != defaultRolePass {
+				t.Errorf("unexpected pass. want: %s, got: %s", defaultRolePass, got.pass)
+			}
+
+			if got.host != defaultHost {
+				t.Errorf("unexpected host. want: %s, got: %s", defaultHost, got.host)
+			}
+
+			if got.endpointID != defaultEndpointID {
+				t.Errorf("unexpected endpointID. want: %s, got: %s", defaultEndpointID, got.endpointID)
+			}
+		})
 }
