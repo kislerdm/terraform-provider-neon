@@ -90,7 +90,7 @@ func resourceProjectPermissionImport(ctx context.Context, d *schema.ResourceData
 	tflog.Trace(ctx, "import project permission", map[string]interface{}{"id": d.Id()})
 
 	var found bool
-	projectReadiness.Retry(
+	diags := projectReadiness.Retry(
 		func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 			return func() error {
 				var err error
@@ -100,6 +100,14 @@ func resourceProjectPermissionImport(ctx context.Context, d *schema.ResourceData
 		},
 		ctx, d, meta,
 	)
+	if diags.HasError() {
+		var errs = make([]error, len(diags))
+		for i, di := range diags {
+			errs[i] = errors.New(di.Summary)
+		}
+		return nil, errors.Join(errs...)
+	}
+
 	if !found {
 		return nil, errors.New("no permission found")
 	}

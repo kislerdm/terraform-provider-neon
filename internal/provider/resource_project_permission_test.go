@@ -36,9 +36,8 @@ func Test_resourceProjectPermissionCreate(t *testing.T) {
 			},
 		}
 
-		d := resourceProjectPermissionCreate(context.TODO(), definition, meta)
-		if d.HasError() {
-			t.Fatalf("unexpected errors: %v", d)
+		if err := resourceProjectPermissionCreate(context.TODO(), definition, meta); err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
 
 		gotEmail := meta.ProjectPermissions.ProjectPermissions[0].GrantedToEmail
@@ -76,8 +75,7 @@ func Test_resourceProjectPermissionCreate(t *testing.T) {
 			},
 		}
 
-		d := resourceProjectPermissionCreate(context.TODO(), definition, meta)
-		if !d.HasError() {
+		if err := resourceProjectPermissionCreate(context.TODO(), definition, meta); err == nil {
 			t.Fatalf("error expected")
 		}
 
@@ -111,9 +109,8 @@ func Test_resourceProjectPermissionDelete(t *testing.T) {
 		definition.SetId(id)
 
 		meta := &sdkClientStub{}
-		d := resourceProjectPermissionDelete(context.TODO(), definition, meta)
-		if d.HasError() {
-			t.Fatalf("unexpected errors: %v", d)
+		if err := resourceProjectPermissionDelete(context.TODO(), definition, meta); err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
 
 		if definition.Id() != "" {
@@ -146,8 +143,7 @@ func Test_resourceProjectPermissionDelete(t *testing.T) {
 			},
 		}
 
-		d := resourceProjectPermissionCreate(context.TODO(), definition, meta)
-		if !d.HasError() {
+		if err := resourceProjectPermissionCreate(context.TODO(), definition, meta); err == nil {
 			t.Fatalf("error expected")
 		}
 
@@ -185,9 +181,8 @@ func Test_resourceProjectPermissionRead(t *testing.T) {
 			},
 		}
 
-		d := resourceProjectPermissionRead(context.TODO(), definition, meta)
-		if d.HasError() {
-			t.Fatalf("unexpected errors: %v", d)
+		if err := resourceProjectPermissionRead(context.TODO(), definition, meta); err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
 
 		gotEmail := definition.Get("grantee").(string)
@@ -212,9 +207,8 @@ func Test_resourceProjectPermissionRead(t *testing.T) {
 			},
 		}
 
-		d := resourceProjectPermissionRead(context.TODO(), definition, meta)
-		if d.HasError() {
-			t.Fatalf("unexpected errors: %v", d)
+		if err := resourceProjectPermissionRead(context.TODO(), definition, meta); err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
 
 		gotEmail := definition.Get("grantee").(string)
@@ -239,8 +233,7 @@ func Test_resourceProjectPermissionRead(t *testing.T) {
 			},
 		}
 
-		d := resourceProjectPermissionRead(context.TODO(), definition, meta)
-		if !d.HasError() {
+		if err := resourceProjectPermissionRead(context.TODO(), definition, meta); err == nil {
 			t.Fatal("error expected")
 		}
 	})
@@ -321,7 +314,7 @@ func Test_resourceProjectPermissionImport(t *testing.T) {
 
 		const wantErrStr = "not recognized format of the project permission resource's ID"
 		if err.Error() != wantErrStr {
-			t.Fatalf("'%s' error expected", wantErrStr)
+			t.Fatalf("'%s' error expected, got: %s", wantErrStr, err.Error())
 		}
 	})
 
