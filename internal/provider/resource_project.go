@@ -26,8 +26,8 @@ API: https://api-docs.neon.tech/reference/createproject`,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectImport,
 		},
-		CreateContext: resourceProjectCreate,
-		ReadContext:   resourceProjectRead,
+		CreateContext: resourceProjectCreateRetry,
+		ReadContext:   resourceProjectReadRetry,
 		UpdateContext: resourceProjectUpdateRetry,
 		DeleteContext: resourceProjectDeleteRetry,
 		Schema: map[string]*schema.Schema{
@@ -585,7 +585,7 @@ func resourceProjectUpdateRetry(ctx context.Context, d *schema.ResourceData, met
 	return projectReadiness.Retry(resourceProjectUpdate, ctx, d, meta)
 }
 
-func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Project")
 
 	projectDef := neon.ProjectCreateRequestProject{
@@ -654,7 +654,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 	)
 
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	projectID := resp.ProjectResponse.Project.ID
@@ -664,14 +664,14 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 	info, err := newDbConnectionInfo(client, projectID, branch.ID, resp.EndpointsResponse.Endpoints,
 		resp.DatabasesResponse.Databases)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
-	if err := updateStateProject(d, resp.ProjectResponse.Project, branch.ID, branch.Name, info); err != nil {
-		return diag.FromErr(err)
-	}
+	return updateStateProject(d, resp.ProjectResponse.Project, branch.ID, branch.Name, info)
+}
 
-	return nil
+func resourceProjectCreateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectCreate, ctx, d, meta)
 }
 
 func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -726,21 +726,21 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	return err
 }
 
-func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "get Project")
 
 	client := meta.(sdkProject)
 
 	resp, err := client.GetProject(d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	project := resp.Project
 
 	branches, err := client.ListProjectBranches(d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	var branchMain neon.Branch
@@ -752,25 +752,29 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	if branchMain.ID == "" {
-		return diag.FromErr(updateStateProject(d, project, branchMain.ID, branchMain.Name, dbConnectionInfo{}))
+		return updateStateProject(d, project, branchMain.ID, branchMain.Name, dbConnectionInfo{})
 	}
 
 	endpoints, err := client.ListProjectBranchEndpoints(d.Id(), branchMain.ID)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	dbs, err := client.ListProjectBranchDatabases(d.Id(), branchMain.ID)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	info, err := newDbConnectionInfo(client, project.ID, branchMain.ID, endpoints.Endpoints, dbs.Databases)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
-	return diag.FromErr(updateStateProject(d, project, branchMain.ID, branchMain.Name, info))
+	return updateStateProject(d, project, branchMain.ID, branchMain.Name, info)
+}
+
+func resourceProjectReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectRead, ctx, d, meta)
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -787,7 +791,7 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
 	[]*schema.ResourceData, error,
 ) {
-	if diags := resourceProjectRead(ctx, d, meta); diags.HasError() {
+	if diags := resourceProjectReadRetry(ctx, d, meta); diags.HasError() {
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
