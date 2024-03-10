@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -113,17 +114,19 @@ func resourceRoleReadRetry(ctx context.Context, d *schema.ResourceData, meta int
 func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "read Role")
 
-	resp, err := meta.(*neon.Client).GetProjectBranchRole(
-		d.Get("project_id").(string), d.Get("branch_id").(string), d.Get("name").(string),
-	)
+	r, err := parseComplexID(d.Id())
+	if err != nil {
+		return err
+	}
+
+	resp, err := meta.(*neon.Client).GetProjectBranchRole(r.ProjectID, r.BranchID, r.Name)
 	if err != nil {
 		return err
 	}
 
 	role := resp.Role
 	if role.Password == nil {
-		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(d.Get("project_id").(string),
-			d.Get("branch_id").(string), d.Get("name").(string))
+		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.BranchID, r.Name)
 		if err != nil {
 			return err
 		}
@@ -160,26 +163,8 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 	[]*schema.ResourceData, error,
 ) {
 	tflog.Trace(ctx, "import Role")
-
-	r, err := parseComplexID(d.Id())
-	if err != nil {
-		return nil, err
+	if diags := resourceRoleReadRetry(ctx, d, meta); diags.HasError() {
+		return nil, errors.New(diags[0].Summary)
 	}
-
-	resp, err := meta.(*neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.BranchID, r.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	role := neon.Role{
-		BranchID: r.BranchID,
-		Name:     r.Name,
-		Password: pointer(resp.Password),
-	}
-
-	if err := updateStateRole(d, role); err != nil {
-		return nil, err
-	}
-
 	return []*schema.ResourceData{d}, nil
 }
