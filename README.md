@@ -85,10 +85,18 @@ To compile the provider, run `make install`. This will build the provider and pu
 
 To generate or update documentation, run `go docu`.
 
+In order to run the full suite of Unit tests, run `make test`.
+
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
 *Note:* Acceptance tests create real resources, and often cost money to run.
 
-```sh
-$ make testacc
+```commandline
+make testacc
+```
+
+Run to see the full list of commands:
+
+```commandline
+make help
 ```
