@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -10,6 +11,10 @@ import (
 )
 
 func Test_resourceProjectCreate(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
 	t.Parallel()
 
 	t.Run(
@@ -289,6 +294,10 @@ func Test_resourceProjectCreate(t *testing.T) {
 }
 
 func Test_newDbConnectionInfo(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
 	t.Run("shall use the values with the lowest CreatedAt to define the default database, role and endpoint",
 		func(t *testing.T) {
 			// see for details: https://github.com/kislerdm/terraform-provider-neon/issues/83

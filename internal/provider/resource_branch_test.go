@@ -1,8 +1,15 @@
 package provider
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func Test_isValidBranchID(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
 	type args struct {
 		s string
 	}

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -10,6 +11,10 @@ import (
 )
 
 func Test_resourceProjectPermissionCreate(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
 	t.Parallel()
 
 	t.Run("shall create permission for foo@bar.baz", func(t *testing.T) {
@@ -86,6 +91,10 @@ func Test_resourceProjectPermissionCreate(t *testing.T) {
 }
 
 func Test_resourceProjectPermissionDelete(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
 	t.Parallel()
 
 	t.Run("shall revoke existing permission", func(t *testing.T) {
@@ -154,6 +163,10 @@ func Test_resourceProjectPermissionDelete(t *testing.T) {
 }
 
 func Test_resourceProjectPermissionRead(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
 	t.Parallel()
 	const (
 		projectID    = "myproject"
@@ -240,6 +253,10 @@ func Test_resourceProjectPermissionRead(t *testing.T) {
 }
 
 func Test_resourceProjectPermissionImport(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
 	t.Parallel()
 
 	const (
