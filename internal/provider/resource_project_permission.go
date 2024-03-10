@@ -18,9 +18,9 @@ func resourceProjectPermission() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectPermissionImport,
 		},
-		CreateContext: resourceProjectPermissionCreate,
-		ReadContext:   resourceProjectPermissionRead,
-		DeleteContext: resourceProjectPermissionDelete,
+		CreateContext: resourceProjectPermissionCreateRetry,
+		ReadContext:   resourceProjectPermissionReadRetry,
+		DeleteContext: resourceProjectPermissionDeleteRetry,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeString,
@@ -42,7 +42,11 @@ func resourceProjectPermission() *schema.Resource {
 	}
 }
 
-func resourceProjectPermissionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectPermissionCreateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectPermissionCreate, ctx, d, meta)
+}
+
+func resourceProjectPermissionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	projectID := d.Get("project_id").(string)
 	email := d.Get("grantee").(string)
 
@@ -50,7 +54,7 @@ func resourceProjectPermissionCreate(ctx context.Context, d *schema.ResourceData
 
 	resp, err := meta.(sdkProject).GrantPermissionToProject(projectID, neon.GrantPermissionToProjectRequest{Email: email})
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	id := joinedIDProjectPermission{
@@ -62,7 +66,11 @@ func resourceProjectPermissionCreate(ctx context.Context, d *schema.ResourceData
 	return nil
 }
 
-func resourceProjectPermissionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectPermissionDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectPermissionDelete, ctx, d, meta)
+}
+
+func resourceProjectPermissionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	joinedID, _ := parseJoinedIDProjectPermission(d.Id())
 
 	tflog.Trace(ctx, "revoke project permission", map[string]interface{}{
@@ -71,7 +79,7 @@ func resourceProjectPermissionDelete(ctx context.Context, d *schema.ResourceData
 	})
 
 	if _, err := meta.(sdkProject).RevokePermissionFromProject(joinedID.projectID, joinedID.permissionID); err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	d.SetId("")
@@ -80,11 +88,18 @@ func resourceProjectPermissionDelete(ctx context.Context, d *schema.ResourceData
 
 func resourceProjectPermissionImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	tflog.Trace(ctx, "import project permission", map[string]interface{}{"id": d.Id()})
-	err, found := readProjectPermission(ctx, d, meta)
-	if err != nil {
-		return nil, err
-	}
 
+	var found bool
+	projectReadiness.Retry(
+		func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			return func() error {
+				var err error
+				err, found = readProjectPermission(ctx, d, meta)
+				return err
+			}()
+		},
+		ctx, d, meta,
+	)
 	if !found {
 		return nil, errors.New("no permission found")
 	}
@@ -92,10 +107,14 @@ func resourceProjectPermissionImport(ctx context.Context, d *schema.ResourceData
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceProjectPermissionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceProjectPermissionReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return projectReadiness.Retry(resourceProjectPermissionRead, ctx, d, meta)
+}
+
+func resourceProjectPermissionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	err, found := readProjectPermission(ctx, d, meta)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
 	if !found {
