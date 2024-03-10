@@ -100,14 +100,11 @@ func Test_resourceProjectCreate(t *testing.T) {
 			}
 
 			// WHEN
-			d := resourceProjectCreate(context.TODO(), definition, meta)
+			err = resourceProjectCreate(context.TODO(), definition, meta)
 
 			// THEN
-			if d != nil && d.HasError() {
-				t.Error("unexpected errors:")
-				for _, e := range d {
-					t.Error(e.Detail)
-				}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
 				return
 			}
 
@@ -266,14 +263,11 @@ func Test_resourceProjectCreate(t *testing.T) {
 			}
 
 			// WHEN
-			d := resourceProjectCreate(context.TODO(), definition, meta)
+			err = resourceProjectCreate(context.TODO(), definition, meta)
 
 			// THEN
-			if d != nil && d.HasError() {
-				t.Error("unexpected errors:")
-				for _, e := range d {
-					t.Error(e.Detail)
-				}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
 				return
 			}
 
