@@ -9,13 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added the read-only attribute `default_endpoint_id` to the resource `neon_project`. 
+- [[#22](https://github.com/kislerdm/terraform-provider-neon/issues/22)] Added the following data resources:
+  - `neon_project`
+  - `neon_branches`
+  - `neon_branch_endpoints`
+  - `neon_branch_roles`
+  - `neon_branch_role_password`
+
+- Added the read-only attribute `default_endpoint_id` to the resource `neon_project`.
+- Added the retry logic to manage all supported resources:
+  - `neon_project`
+  - `neon_branch`
+  - `neon_endpoint`
+  - `neon_role`
+  - `neon_database`
+  - `neon_project_permission`
 
 ### Fixed
 
 - [[#83](https://github.com/kislerdm/terraform-provider-neon/issues/83)] Fixed the state management of the project's 
 default branch, role, database and endpoint.
 - [[#88](https://github.com/kislerdm/terraform-provider-neon/issues/88)] Fixed import of the resource `neon_role`.
+
+### Changed
+
+- Updated dependencies:
+  - Neon Go SDK [v0.4.7](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.7)
+- Reduced the retry delay to _1 second_ from _5 seconds_.
 
 ## [v0.4.1] - 2024-02-28
 
