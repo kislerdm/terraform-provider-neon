@@ -118,8 +118,8 @@ github.com/jhump/protoreflect v1.15.1 h1:HUMERORf3I3ZdX05WaQ6MIpd/NJ434hTp5YiKgf
 github.com/jhump/protoreflect v1.15.1/go.mod h1:jD/2GMKKE6OqX8qTjhADU1e6DShO+gavG9e0Q693nKo=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=
 github.com/kevinburke/ssh_config v1.2.0/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
-github.com/kislerdm/neon-sdk-go v0.4.7 h1:89aRTvFMF2QpEp3wpysBtCNZ7QvjP2fxOea091Z8oE8=
-github.com/kislerdm/neon-sdk-go v0.4.7/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
+github.com/kislerdm/neon-sdk-go v0.4.8 h1:9O7dAFY3ZZruq1QnXqRBpc7wOT57jhr84m4ia4GcqY4=
+github.com/kislerdm/neon-sdk-go v0.4.8/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=
 github.com/kr/pretty v0.3.0/go.mod h1:640gp4NfQd8pI5XOwp5fnNeVWj67G7CFk/SaSQn7NBk=
