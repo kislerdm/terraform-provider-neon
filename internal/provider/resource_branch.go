@@ -199,7 +199,7 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
-	resp, err := meta.(*neon.Client).ListProjects(nil, nil, nil)
+	resp, err := meta.(*neon.Client).ListProjects(nil, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

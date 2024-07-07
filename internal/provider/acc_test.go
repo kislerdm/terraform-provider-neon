@@ -268,7 +268,7 @@ resource "neon_database" "this" {
 										t.Fatal(err)
 									}
 
-									if ref.HistoryRetentionSeconds != int64(v) {
+									if ref.HistoryRetentionSeconds != int32(v) {
 										return errors.New("HistoryRetentionSeconds was not set")
 									}
 
@@ -567,7 +567,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 										wantAllowedIPs, ref.Settings.AllowedIps.Ips)
 								}
 
-								if ref.Settings.AllowedIps.PrimaryBranchOnly {
+								if ref.Settings.AllowedIps.PrimaryBranchOnly == nil || *ref.Settings.AllowedIps.PrimaryBranchOnly {
 									return errors.New("primary_branch_only is expected to be set to 'false'")
 								}
 
@@ -649,7 +649,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 										wantAllowedIPs, ref.Settings.AllowedIps.Ips)
 								}
 
-								if !ref.Settings.AllowedIps.PrimaryBranchOnly {
+								if ref.Settings.AllowedIps.PrimaryBranchOnly == nil || !*ref.Settings.AllowedIps.PrimaryBranchOnly {
 									return errors.New("primary_branch_only is expected to be set to 'true'")
 								}
 
@@ -952,7 +952,7 @@ resource "neon_database" "this" {
 }
 
 func readProjectInfo(client *neon.Client, projectName string) (neon.Project, error) {
-	resp, err := client.ListProjects(nil, nil, &projectName)
+	resp, err := client.ListProjects(nil, nil, &projectName, nil)
 	if err != nil {
 		return neon.Project{}, errors.New("listing error: " + err.Error())
 	}
