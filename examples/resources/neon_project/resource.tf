@@ -61,3 +61,9 @@ resource "neon_project" "example_with_allowed_ips_protected_branch_only" {
   allowed_ips                         = ["1.2.3.4/24", "99.1.20.93"]
   allowed_ips_protected_branches_only = "yes"
 }
+
+### Create project in the organisation
+resource "neon_project" "example_in_org" {
+  name   = "myproject"
+  org_id = "org-restless-silence-28866559"
+}
