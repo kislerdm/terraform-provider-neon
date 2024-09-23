@@ -44,6 +44,12 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Computed:    true,
 				Description: "Project ID.",
 			},
+			"org_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Identifier of the organisation to which this project belongs.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -451,6 +457,11 @@ func updateStateProject(
 	defaultBranchID, defaultBranchName string,
 	dbConnectionInfo dbConnectionInfo,
 ) error {
+	if r.OrgID != nil {
+		if err := d.Set("org_id", *r.OrgID); err != nil {
+			return err
+		}
+	}
 	if err := d.Set("name", r.Name); err != nil {
 		return err
 	}
@@ -605,7 +616,13 @@ func resourceProjectUpdateRetry(ctx context.Context, d *schema.ResourceData, met
 func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Project")
 
+	var orgID *string
+	if v, ok := d.GetOk("org_id"); ok && v != "" {
+		orgID = pointer(v.(string))
+	}
+
 	projectDef := neon.ProjectCreateRequestProject{
+		OrgID:          orgID,
 		Name:           pointer(d.Get("name").(string)),
 		Provisioner:    pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 		RegionID:       pointer(d.Get("region_id").(string)),

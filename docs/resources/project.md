@@ -107,6 +107,7 @@ See details: https://neon.tech/docs/introduction/logical-replication
 - `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
 Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.
 - `name` (String) Project name.
+- `org_id` (String) Identifier of the organisation to which this project belongs.
 - `pg_version` (Number) Postgres version
 - `quota` (Block List, Max: 1) Per-project consumption quota. If the quota is exceeded, all active computes
 are automatically suspended and it will not be possible to start them with
