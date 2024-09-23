@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[BREAKING]** The boolean attributes will be treated as strings to work around the
   [issue](https://github.com/hashicorp/terraform-plugin-sdk/issues/817) with state management when the attribute gets
   removed from the manifest. 
+- Updated dependencies:
+  - Neon Go SDK: [v0.5.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.4.7...v0.5.0)
+  - github.com/hashicorp/terraform-plugin-docs: [v0.19.4](https://github.com/hashicorp/terraform-plugin-docs/compare/v0.19.0...v0.19.4)
 
 **Examples**
 
