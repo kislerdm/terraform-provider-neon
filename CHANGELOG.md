@@ -5,36 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.0] - Unreleased
+
+### Added
+
+- [[#99](https://github.com/kislerdm/terraform-provider-neon/issues/99)] Added attribute `org_id` to
+  the resource `neon_project`.
+
+### Fixed
+
+- [[#96](https://github.com/kislerdm/terraform-provider-neon/issues/96)] `allowed_ips_primary_branch_only` can be
+  correctly updated now. The issue was caused by the wrong treatment of the situation when the attribute gets removed
+  from the manifest, a/k/a tristate boolean issue. See details in the first bullet point of the [changed](#changed) section.
+
+### Changed
+
+- **[BREAKING]** The boolean attributes will be treated as strings to work around the
+  [issue](https://github.com/hashicorp/terraform-plugin-sdk/issues/817) with state management when the attribute gets
+  removed from the manifest. 
+
+**Examples**
+
+  - Set allowed_ips to be applicable only to the primary branch:
+    ```terraform
+     resource "neon_project" "this" {
+        name = "myproject"
+        
+        allowed_ips = ["1.2.3.4/24"]
+
+        allowed_ips_primary_branch_only = "yes"
+     }
+    ``` 
+  - Set allowed_ips to be applicable to all branches, explicitly:
+    ```terraform
+     resource "neon_project" "this" {
+        name = "myproject"
+        
+        allowed_ips = ["1.2.3.4/24"]
+
+        allowed_ips_primary_branch_only = "no"
+     }
+    ```
+  - Set allowed_ips to be applicable to all branches, implicitly:
+    ```terraform
+     resource "neon_project" "this" {
+        name = "myproject"
+        
+        allowed_ips = ["1.2.3.4/24"]
+     }
+    ```
+
 ## [v0.5.0] - 2024-03-10
 
 ### Added
 
 - [[#22](https://github.com/kislerdm/terraform-provider-neon/issues/22)] Added the following data resources:
-  - `neon_project`
-  - `neon_branches`
-  - `neon_branch_endpoints`
-  - `neon_branch_roles`
-  - `neon_branch_role_password`
+    - `neon_project`
+    - `neon_branches`
+    - `neon_branch_endpoints`
+    - `neon_branch_roles`
+    - `neon_branch_role_password`
 
 - Added the read-only attribute `default_endpoint_id` to the resource `neon_project`.
 - Added the retry logic to manage all supported resources:
-  - `neon_project`
-  - `neon_branch`
-  - `neon_endpoint`
-  - `neon_role`
-  - `neon_database`
-  - `neon_project_permission`
+    - `neon_project`
+    - `neon_branch`
+    - `neon_endpoint`
+    - `neon_role`
+    - `neon_database`
+    - `neon_project_permission`
 
 ### Fixed
 
-- [[#83](https://github.com/kislerdm/terraform-provider-neon/issues/83)] Fixed the state management of the project's 
-default branch, role, database and endpoint.
+- [[#83](https://github.com/kislerdm/terraform-provider-neon/issues/83)] Fixed the state management of the project's
+  default branch, role, database and endpoint.
 - [[#88](https://github.com/kislerdm/terraform-provider-neon/issues/88)] Fixed import of the resource `neon_role`.
 
 ### Changed
 
 - Updated dependencies:
-  - Neon Go SDK [v0.4.7](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.7)
+    - Neon Go SDK [v0.4.7](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.7)
 - Reduced the retry delay to _1 second_ from _5 seconds_.
 
 ## [v0.4.1] - 2024-02-28
@@ -54,9 +104,9 @@ default branch, role, database and endpoint.
 
 ### Changed
 
-- Updated dependencies: 
-  - Neon Go SDK [v0.4.3](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.3)
-  - Terraform docs [v0.18.0](https://github.com/hashicorp/terraform-plugin-docs/releases/tag/v0.18.0)
+- Updated dependencies:
+    - Neon Go SDK [v0.4.3](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.3)
+    - Terraform docs [v0.18.0](https://github.com/hashicorp/terraform-plugin-docs/releases/tag/v0.18.0)
 
 ## [v0.3.2] - 2024-01-11
 
@@ -86,10 +136,10 @@ default branch, role, database and endpoint.
 
 ### Added
 
-- `resource_project` includes two additional attributes to configure IP addresses allowed to connect to the project's 
-endpoints:
-  - `allowed_ips`
-  - `allowed_ips_primary_branch_only`
+- `resource_project` includes two additional attributes to configure IP addresses allowed to connect to the project's
+  endpoints:
+    - `allowed_ips`
+    - `allowed_ips_primary_branch_only`
 
 ### Fixed
 
@@ -97,10 +147,10 @@ endpoints:
 
 ### Changed
 
-- Updated dependencies: 
-  - Go version to 1.21
-  - Neon Go SDK [v0.4.0](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.0)
-  - Terraform plugin SDK [v2.31.0](https://github.com/hashicorp/terraform-plugin-sdk/releases/tag/v2.31.0)
+- Updated dependencies:
+    - Go version to 1.21
+    - Neon Go SDK [v0.4.0](https://github.com/kislerdm/neon-sdk-go/releases/tag/v0.4.0)
+    - Terraform plugin SDK [v2.31.0](https://github.com/hashicorp/terraform-plugin-sdk/releases/tag/v2.31.0)
 
 ## [v0.2.5] - 2023-11-02
 
@@ -112,9 +162,9 @@ endpoints:
 
 ### Fixed
 
-- Minor documentation fixes: 
-  - The note in the `resource_role` is removed because it's not reflecting the provider's behaviour.
-  - The logo is fixed.
+- Minor documentation fixes:
+    - The note in the `resource_role` is removed because it's not reflecting the provider's behaviour.
+    - The logo is fixed.
 
 ### Changed
 
@@ -126,8 +176,8 @@ endpoints:
 
 - [[#51](https://github.com/kislerdm/terraform-provider-neon/issues/51)] Fixed credentials content.
 - Fixed management of the `resource_role` state:
-  - Fixed password reading.
-  - Removed the side effect upon the resource import: the role's password won't be reset now. 
+    - Fixed password reading.
+    - Removed the side effect upon the resource import: the role's password won't be reset now.
 
 ### Changed
 

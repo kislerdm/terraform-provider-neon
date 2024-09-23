@@ -12,9 +12,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
+	"github.com/kislerdm/terraform-provider-neon/internal/types"
 )
 
 const providerDefaultHistoryRetentionSeconds = int(time.Hour/time.Second) * 24 * 7
+
+func newStoreProjectPasswordDefault() *schema.Schema {
+	o := types.NewOptionalTristateBool(`Whether or not passwords are stored for roles in the Neon project. 
+Storing passwords facilitates access to Neon features that require authorization.`, false)
+	o.Default = types.ValTrue
+	return o
+}
 
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
@@ -61,12 +69,7 @@ API: https://api-docs.neon.tech/reference/createproject`,
 					}
 				},
 			},
-			"store_password": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Description: "Whether or not passwords are stored for roles in the Neon project. Storing passwords facilitates access to Neon features that require authorization.",
-			},
+			"store_password": newStoreProjectPasswordDefault(),
 			"history_retention_seconds": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -106,24 +109,20 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Description: `A list of IP addresses that are allowed to connect to the endpoints.
-Note that the feature is available to the Neon Pro Plan only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow`,
+Note that the feature is available to the Neon Scale plans only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow`,
 			},
-			"allowed_ips_primary_branch_only": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				Description: `Apply the allow-list to the primary branch only.
-Note that the feature is available to the Neon Pro Plan only.`,
-			},
-			"enable_logical_replication": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Description: `Sets wal_level=logical for all compute endpoints in this project.
+			"allowed_ips_primary_branch_only": types.NewOptionalTristateBool(
+				`Apply the allow-list to the primary branch only.
+Note that the feature is available to the Neon Scale plans only.`,
+				false),
+			"allowed_ips_protected_branches_only": types.NewOptionalTristateBool(
+				`Apply the allow-list to the protected branches only.
+Note that the feature is available to the Neon Scale plans only.`, false),
+			"enable_logical_replication": types.NewOptionalTristateBool(
+				`Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
 See details: https://neon.tech/docs/introduction/logical-replication
-`,
-			},
+`, true),
 			// computed fields
 			"default_branch_id": {
 				Type:        schema.TypeString,
@@ -467,7 +466,7 @@ func updateStateProject(
 	if err := d.Set("compute_provisioner", string(r.Provisioner)); err != nil {
 		return err
 	}
-	if err := d.Set("store_password", r.StorePasswords); err != nil {
+	if err := types.SetTristateBool(d, "store_password", &r.StorePasswords); err != nil {
 		return err
 	}
 
@@ -530,17 +529,32 @@ func updateStateProject(
 			}
 		}
 
-		if r.Settings.AllowedIps != nil {
-			if err := d.Set("allowed_ips", r.Settings.AllowedIps.Ips); err != nil {
-				return err
-			}
-			if err := d.Set("allowed_ips_primary_branch_only", r.Settings.AllowedIps.PrimaryBranchOnly); err != nil {
+		var allowedIPs = make([]string, 0)
+		var (
+			primaryBranchesOnly   *bool
+			protectedBranchesOnly *bool
+		)
+		if r.Settings.AllowedIps.Ips != nil {
+			allowedIPs = *r.Settings.AllowedIps.Ips
+			primaryBranchesOnly = r.Settings.AllowedIps.PrimaryBranchOnly
+			protectedBranchesOnly = r.Settings.AllowedIps.ProtectedBranchesOnly
+		}
+		if err := d.Set("allowed_ips", allowedIPs); err != nil {
+			return err
+		}
+		if _, ok := d.GetOk("allowed_ips_primary_branch_only"); ok {
+			if err := types.SetTristateBool(d, "allowed_ips_primary_branch_only", primaryBranchesOnly); err != nil {
 				return err
 			}
 		}
-
-		if r.Settings.EnableLogicalReplication != nil {
-			if err := d.Set("enable_logical_replication", *r.Settings.EnableLogicalReplication); err != nil {
+		if _, ok := d.GetOk("allowed_ips_protected_branches_only"); ok {
+			if err := types.SetTristateBool(d, "allowed_ips_protected_branches_only", protectedBranchesOnly); err != nil {
+				return err
+			}
+		}
+		if _, ok := d.GetOk("enable_logical_replication"); ok {
+			if err := types.SetTristateBool(d, "enable_logical_replication",
+				r.Settings.EnableLogicalReplication); err != nil {
 				return err
 			}
 		}
@@ -592,11 +606,11 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		Name:           pointer(d.Get("name").(string)),
 		Provisioner:    pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 		RegionID:       pointer(d.Get("region_id").(string)),
-		StorePasswords: pointer(d.Get("store_password").(bool)),
+		StorePasswords: types.GetTristateBool(d, "store_password"),
 	}
 
 	if v, ok := d.Get("history_retention_seconds").(int); ok && v >= 0 {
-		projectDef.HistoryRetentionSeconds = pointer(int64(v))
+		projectDef.HistoryRetentionSeconds = pointer(int32(v))
 	}
 
 	if v, ok := d.GetOk("pg_version"); ok && v.(int) > 0 {
@@ -627,16 +641,21 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			projectDef.Settings = &neon.ProjectSettingsData{}
 		}
 		projectDef.Settings.AllowedIps = &neon.AllowedIps{
-			Ips:               &ips,
-			PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
+			Ips: &ips,
 		}
+
+		projectDef.Settings.AllowedIps.PrimaryBranchOnly = types.GetTristateBool(d,
+			"allowed_ips_primary_branch_only")
+
+		projectDef.Settings.AllowedIps.ProtectedBranchesOnly = types.GetTristateBool(d,
+			"allowed_ips_protected_branches_only")
 	}
 
-	if v, ok := d.GetOk("enable_logical_replication"); ok {
+	if v := types.GetTristateBool(d, "enable_logical_replication"); v != nil {
 		if projectDef.Settings == nil {
 			projectDef.Settings = &neon.ProjectSettingsData{}
 		}
-		projectDef.Settings.EnableLogicalReplication = pointer(v.(bool))
+		projectDef.Settings.EnableLogicalReplication = v
 	}
 
 	if v, ok := d.GetOk("branch"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
@@ -677,25 +696,32 @@ func resourceProjectCreateRetry(ctx context.Context, d *schema.ResourceData, met
 func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "update Project")
 
-	if !d.HasChanges("name", "history_retention_seconds", "default_endpoint_settings", "quota") {
-		return nil
+	req := neon.ProjectUpdateRequest{
+		Project: neon.ProjectUpdateRequestProject{},
 	}
 
-	req := neon.ProjectUpdateRequestProject{
-		HistoryRetentionSeconds: pointer(int64(d.Get("history_retention_seconds").(int))),
-		Name:                    pointer(d.Get("name").(string)),
+	if d.HasChange("name") {
+		req.Project.Name = pointer(d.Get("name").(string))
 	}
 
-	if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
-		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
-			req.DefaultEndpointSettings = mapToDefaultEndpointsSettings(v)
+	if d.HasChange("history_retention_seconds") {
+		req.Project.HistoryRetentionSeconds = pointer(int32(d.Get("history_retention_seconds").(int)))
+	}
+
+	if d.HasChange("default_endpoint_settings") {
+		if v, ok := d.GetOk("default_endpoint_settings"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+			if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+				req.Project.DefaultEndpointSettings = mapToDefaultEndpointsSettings(v)
+			}
 		}
 	}
 
-	if v, ok := d.GetOk("quota"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
-		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
-			req.Settings = &neon.ProjectSettingsData{
-				Quota: mapToQuotaSettings(v),
+	if d.HasChange("quota") {
+		if v, ok := d.GetOk("quota"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+			if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+				req.Project.Settings = &neon.ProjectSettingsData{
+					Quota: mapToQuotaSettings(v),
+				}
 			}
 		}
 	}
@@ -705,30 +731,40 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		for i, vv := range v.([]interface{}) {
 			ips[i] = fmt.Sprintf("%v", vv)
 		}
-		if req.Settings == nil {
-			req.Settings = &neon.ProjectSettingsData{}
+		if req.Project.Settings == nil {
+			req.Project.Settings = &neon.ProjectSettingsData{}
 		}
-		req.Settings.AllowedIps = &neon.AllowedIps{
-			Ips:               &ips,
-			PrimaryBranchOnly: d.Get("allowed_ips_primary_branch_only").(bool),
+		req.Project.Settings.AllowedIps = &neon.AllowedIps{
+			Ips: &ips,
 		}
 	}
 
-	if v, ok := d.GetOk("enable_logical_replication"); ok {
-		if req.Settings == nil {
-			req.Settings = &neon.ProjectSettingsData{}
-		}
-		req.Settings.EnableLogicalReplication = pointer(v.(bool))
+	if req.Project.Settings == nil {
+		req.Project.Settings = new(neon.ProjectSettingsData)
+	}
+	req.Project.Settings.AllowedIps = new(neon.AllowedIps)
+
+	req.Project.Settings.AllowedIps.ProtectedBranchesOnly = types.GetTristateBool(d,
+		"allowed_ips_protected_branches_only")
+
+	req.Project.Settings.AllowedIps.PrimaryBranchOnly = types.GetTristateBool(d,
+		"allowed_ips_primary_branches_only")
+
+	if req.Project.Settings == nil {
+		req.Project.Settings = &neon.ProjectSettingsData{}
+	}
+	req.Project.Settings.EnableLogicalReplication = types.GetTristateBool(d, "enable_logical_replication")
+
+	_, err := meta.(sdkProject).UpdateProject(d.Id(), req)
+	if err != nil {
+		return err
 	}
 
-	_, err := meta.(sdkProject).UpdateProject(d.Id(), neon.ProjectUpdateRequest{Project: req})
-
-	return err
+	return resourceProjectRead(ctx, d, meta)
 }
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "get Project")
-
 	client := meta.(sdkProject)
 
 	resp, err := client.GetProject(d.Id())

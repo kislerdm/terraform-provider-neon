@@ -83,11 +83,35 @@ func Test_validateFuncNewOptionalTristateBool(t *testing.T) {
 			val:  "",
 		},
 		{
-			name: "shall return error given unsupported string as input",
+			name: "shall return error given foo string as input",
 			val:  "foo",
 			wantErrs: []error{
 				fmt.Errorf(`attribute %s does not support value %v
 Supported values: 'yes', 'no', ''.`, key, "foo"),
+			},
+		},
+		{
+			name: "shall return error given 1 string as input",
+			val:  "1",
+			wantErrs: []error{
+				fmt.Errorf(`attribute %s does not support value %v
+Supported values: 'yes', 'no', ''.`, key, "1"),
+			},
+		},
+		{
+			name: "shall return error given true string as input",
+			val:  "true",
+			wantErrs: []error{
+				fmt.Errorf(`attribute %s does not support value %v
+Supported values: 'yes', 'no', ''.`, key, "true"),
+			},
+		},
+		{
+			name: "shall return error given true bool as input",
+			val:  true,
+			wantErrs: []error{
+				fmt.Errorf(`attribute %s does not support value %v
+Supported values: 'yes', 'no', ''.`, key, true),
 			},
 		},
 	}

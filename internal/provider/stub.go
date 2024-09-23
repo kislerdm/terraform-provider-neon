@@ -14,8 +14,9 @@ type sdkClientStub struct {
 	err error
 }
 
-func (s *sdkClientStub) UpdateProject(_ string, _ neon.ProjectUpdateRequest) (neon.UpdateProjectRespObj, error) {
-	panic("implement me")
+func (s *sdkClientStub) UpdateProject(_ string, cfg neon.ProjectUpdateRequest) (neon.UpdateProjectRespObj, error) {
+	s.req = cfg
+	return neon.UpdateProjectRespObj{}, s.err
 }
 
 func (s *sdkClientStub) GetProject(_ string) (neon.ProjectResponse, error) {

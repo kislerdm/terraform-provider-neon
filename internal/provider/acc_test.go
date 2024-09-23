@@ -71,7 +71,7 @@ func end2end(t *testing.T, client *neon.Client) {
 resource "neon_project" "this" {
 	name      				  = "%s"
 	region_id 				  = "aws-us-west-2"
-	pg_version				  = 14
+	pg_version				  = 16
 
 	history_retention_seconds = %s
 
@@ -164,11 +164,11 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"pg_version", "14",
+									"pg_version", "16",
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"store_password", "true",
+									"store_password", "yes",
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
@@ -507,7 +507,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				  = "%s"
 			region_id 				  = "aws-us-west-2"
-			pg_version				  = 14
+			pg_version				  = 16
 			allowed_ips               = %s
 		}`, projectName, ips)
 
@@ -539,6 +539,15 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 							resource.TestCheckResourceAttr(
 								resourceNameProject,
 								"allowed_ips.1", wantAllowedIPs[1],
+							),
+							resource.TestCheckNoResourceAttr(
+								resourceNameProject, "enable_logical_replication",
+							),
+							resource.TestCheckNoResourceAttr(
+								resourceNameProject, "allowed_ips_primary_branch_only",
+							),
+							resource.TestCheckNoResourceAttr(
+								resourceNameProject, "allowed_ips_protected_branches_only",
 							),
 
 							// check the project and its settings
@@ -586,9 +595,9 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				  = "%s"
 			region_id 				  = "aws-us-west-2"
-			pg_version				  = 14
+			pg_version				  = 16
 			allowed_ips               = %s
-			allowed_ips_primary_branch_only = true
+			allowed_ips_primary_branch_only = "yes"
 		}`, projectName, ips)
 
 		const resourceNameProject = "neon_project.this"
@@ -619,6 +628,12 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 							resource.TestCheckResourceAttr(
 								resourceNameProject,
 								"allowed_ips.1", wantAllowedIPs[1],
+							),
+							resource.TestCheckResourceAttr(
+								resourceNameProject, "allowed_ips_primary_branch_only", "yes",
+							),
+							resource.TestCheckNoResourceAttr(
+								resourceNameProject, "allowed_ips_protected_branches_only",
 							),
 
 							// check the project and its settings
@@ -688,9 +703,8 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 								resourceNameProject,
 								"name", projectName,
 							),
-							resource.TestCheckResourceAttr(
-								resourceNameProject,
-								"enable_logical_replication", "false",
+							resource.TestCheckNoResourceAttr(
+								resourceNameProject, "enable_logical_replication",
 							),
 							func(state *terraform.State) error {
 								ref, err := readProjectInfo(client, projectName)
@@ -717,7 +731,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 			name      				   = "%s"
 			region_id 				   = "aws-us-west-2"
 			pg_version				   = 16
-			enable_logical_replication = true
+			enable_logical_replication = "yes"
 		}`, projectName)
 
 		const resourceNameProject = "neon_project.this"
@@ -739,7 +753,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 							),
 							resource.TestCheckResourceAttr(
 								resourceNameProject,
-								"enable_logical_replication", "true",
+								"enable_logical_replication", "yes",
 							),
 							func(state *terraform.State) error {
 								ref, err := readProjectInfo(client, projectName)
@@ -748,7 +762,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 								}
 
 								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
-									return errors.New("unexpected enable_logical_replication value, shall be 'true'")
+									return errors.New("unexpected enable_logical_replication value, shall be 'yes'")
 								}
 
 								return nil
@@ -897,7 +911,7 @@ func issue83(t *testing.T) {
   pg_version          = "16"
   compute_provisioner = "k8s-neonvm"
 
-  enable_logical_replication = false
+  enable_logical_replication = "no"
 
   history_retention_seconds = 604800 # 7 days
 

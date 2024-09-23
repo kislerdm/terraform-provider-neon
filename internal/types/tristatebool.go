@@ -1,28 +1,37 @@
 package types
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
-	valTrue  = "yes"
-	valFalse = "no"
+	ValTrue  = "yes"
+	ValFalse = "no"
 	valNull  = ""
 )
 
 func validateFuncNewOptionalTristateBool(v interface{}, s string) (warns []string, errs []error) {
-	switch vv := v.(string); vv {
-	case valTrue, valFalse, valNull:
-		return
-	default:
-		const supportedVals = "Supported values: '" + valTrue + "', '" +
-			valFalse + "', '" + valNull + "'."
-		return nil, []error{
-			errors.New("attribute " + s + " does not support value " + vv + "\n" + supportedVals),
+	const supportedVals = "Supported values: '" + ValTrue + "', '" +
+		ValFalse + "', '" + valNull + "'."
+
+	vv, ok := v.(string)
+	if ok {
+		switch vv {
+		case ValTrue, ValFalse, valNull:
+		default:
+			ok = false
 		}
 	}
+
+	if !ok {
+		errs = []error{
+			fmt.Errorf("attribute %s does not support value %v\n%s", s, v, supportedVals),
+		}
+	}
+
+	return warns, errs
 }
 
 // NewOptionalTristateBool initialises the tristate bool value.
@@ -42,15 +51,16 @@ func NewOptionalTristateBool(description string, forceNew bool) *schema.Schema {
 // The Adapter to the schema.ResourceData{}.Set method to convert pointer to bool to
 // the string equivalent of bool (yes/no) to maintain the tristate bool.
 func SetTristateBool(d *schema.ResourceData, name string, v *bool) error {
-	var setValue string
+	var err error
 	switch {
 	case v == nil:
+		err = d.Set(name, valNull)
 	case *v:
-		setValue = valTrue
+		err = d.Set(name, ValTrue)
 	default:
-		setValue = valFalse
+		err = d.Set(name, ValFalse)
 	}
-	return d.Set(name, setValue)
+	return err
 }
 
 // GetTristateBool reads the bool value from the tristate bool value of the resource's definition
@@ -59,10 +69,10 @@ func GetTristateBool(d *schema.ResourceData, name string) *bool {
 	var o *bool = nil
 	switch d.Get(name) {
 	case valNull:
-	case valFalse:
+	case ValFalse:
 		var tmp bool
 		o = &tmp
-	case valTrue:
+	case ValTrue:
 		tmp := true
 		o = &tmp
 	}

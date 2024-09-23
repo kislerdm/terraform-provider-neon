@@ -8,6 +8,8 @@ import (
 	"time"
 
 	neon "github.com/kislerdm/neon-sdk-go"
+	"github.com/kislerdm/terraform-provider-neon/internal/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_resourceProjectCreate(t *testing.T) {
@@ -44,9 +46,8 @@ func Test_resourceProjectCreate(t *testing.T) {
 				branchName     = "foo"
 				branchRoleName = "bar"
 				dbName         = "baz"
-
-				ipsPrimaryBranchOnly = true
 			)
+			var ipsPrimaryBranchOnly = true
 
 			var (
 				ips    = []string{"192.168.1.15", "192.168.2.0/20"}
@@ -88,7 +89,8 @@ func Test_resourceProjectCreate(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if err := definition.Set("allowed_ips_primary_branch_only", ipsPrimaryBranchOnly); err != nil {
+			if err := types.SetTristateBool(definition, "allowed_ips_primary_branch_only",
+				&ipsPrimaryBranchOnly); err != nil {
 				t.Fatal(err)
 			}
 
@@ -394,3 +396,150 @@ func Test_newDbConnectionInfo(t *testing.T) {
 			}
 		})
 }
+
+func Test_requestBody_allowed_ips_primary_branch_flag(t *testing.T) {
+	tests := map[string]struct {
+		projectName                     string
+		allowedIPsPrimaryBranchOnly     bool
+		wantAllowedIPsPrimaryBranchOnly *bool
+	}{
+		"shall create project 'bar' with allowed ips, 'allowed_ips_primary_branch_only' is false": {
+			projectName:                     "foo",
+			allowedIPsPrimaryBranchOnly:     false,
+			wantAllowedIPsPrimaryBranchOnly: nil,
+		},
+		"shall create project 'bar' with allowed ips, 'allowed_ips_primary_branch_only' is true": {
+			projectName:                     "foo",
+			allowedIPsPrimaryBranchOnly:     true,
+			wantAllowedIPsPrimaryBranchOnly: pointer(true),
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			meta := &sdkClientStub{}
+
+			resource := resourceProject()
+			definition := resource.TestResourceData()
+			wantIPs := []string{"192.168.1.15", "192.168.2.0/20"}
+
+			if err := definition.Set("allowed_ips", wantIPs); err != nil {
+				t.Fatal(err)
+			}
+
+			assert.NoError(t, definition.Set("name", tt.projectName))
+
+			if tt.allowedIPsPrimaryBranchOnly {
+				assert.NoError(t,
+					types.SetTristateBool(definition,
+						"allowed_ips_primary_branch_only",
+						&tt.allowedIPsPrimaryBranchOnly),
+				)
+			}
+
+			assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+			v, ok := meta.req.(neon.ProjectCreateRequest)
+			assert.Truef(t, ok, "unexpected request object type")
+			assert.Equal(t, tt.projectName, *v.Project.Name)
+
+			got := v.Project.Settings.AllowedIps
+
+			assert.Len(t, *got.Ips, len(wantIPs))
+			assert.ElementsMatch(t, wantIPs, *got.Ips)
+			assert.Equal(t, tt.wantAllowedIPsPrimaryBranchOnly, got.PrimaryBranchOnly)
+		})
+	}
+}
+
+func Test_resourceProjectCreate_requestBody_allowed_ips_protected_branches_flag(t *testing.T) {
+	tests := map[string]struct {
+		projectName                         string
+		allowedIPsProtectedBranchesOnly     bool
+		wantAllowedIPsProtectedBranchesOnly *bool
+	}{
+		"shall create project 'bar' with allowed ips, 'allowed_ips_protected_branches_only' is false": {
+			projectName:                         "foo",
+			allowedIPsProtectedBranchesOnly:     false,
+			wantAllowedIPsProtectedBranchesOnly: nil,
+		},
+		"shall create project 'bar' with allowed ips, 'allowed_ips_protected_branches_only' is true": {
+			projectName:                         "foo",
+			allowedIPsProtectedBranchesOnly:     true,
+			wantAllowedIPsProtectedBranchesOnly: pointer(true),
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			meta := &sdkClientStub{}
+			resource := resourceProject()
+			definition := resource.TestResourceData()
+			wantIPs := []string{"192.168.1.15", "192.168.2.0/20"}
+
+			if err := definition.Set("allowed_ips", wantIPs); err != nil {
+				t.Fatal(err)
+			}
+
+			assert.NoError(t, definition.Set("name", tt.projectName))
+
+			if tt.allowedIPsProtectedBranchesOnly {
+				assert.NoError(t,
+					types.SetTristateBool(definition,
+						"allowed_ips_protected_branches_only",
+						&tt.allowedIPsProtectedBranchesOnly),
+				)
+			}
+
+			assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+			v, ok := meta.req.(neon.ProjectCreateRequest)
+			assert.Truef(t, ok, "unexpected request object type")
+			assert.Equal(t, tt.projectName, *v.Project.Name)
+
+			got := v.Project.Settings.AllowedIps
+
+			assert.Len(t, *got.Ips, len(wantIPs))
+			assert.ElementsMatch(t, wantIPs, *got.Ips)
+			assert.Equal(t, tt.wantAllowedIPsProtectedBranchesOnly, got.ProtectedBranchesOnly)
+		})
+	}
+}
+
+// func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(t *testing.T) {
+// 	wantIPs := []string{"192.168.1.15", "192.168.2.0/20"}
+//
+// 	t.Run("shall set 'allowed_ips_protected_branches_only' to false", func(t *testing.T) {
+// 		meta := &sdkClientStub{}
+// 		resource := resourceProject()
+// 		definition := resource.TestResourceData()
+//
+// 		if err := definition.Set("allowed_ips", wantIPs); err != nil {
+// 			t.Fatal(err)
+// 		}
+// 		assert.NoError(t, definition.Set("name", "Foo"))
+// 		assert.NoError(t, definition.Set("allowed_ips_protected_branches_only", true))
+//
+// 		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+//
+// 		reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
+// 		assert.Truef(t, ok, "unexpected request object type")
+//
+// 		reqCreateIps := reqCreate.Project.Settings.AllowedIps
+// 		assert.ElementsMatch(t, wantIPs, *reqCreateIps.Ips)
+// 		assert.True(t, *reqCreateIps.ProtectedBranchesOnly)
+//
+// 		n := resource.TestResourceData()
+// 		assert.NoError(t, n.Set("allowed_ips_protected_branches_only", false))
+//
+// 		assert.False(t, n.Get("allowed_ips_protected_branches_only").(bool))
+//
+// 		assert.NoError(t, resourceProjectUpdate(context.TODO(), n, meta))
+//
+// 		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+// 		assert.Truef(t, ok, "unexpected request object type")
+//
+// 		reqUpdateIps := reqUpdate.Project.Settings.AllowedIps
+// 		assert.False(t, *reqUpdateIps.ProtectedBranchesOnly)
+// 	})
+// }
