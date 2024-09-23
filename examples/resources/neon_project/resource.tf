@@ -34,3 +34,30 @@ resource "neon_project" "example" {
     role_name     = "qux"
   }
 }
+
+### Set the logical replication
+# See: https://neon.tech/docs/guides/logical-replication-guide
+resource "neon_project" "example_with_logical_replication" {
+  name = "my-project-with-logical-replication"
+
+  enable_logical_replication = "yes"
+}
+
+### Set the allow list of IP addresses
+# Note that the feature is only available to the users of the Business plan:
+# https://neon.tech/docs/introduction/ip-allow
+resource "neon_project" "example_with_allowed_ips" {
+  name = "my-project-with-allowed-list-of-ips"
+
+  allowed_ips = ["1.2.3.4/24", "99.1.20.93"]
+}
+
+### Set the allow list of IP addresses for protected branches only
+# Note that the feature is only available to the users of the Business, or Scale plans:
+# https://neon.tech/docs/guides/protected-branches
+resource "neon_project" "example_with_allowed_ips_protected_branch_only" {
+  name = "my-project-with-allowed-list-of-ips-for-protected-branch"
+
+  allowed_ips                         = ["1.2.3.4/24", "99.1.20.93"]
+  allowed_ips_protected_branches_only = "yes"
+}
