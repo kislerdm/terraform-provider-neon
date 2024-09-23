@@ -510,6 +510,7 @@ resource "neon_database" "this" {
 }
 
 func projectAllowedIPs(t *testing.T, client *neon.Client) {
+	t.Skip("skipped because of temp switch to the Free plan and back to Scale on 2024-09-23")
 	wantAllowedIPs := []string{"192.168.1.0", "192.168.2.0/24"}
 	ips := `["` + strings.Join(wantAllowedIPs, `", "`) + `"]`
 
