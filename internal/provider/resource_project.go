@@ -542,17 +542,20 @@ func updateStateProject(
 		if err := d.Set("allowed_ips", allowedIPs); err != nil {
 			return err
 		}
-		if _, ok := d.GetOk("allowed_ips_primary_branch_only"); ok {
+		if _, ok := d.GetOk("allowed_ips_primary_branch_only"); ok ||
+			(primaryBranchesOnly != nil && *primaryBranchesOnly) {
 			if err := types.SetTristateBool(d, "allowed_ips_primary_branch_only", primaryBranchesOnly); err != nil {
 				return err
 			}
 		}
-		if _, ok := d.GetOk("allowed_ips_protected_branches_only"); ok {
+		if _, ok := d.GetOk("allowed_ips_protected_branches_only"); ok ||
+			(protectedBranchesOnly != nil && *protectedBranchesOnly) {
 			if err := types.SetTristateBool(d, "allowed_ips_protected_branches_only", protectedBranchesOnly); err != nil {
 				return err
 			}
 		}
-		if _, ok := d.GetOk("enable_logical_replication"); ok {
+		if _, ok := d.GetOk("enable_logical_replication"); ok ||
+			(r.Settings.EnableLogicalReplication != nil && *r.Settings.EnableLogicalReplication) {
 			if err := types.SetTristateBool(d, "enable_logical_replication",
 				r.Settings.EnableLogicalReplication); err != nil {
 				return err
