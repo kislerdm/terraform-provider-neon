@@ -15,6 +15,8 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
+var projectNamePrefix = "acctest-"
+
 func TestAcc(t *testing.T) {
 	if os.Getenv("TF_ACC") != "1" {
 		t.Skip("TF_ACC must be set to 1")
@@ -24,6 +26,13 @@ func TestAcc(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	t.Cleanup(func() {
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil)
+		for _, project := range resp.Projects {
+			_, _ = client.DeleteProject(project.ID)
+		}
+	})
 
 	end2end(t, client)
 
@@ -45,8 +54,7 @@ func end2end(t *testing.T, client *neon.Client) {
 
 	t.Run(
 		"shall successfully provision a project, a branch, an endpoint", func(t *testing.T) {
-
-			projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+			projectName := newProjectName()
 
 			const (
 				historyRetentionSeconds = "100"
@@ -497,12 +505,16 @@ resource "neon_database" "this" {
 	)
 }
 
+func newProjectName() string {
+	return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
+}
+
 func projectAllowedIPs(t *testing.T, client *neon.Client) {
 	wantAllowedIPs := []string{"192.168.1.0", "192.168.2.0/24"}
 	ips := `["` + strings.Join(wantAllowedIPs, `", "`) + `"]`
 
 	t.Run("shall provision a project with a custom list of allowed IPs", func(t *testing.T) {
-		projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		projectName := newProjectName()
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				  = "%s"
@@ -590,7 +602,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 	})
 
 	t.Run("shall provision a project with a custom list of allowed IPs set for default branch only", func(t *testing.T) {
-		projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		projectName := newProjectName()
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				  = "%s"
@@ -680,7 +692,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 
 func projectLogicalReplication(t *testing.T, client *neon.Client) {
 	t.Run("shall create project without logical replication", func(t *testing.T) {
-		projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		projectName := newProjectName()
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				   = "%s"
 			region_id 				   = "aws-us-west-2"
@@ -725,7 +737,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 	})
 
 	t.Run("shall create project with logical replication", func(t *testing.T) {
-		projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		projectName := newProjectName()
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				   = "%s"
@@ -778,7 +790,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 func fetchDataSources(t *testing.T) {
 	t.Run(
 		"shall successfully fetch project", func(t *testing.T) {
-			projectName := strconv.FormatInt(time.Now().UnixMilli(), 10)
+			projectName := newProjectName()
 			branchName := "br-foo"
 			branchRoleName := "role-foo"
 
@@ -903,7 +915,7 @@ func fetchDataSources(t *testing.T) {
 // if custom database and role would be created using the default branch.
 // See details: https://github.com/kislerdm/terraform-provider-neon/issues/83
 func issue83(t *testing.T) {
-	projectName := strconv.FormatInt(time.Now().UnixNano(), 10)
+	projectName := newProjectName()
 
 	resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
   name                = "%s"
