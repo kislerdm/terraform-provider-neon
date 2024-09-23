@@ -22,30 +22,36 @@ func TestAcc(t *testing.T) {
 		t.Skip("TF_ACC must be set to 1")
 	}
 
+	var orgID string
+	orgID = os.Getenv("ORG_ID")
+	if orgID == "" {
+		t.Skip("ORG_ID must be set")
+	}
+
 	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
 
-	end2end(t, client)
+	end2end(t, client, orgID)
 
-	projectAllowedIPs(t, client)
+	projectAllowedIPs(t, client, orgID)
 
-	projectLogicalReplication(t, client)
+	projectLogicalReplication(t, client, orgID)
 
 	fetchDataSources(t)
 
 	issue83(t)
 }
 
-func end2end(t *testing.T, client *neon.Client) {
+func end2end(t *testing.T, client *neon.Client, orgID string) {
 	var (
 		projectID       string
 		defaultBranchID string
@@ -77,6 +83,7 @@ func end2end(t *testing.T, client *neon.Client) {
 			resourceDefinition := fmt.Sprintf(
 				`
 resource "neon_project" "this" {
+	org_id                    = "%s"
 	name      				  = "%s"
 	region_id 				  = "aws-us-west-2"
 	pg_version				  = 16
@@ -128,6 +135,7 @@ resource "neon_database" "this" {
 	owner_name = neon_role.this.name
 }
 `,
+				orgID,
 				projectName,
 				historyRetentionSeconds,
 				autoscalingCUMin,
@@ -509,7 +517,7 @@ func newProjectName() string {
 	return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
 }
 
-func projectAllowedIPs(t *testing.T, client *neon.Client) {
+func projectAllowedIPs(t *testing.T, client *neon.Client, orgID string) {
 	wantAllowedIPs := []string{"192.168.1.0", "192.168.2.0/24"}
 	ips := `["` + strings.Join(wantAllowedIPs, `", "`) + `"]`
 
@@ -517,11 +525,12 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 		projectName := newProjectName()
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
+			org_id                    = "%s"
 			name      				  = "%s"
 			region_id 				  = "aws-us-west-2"
 			pg_version				  = 16
 			allowed_ips               = %s
-		}`, projectName, ips)
+		}`, orgID, projectName, ips)
 
 		const resourceNameProject = "neon_project.this"
 		resource.UnitTest(
@@ -690,14 +699,15 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 	})
 }
 
-func projectLogicalReplication(t *testing.T, client *neon.Client) {
+func projectLogicalReplication(t *testing.T, client *neon.Client, orgID string) {
 	t.Run("shall create project without logical replication", func(t *testing.T) {
 		projectName := newProjectName()
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
+			org_id    				   = "%s"
 			name      				   = "%s"
 			region_id 				   = "aws-us-west-2"
 			pg_version				   = 16
-		}`, projectName)
+		}`, orgID, projectName)
 		const resourceNameProject = "neon_project.this"
 		resource.UnitTest(
 			t, resource.TestCase{
@@ -740,11 +750,12 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 		projectName := newProjectName()
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
+			org_id     				   = "%s"
 			name      				   = "%s"
 			region_id 				   = "aws-us-west-2"
 			pg_version				   = 16
 			enable_logical_replication = "yes"
-		}`, projectName)
+		}`, orgID, projectName)
 
 		const resourceNameProject = "neon_project.this"
 		resource.UnitTest(
