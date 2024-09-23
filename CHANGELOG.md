@@ -14,49 +14,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- [[#96](https://github.com/kislerdm/terraform-provider-neon/issues/96)] `allowed_ips_primary_branch_only` can be
-  correctly updated now. The issue was caused by the wrong treatment of the situation when the attribute gets removed
-  from the manifest, a/k/a tristate boolean issue. See details in the first bullet point of the [changed](#changed) section.
-
-### Changed
-
-- **[BREAKING]** The boolean attributes will be treated as strings to work around the
+- **[BREAKING]** [[#96](https://github.com/kislerdm/terraform-provider-neon/issues/96)] The boolean attributes of the 
+  resource `neon_project` will be treated as strings to work around the 
   [issue](https://github.com/hashicorp/terraform-plugin-sdk/issues/817) with state management when the attribute gets
-  removed from the manifest. 
-- Updated dependencies:
-  - Neon Go SDK: [v0.5.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.4.7...v0.5.0)
-  - github.com/hashicorp/terraform-plugin-docs: [v0.19.4](https://github.com/hashicorp/terraform-plugin-docs/compare/v0.19.0...v0.19.4)
+  removed from the manifest.
 
 **Examples**
 
-  - Set allowed_ips to be applicable only to the primary branch:
-    ```terraform
-     resource "neon_project" "this" {
-        name = "myproject"
-        
-        allowed_ips = ["1.2.3.4/24"]
+- Set allowed_ips to be applicable only to the primary branch:
+  ```terraform
+   resource "neon_project" "this" {
+      name = "myproject"
+      
+      allowed_ips = ["1.2.3.4/24"]
 
-        allowed_ips_primary_branch_only = "yes"
-     }
-    ``` 
-  - Set allowed_ips to be applicable to all branches, explicitly:
-    ```terraform
-     resource "neon_project" "this" {
-        name = "myproject"
-        
-        allowed_ips = ["1.2.3.4/24"]
+      allowed_ips_primary_branch_only = "yes"
+   }
+  ``` 
+- Set allowed_ips to be applicable to all branches, explicitly:
+  ```terraform
+   resource "neon_project" "this" {
+      name = "myproject"
+      
+      allowed_ips = ["1.2.3.4/24"]
 
-        allowed_ips_primary_branch_only = "no"
-     }
-    ```
-  - Set allowed_ips to be applicable to all branches, implicitly:
-    ```terraform
-     resource "neon_project" "this" {
-        name = "myproject"
-        
-        allowed_ips = ["1.2.3.4/24"]
-     }
-    ```
+      allowed_ips_primary_branch_only = "no"
+   }
+  ```
+- Set allowed_ips to be applicable to all branches, implicitly:
+  ```terraform
+   resource "neon_project" "this" {
+      name = "myproject"
+      
+      allowed_ips = ["1.2.3.4/24"]
+   }
+  ```
+
+### Changed
+
+- Updated dependencies:
+  - Neon Go SDK: [v0.5.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.4.7...v0.5.0)
+  - github.com/hashicorp/terraform-plugin-docs: [v0.19.4](https://github.com/hashicorp/terraform-plugin-docs/compare/v0.19.0...v0.19.4)
 
 ## [v0.5.0] - 2024-03-10
 
