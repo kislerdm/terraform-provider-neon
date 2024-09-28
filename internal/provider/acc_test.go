@@ -9,13 +9,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
-var projectNamePrefix = "acctest-"
+var projectNamePrefix string
+
+func init() {
+	projectNamePrefix = "acctest-" + uuid.NewString() + "-"
+}
 
 func newProjectName() string {
 	return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)

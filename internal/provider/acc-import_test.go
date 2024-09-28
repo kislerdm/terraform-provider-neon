@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strconv"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ func TestResourcesImport(t *testing.T) {
 	})
 
 	// GIVEN the project
-	projectName := strconv.FormatInt(time.Now().UnixMicro(), 10)
+	projectName := newProjectName()
 	const (
 		defaultDatabaseName = "db-foo"
 		defaultRoleName     = "r-foo"
