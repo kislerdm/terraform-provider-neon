@@ -59,8 +59,6 @@ func TestResourcesImport(t *testing.T) {
 
 	sleepDuringRunningOperations(t, client, projectID)
 
-	t.Parallel()
-
 	t.Run("shall successfully import the project", func(t *testing.T) {
 		resource.UnitTest(
 			t, resource.TestCase{
