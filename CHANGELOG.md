@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support of Postgres 17. See the Neon [announcement](https://neon.tech/blog/postgres-17) and the Postgres 
   [announcement](https://www.postgresql.org/about/news/postgresql-17-released-2936/).
 
+### Fixed
+
+- Fixed validation of the autoscalling limits. You can now set the maximum compute size up to `10`.
+
 ## [v0.6.0] - 2024-09-23
 
 ### Added
