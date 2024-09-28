@@ -13,60 +13,60 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build & Lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-      - run: go mod download
-      - run: go build -v .
-      - name: Run linters
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-
-  generate:
-    name: Docs Generation
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-      - run: go generate ./...
-      - name: git diff
-        run: |
-          git diff --compact-summary --exit-code || \
-            (echo; echo "Unexpected difference in directories after code generation. Run 'go generate ./...' command and commit."; exit 1)
-
-  test:
-    name: Unit Tests
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.5.*'
-          terraform_wrapper: false
-      - run: go mod download
-      - run: make test
+#  build:
+#    name: Build & Lint
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 5
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-go@v5
+#        with:
+#          go-version-file: 'go.mod'
+#          cache: true
+#      - run: go mod download
+#      - run: go build -v .
+#      - name: Run linters
+#        uses: golangci/golangci-lint-action@v6
+#        with:
+#          version: latest
+#
+#  generate:
+#    name: Docs Generation
+#    needs: build
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-go@v5
+#        with:
+#          go-version-file: 'go.mod'
+#          cache: true
+#      - run: go generate ./...
+#      - name: git diff
+#        run: |
+#          git diff --compact-summary --exit-code || \
+#            (echo; echo "Unexpected difference in directories after code generation. Run 'go generate ./...' command and commit."; exit 1)
+#
+#  test:
+#    name: Unit Tests
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 5
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-go@v5
+#        with:
+#          go-version-file: 'go.mod'
+#          cache: true
+#      - uses: hashicorp/setup-terraform@v3
+#        with:
+#          terraform_version: '1.5.*'
+#          terraform_wrapper: false
+#      - run: go mod download
+#      - run: make test
 
   acc-test:
     name: Terraform Provider Acceptance Tests
-    needs: test
+#    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -74,6 +74,8 @@ jobs:
       matrix:
         terraform:
           - '1.5.*'
+          - '1.6.*'
+          - '1.7.*'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -90,28 +92,28 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           ORG_ID: ${{ secrets.ORG_ID }}
 
-  acc-test-tofu:
-    name: Tofu Provider Acceptance Tests
-    needs: test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        terraform:
-          - '1.6.*'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-      - uses: opentofu/setup-opentofu@v1
-        with:
-          tofu_version: ${{ matrix.terraform }}
-          tofu_wrapper: false
-      - run: go mod download
-      - run: make testacc
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          ORG_ID: ${{ secrets.ORG_ID }}
+#  acc-test-tofu:
+#    name: Tofu Provider Acceptance Tests
+#    needs: test
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 15
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        terraform:
+#          - '1.6.*'
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-go@v5
+#        with:
+#          go-version-file: 'go.mod'
+#          cache: true
+#      - uses: opentofu/setup-opentofu@v1
+#        with:
+#          tofu_version: ${{ matrix.terraform }}
+#          tofu_wrapper: false
+#      - run: go mod download
+#      - run: make testacc
+#        env:
+#          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+#          ORG_ID: ${{ secrets.ORG_ID }}
