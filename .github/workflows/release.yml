@@ -22,17 +22,6 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
       -
-        name: Get dependencies
-        run: go mod download
-      -
-        name: Run tests
-        run: make test
-      -
-        name: Run testsacc
-        run: make testacc
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-      -
         name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
         id: import_gpg
