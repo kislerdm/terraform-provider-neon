@@ -20,11 +20,11 @@ func (s *sdkClientStub) UpdateProject(_ string, cfg neon.ProjectUpdateRequest) (
 }
 
 func (s *sdkClientStub) GetProject(_ string) (neon.ProjectResponse, error) {
-	panic("implement me")
+	return neon.ProjectResponse{}, nil
 }
 
 func (s *sdkClientStub) ListProjectBranches(_ string) (neon.BranchesResponse, error) {
-	panic("implement me")
+	return neon.BranchesResponse{}, nil
 }
 
 func (s *sdkClientStub) ListProjectBranchEndpoints(_ string, _ string) (neon.EndpointsResponse, error) {

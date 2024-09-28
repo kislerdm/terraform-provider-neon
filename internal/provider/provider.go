@@ -63,6 +63,10 @@ func init() {
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
+func newDev() *schema.Provider {
+	return New("dev")
+}
+
 func New(version string) *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{

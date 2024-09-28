@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -64,15 +63,15 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				ForceNew:    true,
 				Description: "Postgres version",
 				ValidateFunc: func(i interface{}, _ string) (warns []string, errs []error) {
-					switch v := i.(int); v {
-					case 14, 15, 16:
-						return
-					default:
+					supportedVersion := func(v int) bool { return v > 13 && v < 18 }
+
+					if v, ok := i.(int); !ok || !supportedVersion(v) {
 						errs = append(
-							errs, errors.New("postgres version "+strconv.Itoa(v)+" is not supported yet"),
+							errs, fmt.Errorf("postgres version %v is not supported", i),
 						)
-						return
 					}
+
+					return
 				},
 			},
 			"store_password": newStoreProjectPasswordDefault(),

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.1] - 2024-09-28
+
+### Added
+
+- Added support of Postgres 17. See the Neon [announcement](https://neon.tech/blog/postgres-17) and the Postgres 
+  [announcement](https://www.postgresql.org/about/news/postgresql-17-released-2936/).
+
 ## [v0.6.0] - 2024-09-23
 
 ### Added

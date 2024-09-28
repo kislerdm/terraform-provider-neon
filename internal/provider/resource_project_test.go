@@ -2,11 +2,15 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
 	"github.com/kislerdm/terraform-provider-neon/internal/types"
 	"github.com/stretchr/testify/assert"
@@ -506,40 +510,89 @@ func Test_resourceProjectCreate_requestBody_allowed_ips_protected_branches_flag(
 	}
 }
 
-// func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(t *testing.T) {
-// 	wantIPs := []string{"192.168.1.15", "192.168.2.0/20"}
-//
-// 	t.Run("shall set 'allowed_ips_protected_branches_only' to false", func(t *testing.T) {
-// 		meta := &sdkClientStub{}
-// 		resource := resourceProject()
-// 		definition := resource.TestResourceData()
-//
-// 		if err := definition.Set("allowed_ips", wantIPs); err != nil {
-// 			t.Fatal(err)
-// 		}
-// 		assert.NoError(t, definition.Set("name", "Foo"))
-// 		assert.NoError(t, definition.Set("allowed_ips_protected_branches_only", true))
-//
-// 		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
-//
-// 		reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
-// 		assert.Truef(t, ok, "unexpected request object type")
-//
-// 		reqCreateIps := reqCreate.Project.Settings.AllowedIps
-// 		assert.ElementsMatch(t, wantIPs, *reqCreateIps.Ips)
-// 		assert.True(t, *reqCreateIps.ProtectedBranchesOnly)
-//
-// 		n := resource.TestResourceData()
-// 		assert.NoError(t, n.Set("allowed_ips_protected_branches_only", false))
-//
-// 		assert.False(t, n.Get("allowed_ips_protected_branches_only").(bool))
-//
-// 		assert.NoError(t, resourceProjectUpdate(context.TODO(), n, meta))
-//
-// 		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
-// 		assert.Truef(t, ok, "unexpected request object type")
-//
-// 		reqUpdateIps := reqUpdate.Project.Settings.AllowedIps
-// 		assert.False(t, *reqUpdateIps.ProtectedBranchesOnly)
-// 	})
-// }
+func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(t *testing.T) {
+	wantIPs := []string{"192.168.1.15", "192.168.2.0/20"}
+
+	t.Run("shall set 'allowed_ips_protected_branches_only' to false", func(t *testing.T) {
+		meta := &sdkClientStub{}
+		resource := resourceProject()
+		definition := resource.TestResourceData()
+
+		if err := definition.Set("allowed_ips", wantIPs); err != nil {
+			t.Fatal(err)
+		}
+		assert.NoError(t, definition.Set("name", "Foo"))
+		assert.NoError(t, types.SetTristateBool(definition, "allowed_ips_protected_branches_only", pointer(true)))
+
+		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+		reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		reqCreateIps := reqCreate.Project.Settings.AllowedIps
+		assert.ElementsMatch(t, wantIPs, *reqCreateIps.Ips)
+		assert.True(t, *reqCreateIps.ProtectedBranchesOnly)
+
+		n := resource.TestResourceData()
+		assert.NoError(t, types.SetTristateBool(n, "allowed_ips_protected_branches_only", pointer(false)))
+
+		assert.False(t, *types.GetTristateBool(n, "allowed_ips_protected_branches_only"))
+
+		assert.NoError(t, resourceProjectUpdate(context.TODO(), n, meta))
+
+		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		reqUpdateIps := reqUpdate.Project.Settings.AllowedIps
+		assert.False(t, *reqUpdateIps.ProtectedBranchesOnly)
+	})
+}
+
+func TestValidatePgVersion(t *testing.T) {
+	tests := map[string]bool{
+		"8":  true,
+		"9":  true,
+		"10": true,
+		"11": true,
+		"12": true,
+		"13": true,
+		"14": false,
+		"15": false,
+		"16": false,
+		"17": false,
+		"18": true,
+	}
+
+	factories := map[string]func() (*schema.Provider, error){
+		"neon": func() (*schema.Provider, error) {
+			return newDev(), nil
+		},
+	}
+
+	t.Parallel()
+	for inputVersion, wantErr := range tests {
+		t.Run(inputVersion, func(t *testing.T) {
+			def := fmt.Sprintf(`resource "neon_project" "this" {pg_version = %s}`, inputVersion)
+			var wantErrRegEx *regexp.Regexp
+			if wantErr {
+				wantErrRegEx = regexp.MustCompile(fmt.Sprintf("postgres version %s is not supported",
+					inputVersion))
+			}
+
+			testCase := resource.TestCase{
+				ProviderFactories: factories,
+				Steps: []resource.TestStep{
+					{
+						Config:             def,
+						PlanOnly:           true,
+						ExpectNonEmptyPlan: !wantErr,
+						ExpectError:        wantErrRegEx,
+					},
+				},
+			}
+
+			resource.UnitTest(t, testCase)
+		})
+	}
+
+}
