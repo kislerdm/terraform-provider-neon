@@ -41,7 +41,7 @@ func TestAccOrg(t *testing.T) {
 	name                = "%s"
 }`, orgID, projectName)
 
-	resource.UnitTest(
+	resource.Test(
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
 				"neon": func() (*schema.Provider, error) {

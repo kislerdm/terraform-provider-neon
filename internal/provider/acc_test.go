@@ -150,7 +150,7 @@ resource "neon_database" "this" {
 
 			const resourceNameProject = "neon_project.this"
 
-			resource.UnitTest(
+			resource.Test(
 				t, resource.TestCase{
 					ProviderFactories: map[string]func() (*schema.Provider, error){
 						"neon": func() (*schema.Provider, error) {
@@ -525,7 +525,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 		}`, projectName, ips)
 
 		const resourceNameProject = "neon_project.this"
-		resource.UnitTest(
+		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
@@ -614,7 +614,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 		}`, projectName, ips)
 
 		const resourceNameProject = "neon_project.this"
-		resource.UnitTest(
+		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
@@ -700,7 +700,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 			pg_version				   = 16
 		}`, projectName)
 		const resourceNameProject = "neon_project.this"
-		resource.UnitTest(
+		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
@@ -748,7 +748,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 		}`, projectName)
 
 		const resourceNameProject = "neon_project.this"
-		resource.UnitTest(
+		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
@@ -795,7 +795,7 @@ func fetchDataSources(t *testing.T) {
 			branchName := "br-foo"
 			branchRoleName := "role-foo"
 
-			resource.UnitTest(t, resource.TestCase{
+			resource.Test(t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
 						return New("v0.3.0"), nil
@@ -956,7 +956,7 @@ resource "neon_database" "this" {
   owner_name = neon_role.this.name
 }`, projectName)
 
-	resource.UnitTest(
+	resource.Test(
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
 				"neon": func() (*schema.Provider, error) {
