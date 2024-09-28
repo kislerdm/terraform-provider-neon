@@ -988,8 +988,8 @@ func readProjectInfo(client *neon.Client, projectName string) (neon.Project, err
 	for _, project := range resp.ProjectsResponse.Projects {
 		if project.Name == projectName {
 			id = project.ID
+			break
 		}
-		break
 	}
 
 	if id == "" {

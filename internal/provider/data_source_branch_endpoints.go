@@ -64,8 +64,8 @@ func dataSourceBranchEndpoints() *schema.Resource {
 func dataSourceBranchEndpointsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	tflog.Trace(ctx, "read Endpoints")
 
-	projectID := d.Get("project_id").(string)
-	branchID := d.Get("branch_id").(string)
+	projectID, _ := d.Get("project_id").(string)
+	branchID, _ := d.Get("branch_id").(string)
 
 	d.SetId(projectID + "/" + branchID)
 

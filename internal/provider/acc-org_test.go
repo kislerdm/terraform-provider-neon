@@ -16,8 +16,7 @@ func TestAccOrg(t *testing.T) {
 		t.Skip("TF_ACC must be set to 1")
 	}
 
-	var orgID string
-	orgID = os.Getenv("ORG_ID")
+	orgID := os.Getenv("ORG_ID")
 	if orgID == "" {
 		t.Skip("ORG_ID must be set")
 	}

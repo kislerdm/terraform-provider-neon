@@ -115,7 +115,7 @@ func resourceBranchDeleteRetry(ctx context.Context, d *schema.ResourceData, meta
 
 func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Branch")
-	tflog.Debug(ctx, "create Branch. projectID: "+d.Get("project_id").(string))
+	tflog.Debug(ctx, "create Branch.", map[string]interface{}{"projectID": d.Get("project_id")})
 
 	cfg := neon.BranchCreateRequest{
 		Branch: &neon.BranchCreateRequestBranch{

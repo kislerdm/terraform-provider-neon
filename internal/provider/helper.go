@@ -28,9 +28,8 @@ func mapToPgSettings(v map[string]interface{}) *neon.PgSettingsData {
 }
 
 func intValidationNotNegative(v interface{}, s string) (warn []string, errs []error) {
-	if v.(int) < 0 {
+	if vv, ok := v.(int); ok && vv < 0 {
 		errs = append(errs, errors.New(s+" must be not negative"))
-		return
 	}
 	return
 }
@@ -55,14 +54,14 @@ func pointer[V t](v V) *V {
 }
 
 func validateAutoscallingLimit(val interface{}, name string) (warns []string, errs []error) {
-	switch val.(type) {
+	switch v := val.(type) {
 	case float64:
-		switch v := val.(float64); v {
+		switch v {
 		case 0.25, 0.5, 1., 2., 3., 4., 5., 6., 7., 8., 9., 10.:
 			return
 		}
 	case int:
-		switch v := val.(int); v {
+		switch v {
 		case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10:
 			return
 		}
