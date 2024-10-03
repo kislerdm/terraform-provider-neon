@@ -29,7 +29,7 @@ func resourceProject() *schema.Resource {
 
 See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
 API: https://api-docs.neon.tech/reference/createproject`,
-		SchemaVersion: 9,
+		SchemaVersion: 10,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectImport,
 		},
@@ -313,6 +313,7 @@ var schemaDefaultBranch = &schema.Schema{
 	MaxItems: 1,
 	Optional: true,
 	Computed: true,
+	ForceNew: true,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -324,6 +325,7 @@ var schemaDefaultBranch = &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				Description: `The name of the default branch provisioned upon creation of new project. 
 If not specified, the default branch name will be used.`,
 			},
@@ -331,6 +333,7 @@ If not specified, the default branch name will be used.`,
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				Description: `The name of the default role provisioned upon creation of new project.
 If not specified, the default role name will be used.`,
 			},
@@ -338,6 +341,7 @@ If not specified, the default role name will be used.`,
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				Description: `The name of the default database provisioned upon creation of new project. It's owned by the default role (` + "`role_name`" + `).
 If not specified, the default database name will be used.`,
 			},
