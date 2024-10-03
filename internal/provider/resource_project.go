@@ -861,7 +861,7 @@ type sdkProject interface {
 	CreateProject(neon.ProjectCreateRequest) (neon.CreatedProject, error)
 	UpdateProject(string, neon.ProjectUpdateRequest) (neon.UpdateProjectRespObj, error)
 	GetProject(string) (neon.ProjectResponse, error)
-	ListProjectBranches(string) (neon.BranchesResponse, error)
+	ListProjectBranches(string) (neon.ListProjectBranchesRespObj, error)
 	ListProjectBranchEndpoints(string, string) (neon.EndpointsResponse, error)
 	DeleteProject(string) (neon.ProjectResponse, error)
 	ListProjectBranchDatabases(string, string) (neon.DatabasesResponse, error)

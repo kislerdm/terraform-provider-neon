@@ -117,11 +117,13 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	tflog.Trace(ctx, "created Branch")
 	tflog.Debug(ctx, "create Branch.", map[string]interface{}{"projectID": d.Get("project_id")})
 
-	cfg := neon.BranchCreateRequest{
-		Branch: &neon.BranchCreateRequestBranch{
-			Name:      pointer(d.Get("name").(string)),
-			ParentID:  pointer(d.Get("parent_id").(string)),
-			ParentLsn: pointer(d.Get("parent_lsn").(string)),
+	cfg := neon.CreateProjectBranchReqObj{
+		BranchCreateRequest: neon.BranchCreateRequest{
+			Branch: &neon.BranchCreateRequestBranch{
+				Name:      pointer(d.Get("name").(string)),
+				ParentID:  pointer(d.Get("parent_id").(string)),
+				ParentLsn: pointer(d.Get("parent_lsn").(string)),
+			},
 		},
 	}
 

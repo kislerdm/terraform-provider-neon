@@ -200,9 +200,11 @@ func TestResourcesImport(t *testing.T) {
 	t.Run("branch-endpoint", func(t *testing.T) {
 		// GIVEN a custom branch
 		const customBranchName = "br-bar"
-		respBranch, err := client.CreateProjectBranch(projectID, &neon.BranchCreateRequest{
-			Branch: &neon.BranchCreateRequestBranch{
-				Name: pointer(customBranchName),
+		respBranch, err := client.CreateProjectBranch(projectID, &neon.CreateProjectBranchReqObj{
+			BranchCreateRequest: neon.BranchCreateRequest{
+				Branch: &neon.BranchCreateRequestBranch{
+					Name: pointer(customBranchName),
+				},
 			},
 		})
 		if err != nil {

@@ -23,8 +23,8 @@ func (s *sdkClientStub) GetProject(_ string) (neon.ProjectResponse, error) {
 	return neon.ProjectResponse{}, nil
 }
 
-func (s *sdkClientStub) ListProjectBranches(_ string) (neon.BranchesResponse, error) {
-	return neon.BranchesResponse{}, nil
+func (s *sdkClientStub) ListProjectBranches(_ string) (neon.ListProjectBranchesRespObj, error) {
+	return neon.ListProjectBranchesRespObj{}, nil
 }
 
 func (s *sdkClientStub) ListProjectBranchEndpoints(_ string, _ string) (neon.EndpointsResponse, error) {
