@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	neon "github.com/kislerdm/neon-sdk-go"
+	"github.com/stretchr/testify/assert"
 )
 
 var projectNamePrefix string
@@ -52,6 +53,8 @@ func TestAcc(t *testing.T) {
 	fetchDataSources(t)
 
 	issue83(t)
+
+	testPlanAfterRoleImport(t, client)
 }
 
 func end2end(t *testing.T, client *neon.Client) {
@@ -1015,4 +1018,53 @@ func mustParseFloat64(s string) float64 {
 		panic(err)
 	}
 	return v
+}
+
+// test covers the use case in the issue https://github.com/kislerdm/terraform-provider-neon/issues/108
+func testPlanAfterRoleImport(t *testing.T, client *neon.Client) {
+	projectName := newProjectName()
+	respCreateProject, err := client.CreateProject(neon.ProjectCreateRequest{
+		Project: neon.ProjectCreateRequestProject{Name: &projectName},
+	})
+	assert.NoError(t, err)
+
+	projectID := respCreateProject.Project.ID
+	branchID := respCreateProject.Branch.ID
+	const roleName = "foo"
+	_, err = client.CreateProjectBranchRole(projectID, branchID, neon.RoleCreateRequest{
+		Role: neon.RoleCreateRequestRole{Name: roleName},
+	})
+	assert.NoError(t, err)
+
+	roleID := complexID{
+		ProjectID: projectID,
+		BranchID:  branchID,
+		Name:      roleName,
+	}
+
+	resourceDefinition := fmt.Sprintf(`resource "neon_role" "this" {
+  name       = "%s"
+  project_id = "%s"
+  branch_id  = "%s"
+}`, roleID.Name, roleID.ProjectID, roleID.BranchID)
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"neon": func() (*schema.Provider, error) {
+				return New("0.6.2"), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				ResourceName:  "neon_role.this",
+				Config:        resourceDefinition,
+				ImportState:   true,
+				ImportStateId: roleID.toString(),
+			},
+			{
+				Config:   resourceDefinition,
+				PlanOnly: true,
+			},
+		},
+	})
 }
