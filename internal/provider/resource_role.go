@@ -114,19 +114,18 @@ func resourceRoleReadRetry(ctx context.Context, d *schema.ResourceData, meta int
 func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "read Role")
 
-	r, err := parseComplexID(d.Id())
-	if err != nil {
-		return err
-	}
+	projectID, _ := d.Get("project_id").(string)
+	branchID, _ := d.Get("branch_id").(string)
+	name, _ := d.Get("name").(string)
 
-	resp, err := meta.(*neon.Client).GetProjectBranchRole(r.ProjectID, r.BranchID, r.Name)
+	resp, err := meta.(*neon.Client).GetProjectBranchRole(projectID, branchID, name)
 	if err != nil {
 		return err
 	}
 
 	role := resp.Role
 	if role.Password == nil {
-		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(r.ProjectID, r.BranchID, r.Name)
+		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(projectID, branchID, name)
 		if err != nil {
 			return err
 		}
@@ -163,6 +162,13 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 	[]*schema.ResourceData, error,
 ) {
 	tflog.Trace(ctx, "import Role")
+
+	r, err := parseComplexID(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	setResourceAttrsFromComplexID(d, r)
 	if diags := resourceRoleReadRetry(ctx, d, meta); diags.HasError() {
 		return nil, errors.New(diags[0].Summary)
 	}
