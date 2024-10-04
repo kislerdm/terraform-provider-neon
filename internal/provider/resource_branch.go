@@ -45,7 +45,7 @@ func resourceBranch() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "ID of the branch to checkout.",
+				Description: "ID of the branch to check out.",
 			},
 			"parent_lsn": {
 				Type:          schema.TypeString,
