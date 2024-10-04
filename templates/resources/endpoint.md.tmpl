@@ -1,0 +1,36 @@
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/neon_endpoint/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The Neon Endpoint can be imported to the terraform state by its identifier.
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+For example:
+
+```hcl
+import {
+  to = {{.Name}}.this
+  id = "ep-black-mouse-a64dr7wp"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import {{.Name}}.this ep-black-mouse-a64dr7wp
+```

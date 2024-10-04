@@ -1,0 +1,36 @@
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/neon_branch/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The Neon Branch can be imported to the terraform state by its identifier.
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+For example:
+
+```hcl
+import {
+  to = {{.Name}}.this
+  id = "br-snowy-mountain-a5jkb18i"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import {{.Name}}.this br-snowy-mountain-a5jkb18i
+```

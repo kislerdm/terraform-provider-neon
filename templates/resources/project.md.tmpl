@@ -1,0 +1,36 @@
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/neon_project/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The Neon Project can be imported to the terraform state by its identifier.
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+For example:
+
+```hcl
+import {
+  to = {{.Name}}.this
+  id = "shiny-cell-31746257"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import {{.Name}}.this shiny-cell-31746257
+```
