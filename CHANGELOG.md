@@ -5,16 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.6.2] - Unreleased
+## [v0.6.2] - 2024-10-04
 
 ### Added
 
-- Added the attribute `protected` to the resource `neon_branch` to provision protected branches.
+- Added the attribute `protected` for the resource `neon_branch` to provision protected branches.
 
 ### Fixed
 
-- [[#108](https://github.com/kislerdm/terraform-provider-neon/issues/108)] Fixed import of the resource `neon_role`.
-- Fixed mutability for the `brach` attribute of the `neon_project` resource.
+- [[#108](https://github.com/kislerdm/terraform-provider-neon/issues/108)] Fixed the import behaviour for the resource `neon_role`.
+- Fixed mutability of the default branch by adjusting the behaviour for the `branch` state of the resource `neon_project`.
 
 ### Changed
 
