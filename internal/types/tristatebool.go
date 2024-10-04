@@ -9,17 +9,17 @@ import (
 const (
 	ValTrue  = "yes"
 	ValFalse = "no"
-	valNull  = ""
+	ValNull  = ""
 )
 
 func validateFuncNewOptionalTristateBool(v interface{}, s string) (warns []string, errs []error) {
 	const supportedVals = "Supported values: '" + ValTrue + "', '" +
-		ValFalse + "', '" + valNull + "'."
+		ValFalse + "', '" + ValNull + "'."
 
 	vv, ok := v.(string)
 	if ok {
 		switch vv {
-		case ValTrue, ValFalse, valNull:
+		case ValTrue, ValFalse, ValNull:
 		default:
 			ok = false
 		}
@@ -54,7 +54,7 @@ func SetTristateBool(d *schema.ResourceData, name string, v *bool) error {
 	var err error
 	switch {
 	case v == nil:
-		err = d.Set(name, valNull)
+		err = d.Set(name, ValNull)
 	case *v:
 		err = d.Set(name, ValTrue)
 	default:
@@ -68,7 +68,7 @@ func SetTristateBool(d *schema.ResourceData, name string, v *bool) error {
 func GetTristateBool(d *schema.ResourceData, name string) *bool {
 	var o *bool = nil
 	switch d.Get(name) {
-	case valNull:
+	case ValNull:
 	case ValFalse:
 		var tmp bool
 		o = &tmp
@@ -77,4 +77,9 @@ func GetTristateBool(d *schema.ResourceData, name string) *bool {
 		o = &tmp
 	}
 	return o
+}
+
+// IsNull checks if the attribute's value is null.
+func IsNull(d *schema.ResourceData, name string) bool {
+	return d.Get(name) == ValNull
 }

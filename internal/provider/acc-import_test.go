@@ -12,7 +12,7 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
-func TestResourcesImport(t *testing.T) {
+func TestAccResourcesImport(t *testing.T) {
 	if os.Getenv("TF_ACC") != "1" {
 		t.Skip("TF_ACC must be set to 1")
 	}

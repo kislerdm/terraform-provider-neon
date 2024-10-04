@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	neon "github.com/kislerdm/neon-sdk-go"
+	"github.com/kislerdm/terraform-provider-neon/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -518,7 +519,7 @@ resource "neon_database" "this" {
 }
 
 func projectAllowedIPs(t *testing.T, client *neon.Client) {
-	t.Skip("skipped because of temp switch to the Free plan and back to Scale on 2024-09-23")
+	t.Skip("skipped because the Business plan is required for the feature")
 	wantAllowedIPs := []string{"192.168.1.0", "192.168.2.0/24"}
 	ips := `["` + strings.Join(wantAllowedIPs, `", "`) + `"]`
 
@@ -1066,5 +1067,107 @@ func testPlanAfterRoleImport(t *testing.T, client *neon.Client) {
 				PlanOnly: true,
 			},
 		},
+	})
+}
+
+func TestAccBranch(t *testing.T) {
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("TF_ACC must be set to 1")
+	}
+
+	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prefix := "branch-"
+
+	t.Cleanup(func() {
+		resp, _ := client.ListProjects(nil, nil, &prefix, nil)
+		for _, project := range resp.Projects {
+			br, _ := client.ListProjectBranches(project.ID)
+			for _, b := range br.BranchesResponse.Branches {
+				_, _ = client.UpdateProjectBranch(project.ID, b.ID, neon.BranchUpdateRequest{
+					Branch: neon.BranchUpdateRequestBranch{
+						Protected: pointer(false),
+					},
+				})
+			}
+			_, _ = client.DeleteProject(project.ID)
+		}
+	})
+
+	t.Run(`shall create the project with the custom protected branch
+and update its state afterwards to be unprotected`, func(t *testing.T) {
+		projectName := prefix + newProjectName()
+
+		const branchName = "foo"
+
+		newDefinition := func(protected *bool) string {
+			var cfg string
+			switch {
+			case protected == nil:
+			case *protected:
+				cfg = `protected  = "yes"`
+			case !*protected:
+				cfg = `protected  = "no"`
+			}
+			return fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
+
+resource "neon_branch" "this" {
+	name       = "%s"
+	project_id = neon_project.this.id
+	%s
+}`, projectName, branchName, cfg)
+		}
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"neon": func() (*schema.Provider, error) {
+					return New("0.6.2"), nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: newDefinition(pointer(true)),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("neon_branch.this", "protected", types.ValTrue),
+						func(state *terraform.State) error {
+							var e error
+							respProjects, e := client.ListProjects(nil, nil, &projectName, nil)
+							if e != nil {
+								return e
+							}
+							projectID := respProjects.Projects[0].ID
+							respBranches, e := client.ListProjectBranches(projectID)
+							if e != nil {
+								return e
+							}
+							var got bool
+							for _, branch := range respBranches.BranchesResponse.Branches {
+								if branch.Name == branchName {
+									got = branch.Protected
+								}
+							}
+							if !got {
+								e = fmt.Errorf("branch protect must be set to true")
+							}
+							return e
+						}),
+				},
+				{
+					Config: newDefinition(pointer(false)),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("neon_branch.this", "protected", types.ValFalse),
+					),
+				},
+				{
+					Config: newDefinition(nil),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("neon_branch.this", "protected", types.ValNull),
+					),
+				},
+			},
+		})
 	})
 }

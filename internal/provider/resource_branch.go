@@ -10,12 +10,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
+	"github.com/kislerdm/terraform-provider-neon/internal/types"
 )
 
 func resourceBranch() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Project Branch. See details: https://neon.tech/docs/introduction/branching/",
-		SchemaVersion: 7,
+		SchemaVersion: 8,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceBranchImport,
 		},
@@ -70,6 +71,9 @@ See details: https://neon.tech/docs/reference/glossary/#lsn`,
 				Computed:    true,
 				Description: "Branch logical size in MB.",
 			},
+			"protected": types.NewOptionalTristateBool(
+				`Set whether the branch is protected.`, false,
+			),
 		},
 	}
 }
@@ -91,6 +95,11 @@ func updateStateBranch(d *schema.ResourceData, v neon.Branch) error {
 	}
 	if v.LogicalSize != nil {
 		if err := d.Set("logical_size", int(*v.LogicalSize)); err != nil {
+			return err
+		}
+	}
+	if _, ok := d.GetOk("protected"); ok || v.Protected {
+		if err := types.SetTristateBool(d, "protected", &v.Protected); err != nil {
 			return err
 		}
 	}
@@ -123,6 +132,7 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 				Name:      pointer(d.Get("name").(string)),
 				ParentID:  pointer(d.Get("parent_id").(string)),
 				ParentLsn: pointer(d.Get("parent_lsn").(string)),
+				Protected: types.GetTristateBool(d, "protected"),
 			},
 		},
 	}
@@ -156,15 +166,42 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil
 	}
 
-	cfg := neon.BranchUpdateRequest{
-		Branch: neon.BranchUpdateRequestBranch{
-			Name: pointer(v.(string)),
-		},
+	if !d.HasChange("name") && !d.HasChange("protected") {
+		return nil
 	}
 
-	resp, err := meta.(*neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(), cfg)
-	if err != nil {
-		return err
+	var (
+		resp neon.BranchOperations
+		err  error
+	)
+	if d.HasChange("name") {
+		resp, err = meta.(*neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(),
+			neon.BranchUpdateRequest{
+				Branch: neon.BranchUpdateRequestBranch{
+					Name: pointer(d.Get("name").(string)),
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("protected") {
+		status := types.GetTristateBool(d, "protected")
+		if status == nil {
+			status = pointer(false)
+		}
+		resp, err = meta.(*neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(),
+			neon.BranchUpdateRequest{
+				Branch: neon.BranchUpdateRequestBranch{
+					Protected: status,
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return updateStateBranch(d, resp.Branch)
