@@ -1083,7 +1083,8 @@ func TestAccBranch(t *testing.T) {
 	prefix := "branch-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &prefix, nil)
+		scanPrefix := prefix + projectNamePrefix
+		resp, _ := client.ListProjects(nil, nil, &scanPrefix, nil)
 		for _, project := range resp.Projects {
 			br, _ := client.ListProjectBranches(project.ID)
 			for _, b := range br.BranchesResponse.Branches {
