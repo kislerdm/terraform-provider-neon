@@ -27,7 +27,7 @@ func TestAccOrg(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
