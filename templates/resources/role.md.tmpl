@@ -1,0 +1,38 @@
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/neon_role/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The Neon Role can be imported to the terraform state by the identifier which is composed of the `projectID`, `branchID`
+and the Role `name`. For example, the identifier of the Role `myRole` from the branch `br-snowy-mountain-a5jkb18i`
+of the project `shiny-cell-31746257` is `shiny-cell-31746257/br-snowy-mountain-a5jkb18i/myRole`.
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+For example:
+
+```hcl
+import {
+  to = {{.Name}}.this
+  id = "shiny-cell-31746257/br-snowy-mountain-a5jkb18i/myRole"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import {{.Name}}.this "shiny-cell-31746257/br-snowy-mountain-a5jkb18i/myRole"
+```
