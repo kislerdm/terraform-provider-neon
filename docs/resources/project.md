@@ -1,5 +1,5 @@
+---
 page_title: "neon_project Resource - terraform-provider-neon"
-subcategory: ""
 description: |-
   Neon Project.
 

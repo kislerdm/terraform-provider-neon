@@ -1,5 +1,5 @@
+---
 page_title: "neon_role Resource - terraform-provider-neon"
-subcategory: ""
 description: |-
   Project Role. **Note** that User and Role are synonymous terms in Neon. 
 See details: https://neon.tech/docs/manage/users/

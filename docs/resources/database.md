@@ -1,5 +1,5 @@
+---
 page_title: "neon_database Resource - terraform-provider-neon"
-subcategory: ""
 description: |-
   Project Database. See details: https://neon.tech/docs/manage/databases/
 ---

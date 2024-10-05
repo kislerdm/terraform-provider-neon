@@ -1,5 +1,5 @@
+---
 page_title: "neon_branch Resource - terraform-provider-neon"
-subcategory: ""
 description: |-
   Project Branch. See details: https://neon.tech/docs/introduction/branching/
 ---

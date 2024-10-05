@@ -1,5 +1,5 @@
+---
 page_title: "neon_endpoint Resource - terraform-provider-neon"
-subcategory: ""
 description: |-
   Project Endpoint. See details: https://neon.tech/docs/manage/endpoints/
 
