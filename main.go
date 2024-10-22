@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 	"github.com/kislerdm/terraform-provider-neon/internal/provider"
 )
@@ -33,11 +32,9 @@ func main() {
 	opts := &plugin.ServeOpts{
 		Debug: debugMode,
 
-		ProviderAddr: "registry.terraform.io/" + provider.DefaultApplicationName,
+		ProviderAddr: "registry.terraform.io/" + provider.PluginName,
 
-		ProviderFunc: func() *schema.Provider {
-			return provider.New(version)
-		},
+		ProviderFunc: provider.NewFactory(version),
 	}
 
 	plugin.Serve(opts)

@@ -62,6 +62,10 @@ make build
 make install
 ```
 
+## Updating the Provider
+
+When updating your provider version, avoid using `terraform init -upgrade` in CI pipelines and auto-approved pull requests, as this can lead to unintended resource replacements and data loss. Instead, use `terraform init` in your automated workflows. Running `terraform init -upgrade` should always be done manually, followed by plan reviews. For additional guidance, see [Important usage notes](https://neon.tech/docs/reference/terraform#important-usage-notes) in the Neon documentation.
+
 ## Local development
 
 ### Requirements

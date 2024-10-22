@@ -15,6 +15,8 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
+const PluginName = "kislerdm/neon"
+
 type delay struct {
 	delay  time.Duration
 	maxCnt uint8
@@ -64,16 +66,55 @@ func init() {
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
-func newDev() *schema.Provider {
-	return New("dev")
+func configureSDK(version string) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		cfg := neon.Config{
+			Key: d.Get("api_key").(string),
+		}
+
+		switch version {
+		case "dev":
+			cfg.HTTPClient = neon.NewMockHTTPClient()
+
+		default:
+			cfg.HTTPClient = httpClientWithUserAgent{
+				// The default timeout is set arbitrary to ensure the connection is shut during resources state update
+				httpClient:      &http.Client{Timeout: 2 * time.Minute},
+				telemetryHeader: newTelemetryHeader(version, p.TerraformVersion),
+			}
+		}
+
+		c, err := neon.NewClient(cfg)
+
+		return c, diag.FromErr(err)
+	}
 }
 
-func New(version string) *schema.Provider {
-	return newWithClient(version, nil)
+func newTelemetryHeader(version string, platformVersion string) string {
+	const platform = "terraform"
+	return fmt.Sprintf("tfProvider-%s@%s (%s@%s)", PluginName, version, platform, platformVersion)
 }
 
-func newWithClient(version string, customHTTPClient neon.HTTPClient) *schema.Provider {
-	return &schema.Provider{
+type httpClientWithUserAgent struct {
+	httpClient      neon.HTTPClient
+	telemetryHeader string
+}
+
+func (h httpClientWithUserAgent) Do(r *http.Request) (*http.Response, error) {
+	if r.Header == nil {
+		r.Header = make(http.Header)
+	}
+
+	r.Header.Set("User-Agent", h.telemetryHeader)
+
+	return h.httpClient.Do(r)
+}
+
+// singletons to be able to configure telemetry headers when GRPCProviderServer.ConfigureProvider is called.
+var p *schema.Provider
+
+func NewFactory(version string) func() *schema.Provider {
+	p = &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_key": {
 				Type:        schema.TypeString,
@@ -97,48 +138,8 @@ func newWithClient(version string, customHTTPClient neon.HTTPClient) *schema.Pro
 			"neon_branch_roles":         dataSourceBranchRoles(),
 			"neon_branch_role_password": dataSourceBranchRolePassword(),
 		},
-		ConfigureContextFunc: configure(version, customHTTPClient),
+		ConfigureContextFunc: configureSDK(version),
 	}
-}
 
-func configure(version string, httpClient neon.HTTPClient) schema.ConfigureContextFunc {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		cfg := neon.Config{
-			Key: d.Get("api_key").(string),
-		}
-
-		switch version {
-		case "dev":
-			cfg.HTTPClient = neon.NewMockHTTPClient()
-
-		default:
-			if httpClient == nil {
-				// The default timeout is set arbitrary to ensure the connection is shut during resources state update
-				httpClient = &http.Client{Timeout: 2 * time.Minute}
-			}
-
-			// Wrap the HTTP client into the client which injects the User-Agent header for tracing.
-			cfg.HTTPClient = httpClientWithUserAgent{httpClient: httpClient, providerVersion: version}
-		}
-
-		c, err := neon.NewClient(cfg)
-
-		return c, diag.FromErr(err)
-	}
-}
-
-type httpClientWithUserAgent struct {
-	httpClient neon.HTTPClient
-
-	providerVersion string
-}
-
-const DefaultApplicationName = "kislerdm/neon"
-
-func (h httpClientWithUserAgent) Do(r *http.Request) (*http.Response, error) {
-	if r.Header == nil {
-		r.Header = make(http.Header)
-	}
-	r.Header.Set("User-Agent", fmt.Sprintf("tfProvider-%s@%s", DefaultApplicationName, h.providerVersion))
-	return h.httpClient.Do(r)
+	return func() *schema.Provider { return p }
 }
