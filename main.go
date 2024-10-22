@@ -33,7 +33,7 @@ func main() {
 	opts := &plugin.ServeOpts{
 		Debug: debugMode,
 
-		ProviderAddr: "registry.terraform.io/kislerdm/neon",
+		ProviderAddr: "registry.terraform.io/" + provider.DefaultApplicationName,
 
 		ProviderFunc: func() *schema.Provider {
 			return provider.New(version)

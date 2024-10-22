@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
@@ -68,6 +69,10 @@ func newDev() *schema.Provider {
 }
 
 func New(version string) *schema.Provider {
+	return newWithClient(version, nil)
+}
+
+func newWithClient(version string, customHTTPClient neon.HTTPClient) *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_key": {
@@ -92,23 +97,48 @@ func New(version string) *schema.Provider {
 			"neon_branch_roles":         dataSourceBranchRoles(),
 			"neon_branch_role_password": dataSourceBranchRolePassword(),
 		},
-		ConfigureContextFunc: configure(version),
+		ConfigureContextFunc: configure(version, customHTTPClient),
 	}
 }
 
-func configure(version string) schema.ConfigureContextFunc {
+func configure(version string, httpClient neon.HTTPClient) schema.ConfigureContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		if version == "dev" {
-			c, err := neon.NewClient(neon.Config{HTTPClient: neon.NewMockHTTPClient()})
-			if err != nil {
-				return nil, diag.FromErr(err)
+		cfg := neon.Config{
+			Key: d.Get("api_key").(string),
+		}
+
+		switch version {
+		case "dev":
+			cfg.HTTPClient = neon.NewMockHTTPClient()
+
+		default:
+			if httpClient == nil {
+				// The default timeout is set arbitrary to ensure the connection is shut during resources state update
+				httpClient = &http.Client{Timeout: 2 * time.Minute}
 			}
-			return c, diag.FromErr(err)
+
+			// Wrap the HTTP client into the client which injects the User-Agent header for tracing.
+			cfg.HTTPClient = httpClientWithUserAgent{httpClient: httpClient, providerVersion: version}
 		}
-		c, err := neon.NewClient(neon.Config{Key: d.Get("api_key").(string)})
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-		return c, nil
+
+		c, err := neon.NewClient(cfg)
+
+		return c, diag.FromErr(err)
 	}
+}
+
+type httpClientWithUserAgent struct {
+	httpClient neon.HTTPClient
+
+	providerVersion string
+}
+
+const DefaultApplicationName = "kislerdm/neon"
+
+func (h httpClientWithUserAgent) Do(r *http.Request) (*http.Response, error) {
+	if r.Header == nil {
+		r.Header = make(http.Header)
+	}
+	r.Header.Set("User-Agent", fmt.Sprintf("tfProvider-%s@%s", DefaultApplicationName, h.providerVersion))
+	return h.httpClient.Do(r)
 }
