@@ -14,7 +14,7 @@ help: ## Prints help message.
 default: help
 
 build:
-	@ go build -a -gcflags=all="-l -B -C" -ldflags="-w -s" -o ${BINARY} .
+	@ go build -a -gcflags=all="-l -B -C" -ldflags="-w -s -X main.version=$(VERSION)" -o ${BINARY} .
 
 install: build ## Builds and installs the provider.
 	@ mkdir -p ~/.terraform.d/plugins/local/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}

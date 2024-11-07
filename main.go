@@ -21,7 +21,7 @@ import (
 var (
 	// these will be set by the goreleaser configuration
 	// to appropriate values for the compiled binary.
-	version string = "0.0.1"
+	version string = "0.0.0-alpha.0"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	opts := &plugin.ServeOpts{
 		Debug: debugMode,
 
-		ProviderAddr: "registry.terraform.io/kislerdm/neon",
+		ProviderAddr: "registry.terraform.io/" + provider.Name,
 
 		ProviderFunc: func() *schema.Provider {
 			return provider.New(version)

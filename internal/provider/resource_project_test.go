@@ -568,7 +568,7 @@ func TestValidatePgVersion(t *testing.T) {
 
 	factories := map[string]func() (*schema.Provider, error){
 		"neon": func() (*schema.Provider, error) {
-			return newDev(), nil
+			return NewUnitTest(), nil
 		},
 	}
 
@@ -597,5 +597,4 @@ func TestValidatePgVersion(t *testing.T) {
 			resource.UnitTest(t, testCase)
 		})
 	}
-
 }

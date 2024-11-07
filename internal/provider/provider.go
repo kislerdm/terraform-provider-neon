@@ -9,7 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
+	"github.com/kislerdm/terraform-provider-neon/internal/telemetry"
 )
+
+const Name = "kislerdm/neon"
 
 func init() {
 	rand.New(rand.NewSource(time.Now().Unix()))
@@ -18,52 +21,57 @@ func init() {
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
-func newDev() *schema.Provider {
-	return New("dev")
+var p = &schema.Provider{
+	Schema: map[string]*schema.Schema{
+		"api_key": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "API access key. Default is read from the environment variable `NEON_API_KEY`.",
+			Default:     os.Getenv("NEON_API_KEY"),
+		},
+	},
+	ResourcesMap: map[string]*schema.Resource{
+		"neon_project":            resourceProject(),
+		"neon_branch":             resourceBranch(),
+		"neon_endpoint":           resourceEndpoint(),
+		"neon_role":               resourceRole(),
+		"neon_database":           resourceDatabase(),
+		"neon_project_permission": resourceProjectPermission(),
+	},
+	DataSourcesMap: map[string]*schema.Resource{
+		"neon_project":              dataSourceProject(),
+		"neon_branches":             dataSourceBranches(),
+		"neon_branch_endpoints":     dataSourceBranchEndpoints(),
+		"neon_branch_roles":         dataSourceBranchRoles(),
+		"neon_branch_role_password": dataSourceBranchRolePassword(),
+	},
 }
 
+// New returns the provider.
 func New(version string) *schema.Provider {
-	return &schema.Provider{
-		Schema: map[string]*schema.Schema{
-			"api_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "API access key. Default is read from the environment variable `NEON_API_KEY`.",
-				Default:     os.Getenv("NEON_API_KEY"),
-			},
-		},
-		ResourcesMap: map[string]*schema.Resource{
-			"neon_project":            resourceProject(),
-			"neon_branch":             resourceBranch(),
-			"neon_endpoint":           resourceEndpoint(),
-			"neon_role":               resourceRole(),
-			"neon_database":           resourceDatabase(),
-			"neon_project_permission": resourceProjectPermission(),
-		},
-		DataSourcesMap: map[string]*schema.Resource{
-			"neon_project":              dataSourceProject(),
-			"neon_branches":             dataSourceBranches(),
-			"neon_branch_endpoints":     dataSourceBranchEndpoints(),
-			"neon_branch_roles":         dataSourceBranchRoles(),
-			"neon_branch_role_password": dataSourceBranchRolePassword(),
-		},
-		ConfigureContextFunc: configure(version),
+	var o = new(schema.Provider)
+	*o = *p
+	o.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (c interface{},
+		errs diag.Diagnostics) {
+		var err error
+		c, err = neon.NewClient(neon.Config{
+			Key:        d.Get("api_key").(string),
+			HTTPClient: telemetry.NewHTTPClient(Name, version, o.TerraformVersion),
+		})
+		if err != nil {
+			errs = diag.FromErr(err)
+		}
+		return c, errs
 	}
+	return o
 }
 
-func configure(version string) schema.ConfigureContextFunc {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		if version == "dev" {
-			c, err := neon.NewClient(neon.Config{HTTPClient: neon.NewMockHTTPClient()})
-			if err != nil {
-				return nil, diag.FromErr(err)
-			}
-			return c, diag.FromErr(err)
-		}
-		c, err := neon.NewClient(neon.Config{Key: d.Get("api_key").(string)})
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-		return c, nil
+// NewUnitTest returns the provider's factory for unit tests.
+func NewUnitTest() *schema.Provider {
+	var o = new(schema.Provider)
+	*o = *p
+	o.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		return neon.NewMockHTTPClient(), nil
 	}
+	return o
 }
