@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.4] - Unreleased
+
+### Added
+
+- Added the "User-Agent" header injected to every request to the Neon API for tracking purposes as agreed with
+  James Broadhead from Neon.
+
+### Fixed
+
+- [[#119](https://github.com/kislerdm/terraform-provider-neon/issues/119)] Fixed the output attribute `host` of the
+  resource `neon_endpoint`: it will yield the correct URI for the endpoints with the
+  [pooled mode](https://neon.tech/docs/connect/connection-pooling#how-to-use-connection-pooling) activated.
+
+### Removed
+
+- Removed the outdated warning which was showing upon creation of the endpoint of the type "read_only",
+
+### Changed
+
+- Updated dependencies:
+  - Neon Go SDK: [v0.7.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.6.1...v0.7.0)
+
+
+## [v0.6.3] - 2024-10-05
+
+### Fixed
+
+- Fixed docu; non-functional change.
+
 ## [v0.6.2] - 2024-10-04
 
 ### Added
