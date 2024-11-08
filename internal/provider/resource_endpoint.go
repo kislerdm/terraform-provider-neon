@@ -51,15 +51,11 @@ func resourceEndpoint() *schema.Resource {
 				Description: `Access type. **Note** that "read_write" is the only supported type yet.`,
 				ValidateFunc: func(d interface{}, k string) (warn []string, errs []error) {
 					switch v := d.(string); v {
-					case "read_write":
-						return
-					case "read_only":
-						warn = append(warn, `"read_write" is only supported option yet`)
+					case "read_write", "read_only":
 					default:
 						errs = append(errs, errors.New(v+" is not supported value for "+k))
-						return
 					}
-					return
+					return warn, errs
 				},
 			},
 			"host": {
