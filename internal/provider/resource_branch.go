@@ -244,7 +244,7 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	for _, project := range resp.Projects {
-		r, err := meta.(*neon.Client).ListProjectBranches(project.ID)
+		r, err := meta.(*neon.Client).ListProjectBranches(project.ID, nil)
 		if err != nil {
 			return nil, err
 		}

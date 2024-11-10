@@ -78,14 +78,14 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	branches, err := client.ListProjectBranches(project.ID)
+	branches, err := client.ListProjectBranches(project.ID, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var defaultBranch neon.Branch
 	for _, v := range branches.Branches {
-		if v.Primary {
+		if v.Primary != nil && *v.Primary {
 			defaultBranch = v
 			break
 		}

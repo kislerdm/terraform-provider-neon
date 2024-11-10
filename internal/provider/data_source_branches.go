@@ -67,7 +67,8 @@ func dataSourceBranchesRead(ctx context.Context, d *schema.ResourceData, meta in
 
 	d.SetId(fmt.Sprintf("%s/branches", projectID))
 
-	resp, err := meta.(*neon.Client).ListProjectBranches(projectID)
+	// TODO: add search qualifier for branches
+	resp, err := meta.(*neon.Client).ListProjectBranches(projectID, nil)
 	if err != nil {
 		diag.FromErr(err)
 	}

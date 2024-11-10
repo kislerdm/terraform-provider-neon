@@ -298,7 +298,7 @@ resource "neon_database" "this" {
 
 								// check the branches
 								func(state *terraform.State) error {
-									resp, err := client.ListProjectBranches(projectID)
+									resp, err := client.ListProjectBranches(projectID, nil)
 									if err != nil {
 										return err
 									}
@@ -308,7 +308,7 @@ resource "neon_database" "this" {
 									}
 
 									for _, branch := range resp.Branches {
-										if branch.Primary {
+										if branch.Primary != nil && *branch.Primary {
 											defaultBranchID = branch.ID
 											if err := resource.TestCheckResourceAttr(
 												resourceNameProject, "branch.0.id", defaultBranchID,
@@ -1086,7 +1086,7 @@ func TestAccBranch(t *testing.T) {
 		scanPrefix := prefix + projectNamePrefix
 		resp, _ := client.ListProjects(nil, nil, &scanPrefix, nil)
 		for _, project := range resp.Projects {
-			br, _ := client.ListProjectBranches(project.ID)
+			br, _ := client.ListProjectBranches(project.ID, nil)
 			for _, b := range br.BranchesResponse.Branches {
 				_, _ = client.UpdateProjectBranch(project.ID, b.ID, neon.BranchUpdateRequest{
 					Branch: neon.BranchUpdateRequestBranch{
@@ -1140,7 +1140,7 @@ resource "neon_branch" "this" {
 								return e
 							}
 							projectID := respProjects.Projects[0].ID
-							respBranches, e := client.ListProjectBranches(projectID)
+							respBranches, e := client.ListProjectBranches(projectID, nil)
 							if e != nil {
 								return e
 							}
