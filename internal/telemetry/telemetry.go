@@ -17,7 +17,7 @@ func NewHTTPClient(providerName, providerVersion, tfVersion string) *HTTPClient 
 	}
 }
 
-// HTTPClient instrumented HTTP client
+// HTTPClient instrumented HTTP client.
 type HTTPClient struct {
 	ProviderName    string
 	ProviderVersion string
