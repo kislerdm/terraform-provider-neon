@@ -14,12 +14,7 @@ const endpointTypeRW = "read_write"
 
 func resourceEndpoint() *schema.Resource {
 	return &schema.Resource{
-		Description: `Project Endpoint. See details: https://neon.tech/docs/manage/endpoints/
-
-!> Note that "read_write" type is only supported yet, and a single "read_write" endpoint is permitted per branch. ` +
-			`It means that no additional endpoints can be provisioned for branches with existing endpoints. ` +
-			`It also means that no endpoints can be created for branches provisioned with this terraform provider ` +
-			`because every branch has the default endpoint attached.`,
+		Description:   `Project Endpoint. See details: https://neon.tech/docs/manage/endpoints/`,
 		SchemaVersion: 8,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceEndpointImport,
