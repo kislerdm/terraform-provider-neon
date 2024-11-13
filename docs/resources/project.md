@@ -110,7 +110,7 @@ Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
 See details: https://neon.tech/docs/introduction/logical-replication
 - `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
-Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.
+Default: 1 day, see https://neon.tech/docs/reference/glossary#point-in-time-restore.
 - `name` (String) Project name.
 - `org_id` (String) Identifier of the organisation to which this project belongs.
 - `pg_version` (Number) Postgres version
@@ -128,7 +128,7 @@ of data stored in a branch, so it is not reset.
 The zero value per attributed means 'unlimited'. (see [below for nested schema](#nestedblock--quota))
 - `region_id` (String) Deployment region: https://neon.tech/docs/introduction/regions
 - `store_password` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
-Whether or not passwords are stored for roles in the Neon project. 
+Whether or not passwords are stored for roles in the Neon project.
 Storing passwords facilitates access to Neon features that require authorization.
 
 ### Read-Only
