@@ -14,10 +14,10 @@ import (
 	"github.com/kislerdm/terraform-provider-neon/internal/types"
 )
 
-const providerDefaultHistoryRetentionSeconds = int(time.Hour/time.Second) * 24 * 7
+const providerDefaultHistoryRetentionSeconds = int(time.Hour/time.Second) * 24
 
 func newStoreProjectPasswordDefault() *schema.Schema {
-	o := types.NewOptionalTristateBool(`Whether or not passwords are stored for roles in the Neon project. 
+	o := types.NewOptionalTristateBool(`Whether or not passwords are stored for roles in the Neon project.
 Storing passwords facilitates access to Neon features that require authorization.`, false)
 	o.Default = types.ValTrue
 	return o
@@ -81,7 +81,7 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Default:      providerDefaultHistoryRetentionSeconds,
 				ValidateFunc: intValidationNotNegative,
 				Description: `The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
-Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.`,
+Default: 1 day, see https://neon.tech/docs/reference/glossary#point-in-time-restore.`,
 			},
 			"compute_provisioner": {
 				Type:     schema.TypeString,

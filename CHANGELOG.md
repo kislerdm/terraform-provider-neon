@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.6.4] - Unreleased
+## [v0.7.0] - Unreleased
 
 ### Added
 
@@ -28,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated dependencies:
   - Neon Go SDK: [v0.9.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.6.1...v0.9.0)
-
+- **[BREAKING]** [#113](https://github.com/kislerdm/terraform-provider-neon/issues/113)] Set the default retention
+  window to 1 day to avoid inconsistency with Neon.
 
 ## [v0.6.3] - 2024-10-05
 
