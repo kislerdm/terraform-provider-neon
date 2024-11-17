@@ -4,11 +4,14 @@ page_title: "neon_api_key Resource - terraform-provider-neon"
 subcategory: ""
 description: |-
   A key to access the Neon API.
+  !> Note that the resource does not support import.
 ---
 
 # neon_api_key (Resource)
 
 A key to access the Neon API.
+
+!> Note that the resource does not support import.
 
 
 
@@ -17,7 +20,7 @@ A key to access the Neon API.
 
 ### Required
 
-- `key_name` (String) The name of the API Key.
+- `name` (String) The name of the API Key.
 
 ### Read-Only
 

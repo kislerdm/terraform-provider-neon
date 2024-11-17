@@ -32,7 +32,7 @@ func TestAccAPIKeys(t *testing.T) {
 		}
 	})
 
-	resourceDefinition := fmt.Sprintf(`resource "neon_api_key" "this" { key_name = "%s" }`, wantKeyName)
+	resourceDefinition := fmt.Sprintf(`resource "neon_api_key" "this" { name = "%s" }`, wantKeyName)
 	const resourceName = "neon_api_key.this"
 
 	resource.Test(
@@ -47,7 +47,7 @@ func TestAccAPIKeys(t *testing.T) {
 					Config: resourceDefinition,
 					Check: resource.ComposeTestCheckFunc(
 						// verify the recorded key name
-						resource.TestCheckResourceAttr(resourceName, "key_name", wantKeyName),
+						resource.TestCheckResourceAttr(resourceName, "name", wantKeyName),
 						// verify that the key with the given name was created
 						func(_ *terraform.State) error {
 							var (
