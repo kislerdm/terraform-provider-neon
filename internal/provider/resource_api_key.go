@@ -21,6 +21,7 @@ func resourceAPIKey() *schema.Resource {
 			"key_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The name of the API Key.",
 			},
 			"id": {
