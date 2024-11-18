@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -50,27 +51,14 @@ func TestAccAPIKeys(t *testing.T) {
 						resource.TestCheckResourceAttr(resourceName, "name", wantKeyName),
 						// verify that the key with the given name was created
 						func(_ *terraform.State) error {
-							var (
-								e    error
-								keys []neon.ApiKeysListResponseItem
-							)
-
-							keys, e = client.ListApiKeys()
-
+							keys, e := client.ListApiKeys()
 							if e == nil {
-								var found bool
-								for _, key := range keys {
-									if wantKeyName == key.Name {
-										found = true
-										break
-									}
-								}
-
-								if !found {
+								if !slices.ContainsFunc(keys, func(key neon.ApiKeysListResponseItem) bool {
+									return wantKeyName == key.Name
+								}) {
 									e = fmt.Errorf("key %s not found", wantKeyName)
 								}
 							}
-
 							return e
 						},
 						// verify that the valid key was recorded
@@ -86,23 +74,11 @@ func TestAccAPIKeys(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						// verify that the key with the given name was indeed revoked
 						func(_ *terraform.State) error {
-							var (
-								e    error
-								keys []neon.ApiKeysListResponseItem
-							)
-
-							keys, e = client.ListApiKeys()
-
+							keys, e := client.ListApiKeys()
 							if e == nil {
-								var found bool
-								for _, key := range keys {
-									if wantKeyName == key.Name {
-										found = true
-										break
-									}
-								}
-
-								if found {
+								if slices.ContainsFunc(keys, func(key neon.ApiKeysListResponseItem) bool {
+									return wantKeyName == key.Name
+								}) {
 									e = fmt.Errorf("key %s is expected to be not found", wantKeyName)
 								}
 							}
