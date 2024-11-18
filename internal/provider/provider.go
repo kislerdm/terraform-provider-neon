@@ -31,6 +31,7 @@ var p = &schema.Provider{
 		},
 	},
 	ResourcesMap: map[string]*schema.Resource{
+		"neon_api_key":            resourceAPIKey(),
 		"neon_project":            resourceProject(),
 		"neon_branch":             resourceBranch(),
 		"neon_endpoint":           resourceEndpoint(),
