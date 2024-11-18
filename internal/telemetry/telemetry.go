@@ -13,7 +13,7 @@ func NewHTTPClient(providerName, providerVersion, tfVersion string) *HTTPClient 
 		ProviderName:    providerName,
 		ProviderVersion: providerVersion,
 		TfVersion:       tfVersion,
-		c:               &http.Client{Timeout: 2 * time.Second},
+		c:               &http.Client{Timeout: 2 * time.Minute},
 	}
 }
 
