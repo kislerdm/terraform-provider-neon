@@ -43,45 +43,21 @@ func resourceAPIKey() *schema.Resource {
 	}
 }
 
-type apiKey struct {
-	id      string
-	keyName string
-	key     *string
-}
-
-func updateStateAPIKey(d *schema.ResourceData, v apiKey) error {
-	d.SetId(v.id)
-	if err := d.Set("name", v.keyName); err != nil {
-		return err
-	}
-	if v.key != nil {
-		if err := d.Set("key", *v.key); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func resourceAPIKeyCreateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return projectReadiness.Retry(resourceAPIKeyCreate, ctx, d, meta)
 }
 
 func resourceAPIKeyCreate(_ context.Context, d *schema.ResourceData, meta interface{}) error {
-	keyName := d.Get("name").(string)
 	resp, err := meta.(*neon.Client).CreateApiKey(
 		neon.ApiKeyCreateRequest{
-			KeyName: keyName,
+			KeyName: d.Get("name").(string),
 		},
 	)
 	if err != nil {
 		return err
 	}
-
-	return updateStateAPIKey(d, apiKey{
-		id:      strconv.FormatInt(resp.ID, 10),
-		key:     &resp.Key,
-		keyName: keyName,
-	})
+	d.SetId(strconv.FormatInt(resp.ID, 10))
+	return d.Set("key", resp.Key)
 }
 
 func resourceAPIKeyReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -90,29 +66,23 @@ func resourceAPIKeyReadRetry(ctx context.Context, d *schema.ResourceData, meta i
 
 func resourceAPIKeyRead(_ context.Context, d *schema.ResourceData, meta interface{}) error {
 	resp, err := meta.(*neon.Client).ListApiKeys()
-	if err != nil {
-		return err
-	}
 
-	keyName := d.Get("name").(string)
+	if err == nil {
+		keyName := d.Get("name").(string)
 
-	var id int64
+		found := slices.ContainsFunc(resp, func(key neon.ApiKeysListResponseItem) bool {
+			if keyName == key.Name {
+				d.SetId(strconv.FormatInt(key.ID, 10))
+			}
+			return keyName == key.Name
+		})
 
-	found := slices.ContainsFunc(resp, func(key neon.ApiKeysListResponseItem) bool {
-		if keyName == key.Name {
-			id = key.ID
+		if !found {
+			err = fmt.Errorf("couldn't find API Key %s", keyName)
 		}
-		return keyName == key.Name
-	})
-
-	if !found {
-		return fmt.Errorf("couldn't find API Key %s", keyName)
 	}
 
-	return updateStateAPIKey(d, apiKey{
-		id:      strconv.FormatInt(id, 10),
-		keyName: keyName,
-	})
+	return err
 }
 
 func resourceAPIKeyDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -129,6 +99,12 @@ func resourceAPIKeyDelete(_ context.Context, d *schema.ResourceData, meta interf
 		return err
 	}
 
-	emptyStr := ""
-	return updateStateAPIKey(d, apiKey{key: &emptyStr})
+	if err = d.Set("key", ""); err != nil {
+		return err
+	}
+	if err = d.Set("name", ""); err != nil {
+		return err
+	}
+	d.SetId("")
+	return nil
 }
