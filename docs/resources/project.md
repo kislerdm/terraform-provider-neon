@@ -134,7 +134,9 @@ Storing passwords facilitates access to Neon features that require authorization
 ### Read-Only
 
 - `connection_uri` (String, Sensitive) Default connection uri. **Note** that it contains access credentials.
+- `connection_uri_pooler` (String, Sensitive) Default connection uri with the traffic via pooler. **Note** that it contains access credentials.
 - `database_host` (String) Default database host.
+- `database_host_pooler` (String) Default endpoint host via pooler.
 - `database_name` (String) Default database name.
 - `database_password` (String, Sensitive) Default database access password.
 - `database_user` (String) Default database role.

@@ -12,7 +12,7 @@ import (
 func dataSourceProject() *schema.Resource {
 	return &schema.Resource{
 		Description:   `Fetch Project.`,
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		ReadContext:   dataSourceProjectRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -128,6 +128,14 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	if err := d.Set("connection_uri", info.connectionURI()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("database_host_pooler", info.poolerHost); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("connection_uri_pooler", info.poolerConnectionURI()); err != nil {
 		return diag.FromErr(err)
 	}
 

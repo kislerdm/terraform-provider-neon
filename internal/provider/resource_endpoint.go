@@ -138,7 +138,11 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	if err := d.Set("type", v.Type); err != nil {
 		return err
 	}
-	if err := d.Set("host", v.Host); err != nil {
+	host := v.Host
+	if v.PoolerEnabled {
+		host = newPooledHost(host)
+	}
+	if err := d.Set("host", host); err != nil {
 		return err
 	}
 	if err := d.Set("region_id", v.RegionID); err != nil {

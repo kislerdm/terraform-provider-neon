@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -29,7 +30,7 @@ func resourceProject() *schema.Resource {
 
 See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
 API: https://api-docs.neon.tech/reference/createproject`,
-		SchemaVersion: 10,
+		SchemaVersion: 11,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectImport,
 		},
@@ -139,6 +140,11 @@ See details: https://neon.tech/docs/introduction/logical-replication
 				Computed:    true,
 				Description: "Default database host.",
 			},
+			"database_host_pooler": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default endpoint host via pooler.",
+			},
 			"database_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -160,6 +166,12 @@ See details: https://neon.tech/docs/introduction/logical-replication
 				Computed:    true,
 				Sensitive:   true,
 				Description: "Default connection uri. **Note** that it contains access credentials.",
+			},
+			"connection_uri_pooler": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default connection uri with the traffic via pooler. **Note** that it contains access credentials.",
 			},
 			"default_endpoint_id": {
 				Type:        schema.TypeString,
@@ -389,8 +401,15 @@ func newDbConnectionInfo(
 		pass:       defaultRolePass,
 		dbName:     defaultDB.Name,
 		host:       defaultEndpoint.Host,
+		poolerHost: newPooledHost(defaultEndpoint.Host),
 		endpointID: defaultEndpoint.ID,
 	}, nil
+}
+
+func newPooledHost(host string) string {
+	const poolerSuffix = "-pooler"
+	els := strings.SplitN(host, ".", 2)
+	return fmt.Sprintf("%s.%s", els[0]+poolerSuffix, els[1])
 }
 
 func findDefaultDatabase(databases []neon.Database, defaultBranchID string) neon.Database {
@@ -446,13 +465,23 @@ type dbConnectionInfo struct {
 	dbName     string
 	host       string
 	endpointID string
+	poolerHost string
 }
+
+const sslMode = "?sslmode=require"
 
 func (i dbConnectionInfo) connectionURI() string {
 	if i.userName == "" || i.host == "" || i.dbName == "" || i.pass == "" {
 		return ""
 	}
-	return "postgres://" + i.userName + ":" + i.pass + "@" + i.host + "/" + i.dbName
+	return "postgres://" + i.userName + ":" + i.pass + "@" + i.host + "/" + i.dbName + sslMode
+}
+
+func (i dbConnectionInfo) poolerConnectionURI() string {
+	if i.userName == "" || i.poolerHost == "" || i.dbName == "" || i.pass == "" {
+		return ""
+	}
+	return "postgres://" + i.userName + ":" + i.pass + "@" + i.poolerHost + "/" + i.dbName + sslMode
 }
 
 func updateStateProject(
@@ -585,6 +614,10 @@ func updateStateProject(
 		return err
 	}
 
+	if err := d.Set("database_host_pooler", dbConnectionInfo.poolerHost); err != nil {
+		return err
+	}
+
 	if err := d.Set("database_name", dbConnectionInfo.dbName); err != nil {
 		return err
 	}
@@ -598,6 +631,10 @@ func updateStateProject(
 	}
 
 	if err := d.Set("connection_uri", dbConnectionInfo.connectionURI()); err != nil {
+		return err
+	}
+
+	if err := d.Set("connection_uri_pooler", dbConnectionInfo.poolerConnectionURI()); err != nil {
 		return err
 	}
 

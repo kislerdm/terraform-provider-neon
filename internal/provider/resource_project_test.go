@@ -598,3 +598,22 @@ func TestValidatePgVersion(t *testing.T) {
 		})
 	}
 }
+
+func Test_newPooledHost(t *testing.T) {
+	tests := []struct {
+		name string
+		host string
+		want string
+	}{
+		{
+			name: "ep-cool-glitter-a578jafl.us-east-2.aws.neon.tech",
+			host: "ep-cool-glitter-a578jafl.us-east-2.aws.neon.tech",
+			want: "ep-cool-glitter-a578jafl-pooler.us-east-2.aws.neon.tech",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, newPooledHost(tt.host), "newPooledHost(%v)", tt.host)
+		})
+	}
+}
