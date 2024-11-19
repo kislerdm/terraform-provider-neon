@@ -12,7 +12,7 @@ import (
 func dataSourceProject() *schema.Resource {
 	return &schema.Resource{
 		Description:   `Fetch Project.`,
-		SchemaVersion: 2,
+		SchemaVersion: 3,
 		ReadContext:   dataSourceProjectRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -35,6 +35,11 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Default database host.",
 			},
+			"database_host_pooler": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default endpoint host via pooler.",
+			},
 			"database_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -56,6 +61,12 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Sensitive:   true,
 				Description: "Default connection uri. **Note** that it contains access credentials.",
+			},
+			"connection_uri_pooler": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default connection uri with the traffic via pooler. **Note** that it contains access credentials.",
 			},
 		},
 	}
