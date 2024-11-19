@@ -76,3 +76,7 @@ func NewUnitTest() *schema.Provider {
 	}
 	return o
 }
+
+func newAccTest() *schema.Provider {
+	return New("accTest")
+}

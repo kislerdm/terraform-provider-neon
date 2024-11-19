@@ -44,7 +44,7 @@ func TestAccOrg(t *testing.T) {
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
 				"neon": func() (*schema.Provider, error) {
-					return New("0.6.0"), nil
+					return newAccTest(), nil
 				},
 			},
 			Steps: []resource.TestStep{

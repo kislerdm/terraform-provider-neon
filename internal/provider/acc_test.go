@@ -165,7 +165,7 @@ resource "neon_database" "this" {
 				t, resource.TestCase{
 					ProviderFactories: map[string]func() (*schema.Provider, error){
 						"neon": func() (*schema.Provider, error) {
-							return New("0.2.2"), nil
+							return newAccTest(), nil
 						},
 					},
 					Steps: []resource.TestStep{
@@ -540,7 +540,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
-						return New("0.3.0"), nil
+						return newAccTest(), nil
 					},
 				},
 				Steps: []resource.TestStep{
@@ -629,7 +629,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
-						return New("0.3.0"), nil
+						return newAccTest(), nil
 					},
 				},
 				Steps: []resource.TestStep{
@@ -715,7 +715,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
-						return New("0.3.0"), nil
+						return newAccTest(), nil
 					},
 				},
 				Steps: []resource.TestStep{
@@ -763,7 +763,7 @@ func projectLogicalReplication(t *testing.T, client *neon.Client) {
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
-						return New("0.3.0"), nil
+						return newAccTest(), nil
 					},
 				},
 				Steps: []resource.TestStep{
@@ -809,7 +809,7 @@ func fetchDataSources(t *testing.T) {
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
 					"neon": func() (*schema.Provider, error) {
-						return New("v0.3.0"), nil
+						return newAccTest(), nil
 					},
 				},
 				Steps: []resource.TestStep{
@@ -971,7 +971,7 @@ resource "neon_database" "this" {
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
 				"neon": func() (*schema.Provider, error) {
-					return New("0.5.0"), nil
+					return newAccTest(), nil
 				},
 			},
 			Steps: []resource.TestStep{
@@ -1054,7 +1054,7 @@ func testPlanAfterRoleImport(t *testing.T, client *neon.Client) {
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: map[string]func() (*schema.Provider, error){
 			"neon": func() (*schema.Provider, error) {
-				return New("0.6.2"), nil
+				return newAccTest(), nil
 			},
 		},
 		Steps: []resource.TestStep{
@@ -1127,7 +1127,7 @@ resource "neon_branch" "this" {
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
 				"neon": func() (*schema.Provider, error) {
-					return New("0.6.2"), nil
+					return newAccTest(), nil
 				},
 			},
 			Steps: []resource.TestStep{
@@ -1203,7 +1203,7 @@ func TestProjectDefaultEndpointURI(t *testing.T) {
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
 				"neon": func() (*schema.Provider, error) {
-					return New("accTest"), nil
+					return newAccTest(), nil
 				},
 			},
 			Steps: []resource.TestStep{

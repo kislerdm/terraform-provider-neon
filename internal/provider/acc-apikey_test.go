@@ -40,7 +40,7 @@ func TestAccAPIKeys(t *testing.T) {
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
 				"neon": func() (*schema.Provider, error) {
-					return New("accTest"), nil
+					return newAccTest(), nil
 				},
 			},
 			Steps: []resource.TestStep{
