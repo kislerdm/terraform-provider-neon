@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/jackc/pgx/v5"
 	neon "github.com/kislerdm/neon-sdk-go"
 	"github.com/kislerdm/terraform-provider-neon/internal/types"
 	"github.com/stretchr/testify/assert"
@@ -1171,4 +1173,134 @@ resource "neon_branch" "this" {
 			},
 		})
 	})
+}
+
+// issue 119: https://github.com/kislerdm/terraform-provider-neon/issues/119
+func TestProjectDefaultEndpointURI(t *testing.T) {
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("TF_ACC must be set to 1")
+	}
+
+	projectName := projectNamePrefix + "project-defaultURls"
+
+	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		resp, _ := client.ListProjects(nil, nil, &projectName, nil)
+		for _, project := range resp.Projects {
+			_, _ = client.DeleteProject(project.ID)
+		}
+	})
+
+	resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" { name = "%s"}`, projectName)
+
+	var connectionInfo dbConnectionInfo
+
+	resource.Test(
+		t, resource.TestCase{
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"neon": func() (*schema.Provider, error) {
+					return New("accTest"), nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: resourceDefinition,
+					Check: resource.ComposeTestCheckFunc(
+						// verify that the URI w/o pooler is valid
+						resource.TestCheckResourceAttrWith("neon_project.this", "connection_uri",
+							func(value string) error {
+								return testQuery(value)
+							}),
+						// verify that the URI w/ pooler is valid
+						resource.TestCheckResourceAttrWith("neon_project.this", "connection_uri_pooler",
+							func(value string) error {
+								return testQuery(value)
+							}),
+						// verify that the default connection attributes are valid
+						resource.TestCheckResourceAttrWith("neon_project.this", "database_name",
+							func(value string) (err error) {
+								if value != "" {
+									connectionInfo.dbName = value
+								} else {
+									err = fmt.Errorf("non empty value is expected")
+								}
+								return err
+							}),
+						resource.TestCheckResourceAttrWith("neon_project.this", "database_user",
+							func(value string) (err error) {
+								if value != "" {
+									connectionInfo.userName = value
+								} else {
+									err = fmt.Errorf("non empty value is expected")
+								}
+								return err
+							}),
+						resource.TestCheckResourceAttrWith("neon_project.this", "database_password",
+							func(value string) (err error) {
+								if value != "" {
+									connectionInfo.pass = value
+								} else {
+									err = fmt.Errorf("non empty value is expected")
+								}
+								return err
+							}),
+						resource.TestCheckResourceAttrWith("neon_project.this", "database_host",
+							func(value string) (err error) {
+								if value != "" {
+									connectionInfo.host = value
+								} else {
+									err = fmt.Errorf("non empty value is expected")
+								}
+								return err
+							}),
+						resource.TestCheckResourceAttrWith("neon_project.this", "database_host_pooler",
+							func(value string) (err error) {
+								if value != "" {
+									connectionInfo.poolerHost = value
+								} else {
+									err = fmt.Errorf("non empty value is expected")
+								}
+								return err
+							}),
+						func(_ *terraform.State) error {
+							return testQuery(connectionInfo.connectionURI())
+						},
+						func(_ *terraform.State) error {
+							return testQuery(connectionInfo.poolerConnectionURI())
+						},
+					),
+				},
+			},
+		})
+
+}
+
+func testQuery(uri string) error {
+	conn, err := pgx.Connect(context.TODO(), uri)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = conn.Close(context.Background()) }()
+
+	wantVal := 1
+	r, _ := conn.Query(context.TODO(), fmt.Sprintf("select %d as val;", wantVal))
+	defer func() { r.Close() }()
+
+	vals, err := pgx.CollectRows(r, func(row pgx.CollectableRow) (int, error) {
+		var val int
+		err := row.Scan(&val)
+		return val, err
+	})
+
+	if err == nil {
+		if len(vals) != 1 || vals[0] != wantVal {
+			err = fmt.Errorf("expected to return %d as the query result", wantVal)
+		}
+	}
+
+	return err
 }
