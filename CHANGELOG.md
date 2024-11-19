@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added the "User-Agent" header injected to every request to the Neon API for tracking purposes as agreed with
   James Broadhead from Neon.
-- Added support for API keys as resources.
+- Added the resource `neon_api_key` to manage Neon API keys.
 
 ### Fixed
 
