@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/kislerdm/neon-sdk-go v0.12.0
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
