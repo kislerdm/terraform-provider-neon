@@ -41,7 +41,7 @@ func TestAcc(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -300,7 +300,7 @@ resource "neon_database" "this" {
 
 								// check the branches
 								func(state *terraform.State) error {
-									resp, err := client.ListProjectBranches(projectID, nil)
+									resp, err := client.ListProjectBranches(projectID, nil, nil, nil, nil, nil)
 									if err != nil {
 										return err
 									}
@@ -568,9 +568,6 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 								resourceNameProject, "enable_logical_replication",
 							),
 							resource.TestCheckNoResourceAttr(
-								resourceNameProject, "allowed_ips_primary_branch_only",
-							),
-							resource.TestCheckNoResourceAttr(
 								resourceNameProject, "allowed_ips_protected_branches_only",
 							),
 
@@ -600,10 +597,6 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 										wantAllowedIPs, ref.Settings.AllowedIps.Ips)
 								}
 
-								if ref.Settings.AllowedIps.PrimaryBranchOnly == nil || *ref.Settings.AllowedIps.PrimaryBranchOnly {
-									return errors.New("primary_branch_only is expected to be set to 'false'")
-								}
-
 								return nil
 							},
 						),
@@ -613,7 +606,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 		)
 	})
 
-	t.Run("shall provision a project with a custom list of allowed IPs set for default branch only", func(t *testing.T) {
+	t.Run("shall provision a project with a custom list of allowed IPs set for protected branch only", func(t *testing.T) {
 		projectName := newProjectName()
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
@@ -621,7 +614,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 			region_id 				  = "aws-us-west-2"
 			pg_version				  = 16
 			allowed_ips               = %s
-			allowed_ips_primary_branch_only = "yes"
+			allowed_ips_protected_branches_only = "yes"
 		}`, projectName, ips)
 
 		const resourceNameProject = "neon_project.this"
@@ -653,9 +646,6 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 								resourceNameProject,
 								"allowed_ips.1", wantAllowedIPs[1],
 							),
-							resource.TestCheckResourceAttr(
-								resourceNameProject, "allowed_ips_primary_branch_only", "yes",
-							),
 							resource.TestCheckNoResourceAttr(
 								resourceNameProject, "allowed_ips_protected_branches_only",
 							),
@@ -688,8 +678,8 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 										wantAllowedIPs, ref.Settings.AllowedIps.Ips)
 								}
 
-								if ref.Settings.AllowedIps.PrimaryBranchOnly == nil || !*ref.Settings.AllowedIps.PrimaryBranchOnly {
-									return errors.New("primary_branch_only is expected to be set to 'true'")
+								if ref.Settings.AllowedIps.ProtectedBranchesOnly == nil || !*ref.Settings.AllowedIps.ProtectedBranchesOnly {
+									return errors.New("allowed_ips_protected_branches_only is expected to be set to 'true'")
 								}
 
 								return nil
@@ -990,7 +980,7 @@ resource "neon_database" "this" {
 }
 
 func readProjectInfo(client *neon.Client, projectName string) (neon.Project, error) {
-	resp, err := client.ListProjects(nil, nil, &projectName, nil)
+	resp, err := client.ListProjects(nil, nil, &projectName, nil, nil)
 	if err != nil {
 		return neon.Project{}, errors.New("listing error: " + err.Error())
 	}
@@ -1086,9 +1076,9 @@ func TestAccBranch(t *testing.T) {
 
 	t.Cleanup(func() {
 		scanPrefix := prefix + projectNamePrefix
-		resp, _ := client.ListProjects(nil, nil, &scanPrefix, nil)
+		resp, _ := client.ListProjects(nil, nil, &scanPrefix, nil, nil)
 		for _, project := range resp.Projects {
-			br, _ := client.ListProjectBranches(project.ID, nil)
+			br, _ := client.ListProjectBranches(project.ID, nil, nil, nil, nil, nil)
 			for _, b := range br.BranchesResponse.Branches {
 				_, _ = client.UpdateProjectBranch(project.ID, b.ID, neon.BranchUpdateRequest{
 					Branch: neon.BranchUpdateRequestBranch{
@@ -1137,12 +1127,12 @@ resource "neon_branch" "this" {
 						resource.TestCheckResourceAttr("neon_branch.this", "protected", types.ValTrue),
 						func(state *terraform.State) error {
 							var e error
-							respProjects, e := client.ListProjects(nil, nil, &projectName, nil)
+							respProjects, e := client.ListProjects(nil, nil, &projectName, nil, nil)
 							if e != nil {
 								return e
 							}
 							projectID := respProjects.Projects[0].ID
-							respBranches, e := client.ListProjectBranches(projectID, nil)
+							respBranches, e := client.ListProjectBranches(projectID, nil, nil, nil, nil, nil)
 							if e != nil {
 								return e
 							}
@@ -1189,7 +1179,7 @@ func TestProjectDefaultEndpointURI(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectName, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectName, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}

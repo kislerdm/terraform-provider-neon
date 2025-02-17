@@ -12,7 +12,7 @@ func main() {
 		panic(err)
 	}
 
-	p, _ := client.ListProjects(nil, nil, nil, nil)
+	p, _ := client.ListProjects(nil, nil, nil, nil, nil)
 	for _, pr := range p.Projects {
 		_, _ = client.DeleteProject(pr.ID)
 	}

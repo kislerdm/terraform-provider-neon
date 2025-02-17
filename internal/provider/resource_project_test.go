@@ -54,7 +54,6 @@ func Test_resourceProjectCreate(t *testing.T) {
 				branchRoleName = "bar"
 				dbName         = "baz"
 			)
-			var ipsPrimaryBranchOnly = true
 
 			var (
 				ips    = []string{"192.168.1.15", "192.168.2.0/20"}
@@ -93,11 +92,6 @@ func Test_resourceProjectCreate(t *testing.T) {
 			}
 
 			if err := definition.Set("allowed_ips", ips); err != nil {
-				t.Fatal(err)
-			}
-
-			if err := types.SetTristateBool(definition, "allowed_ips_primary_branch_only",
-				&ipsPrimaryBranchOnly); err != nil {
 				t.Fatal(err)
 			}
 
@@ -402,61 +396,6 @@ func Test_newDbConnectionInfo(t *testing.T) {
 				t.Errorf("unexpected endpointID. want: %s, got: %s", defaultEndpointID, got.endpointID)
 			}
 		})
-}
-
-func Test_requestBody_allowed_ips_primary_branch_flag(t *testing.T) {
-	tests := map[string]struct {
-		projectName                     string
-		allowedIPsPrimaryBranchOnly     bool
-		wantAllowedIPsPrimaryBranchOnly *bool
-	}{
-		"shall create project 'bar' with allowed ips, 'allowed_ips_primary_branch_only' is false": {
-			projectName:                     "foo",
-			allowedIPsPrimaryBranchOnly:     false,
-			wantAllowedIPsPrimaryBranchOnly: nil,
-		},
-		"shall create project 'bar' with allowed ips, 'allowed_ips_primary_branch_only' is true": {
-			projectName:                     "foo",
-			allowedIPsPrimaryBranchOnly:     true,
-			wantAllowedIPsPrimaryBranchOnly: pointer(true),
-		},
-	}
-
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
-			meta := &sdkClientStub{}
-
-			resource := resourceProject()
-			definition := resource.TestResourceData()
-			wantIPs := []string{"192.168.1.15", "192.168.2.0/20"}
-
-			if err := definition.Set("allowed_ips", wantIPs); err != nil {
-				t.Fatal(err)
-			}
-
-			assert.NoError(t, definition.Set("name", tt.projectName))
-
-			if tt.allowedIPsPrimaryBranchOnly {
-				assert.NoError(t,
-					types.SetTristateBool(definition,
-						"allowed_ips_primary_branch_only",
-						&tt.allowedIPsPrimaryBranchOnly),
-				)
-			}
-
-			assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
-
-			v, ok := meta.req.(neon.ProjectCreateRequest)
-			assert.Truef(t, ok, "unexpected request object type")
-			assert.Equal(t, tt.projectName, *v.Project.Name)
-
-			got := v.Project.Settings.AllowedIps
-
-			assert.Len(t, *got.Ips, len(wantIPs))
-			assert.ElementsMatch(t, wantIPs, *got.Ips)
-			assert.Equal(t, tt.wantAllowedIPsPrimaryBranchOnly, got.PrimaryBranchOnly)
-		})
-	}
 }
 
 func Test_resourceProjectCreate_requestBody_allowed_ips_protected_branches_flag(t *testing.T) {

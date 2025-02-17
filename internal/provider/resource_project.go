@@ -117,10 +117,6 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 				Description: `A list of IP addresses that are allowed to connect to the endpoints.
 Note that the feature is available to the Neon Scale plans only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow`,
 			},
-			"allowed_ips_primary_branch_only": types.NewOptionalTristateBool(
-				`Apply the allow-list to the primary branch only.
-Note that the feature is available to the Neon Scale plans only.`,
-				false),
 			"allowed_ips_protected_branches_only": types.NewOptionalTristateBool(
 				`Apply the allow-list to the protected branches only.
 Note that the feature is available to the Neon Scale plans only.`, false),
@@ -409,7 +405,11 @@ func newDbConnectionInfo(
 func newPooledHost(host string) string {
 	const poolerSuffix = "-pooler"
 	els := strings.SplitN(host, ".", 2)
-	return fmt.Sprintf("%s.%s", els[0]+poolerSuffix, els[1])
+	var o string
+	if len(els) == 2 {
+		o = fmt.Sprintf("%s.%s", els[0]+poolerSuffix, els[1])
+	}
+	return o
 }
 
 func findDefaultDatabase(databases []neon.Database, defaultBranchID string) neon.Database {
@@ -573,23 +573,13 @@ func updateStateProject(
 		}
 
 		var allowedIPs = make([]string, 0)
-		var (
-			primaryBranchesOnly   *bool
-			protectedBranchesOnly *bool
-		)
+		var protectedBranchesOnly *bool
 		if r.Settings.AllowedIps.Ips != nil {
 			allowedIPs = *r.Settings.AllowedIps.Ips
-			primaryBranchesOnly = r.Settings.AllowedIps.PrimaryBranchOnly
 			protectedBranchesOnly = r.Settings.AllowedIps.ProtectedBranchesOnly
 		}
 		if err := d.Set("allowed_ips", allowedIPs); err != nil {
 			return err
-		}
-		if _, ok := d.GetOk("allowed_ips_primary_branch_only"); ok ||
-			(primaryBranchesOnly != nil && *primaryBranchesOnly) {
-			if err := types.SetTristateBool(d, "allowed_ips_primary_branch_only", primaryBranchesOnly); err != nil {
-				return err
-			}
 		}
 		if _, ok := d.GetOk("allowed_ips_protected_branches_only"); ok ||
 			(protectedBranchesOnly != nil && *protectedBranchesOnly) {
@@ -704,9 +694,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			Ips: &ips,
 		}
 
-		projectDef.Settings.AllowedIps.PrimaryBranchOnly = types.GetTristateBool(d,
-			"allowed_ips_primary_branch_only")
-
 		projectDef.Settings.AllowedIps.ProtectedBranchesOnly = types.GetTristateBool(d,
 			"allowed_ips_protected_branches_only")
 	}
@@ -807,9 +794,6 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	req.Project.Settings.AllowedIps.ProtectedBranchesOnly = types.GetTristateBool(d,
 		"allowed_ips_protected_branches_only")
 
-	req.Project.Settings.AllowedIps.PrimaryBranchOnly = types.GetTristateBool(d,
-		"allowed_ips_primary_branches_only")
-
 	if req.Project.Settings == nil {
 		req.Project.Settings = &neon.ProjectSettingsData{}
 	}
@@ -834,7 +818,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	project := resp.Project
 
-	branches, err := client.ListProjectBranches(d.Id(), nil)
+	branches, err := client.ListProjectBranches(d.Id(), nil, nil, nil, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -898,7 +882,7 @@ type sdkProject interface {
 	CreateProject(neon.ProjectCreateRequest) (neon.CreatedProject, error)
 	UpdateProject(string, neon.ProjectUpdateRequest) (neon.UpdateProjectRespObj, error)
 	GetProject(string) (neon.ProjectResponse, error)
-	ListProjectBranches(string, *string) (neon.ListProjectBranchesRespObj, error)
+	ListProjectBranches(string, *string, *string, *string, *string, *int) (neon.ListProjectBranchesRespObj, error)
 	ListProjectBranchEndpoints(string, string) (neon.EndpointsResponse, error)
 	DeleteProject(string) (neon.ProjectResponse, error)
 	ListProjectBranchDatabases(string, string) (neon.DatabasesResponse, error)

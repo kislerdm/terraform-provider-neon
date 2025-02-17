@@ -18,19 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [[#119](https://github.com/kislerdm/terraform-provider-neon/issues/119)] Fixed the output attribute `host` of the
   resource `neon_endpoint`: it will yield the correct URI for the endpoints with the
   [pooled mode](https://neon.tech/docs/connect/connection-pooling#how-to-use-connection-pooling) activated.
+- TODO: [[#137](https://github.com/kislerdm/terraform-provider-neon/issues/137)] Fixed operations execution management 
+  to avoid race condition.
+- TODO: [[#133](https://github.com/kislerdm/terraform-provider-neon/issues/133)]
 - Documentation improvements:
   - Removed unclear warning from the page for the `neon_endpoint` resource.
 
 ### Removed
 
 - Removed the outdated warning which was showing upon creation of the endpoint of the type "read_only",
+- Removed the attributes "allowed_ips_primary_branch_only" from the resource `neon_project` because it's no longer supported by Neon.
 
 ### Changed
 
 - Updated dependencies:
-  - Neon Go SDK: [v0.9.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.6.1...v0.9.0)
-- **[BREAKING]** [#113](https://github.com/kislerdm/terraform-provider-neon/issues/113)] Set the default retention
-  window to 1 day to avoid inconsistency with Neon.
+  - Neon Go SDK: [v0.12.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.6.1...v0.12.0)
+- **[BREAKING]** [#113](https://github.com/kislerdm/terraform-provider-neon/issues/113)] Set the default retention window to 1 day to avoid inconsistency with Neon.
 
 ## [v0.6.3] - 2024-10-05
 

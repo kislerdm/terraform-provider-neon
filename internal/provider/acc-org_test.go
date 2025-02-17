@@ -27,7 +27,7 @@ func TestAccOrg(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -55,7 +55,7 @@ func TestAccOrg(t *testing.T) {
 							e    error
 							resp neon.ListProjectsRespObj
 						)
-						resp, e = client.ListProjects(nil, nil, &projectName, &orgID)
+						resp, e = client.ListProjects(nil, nil, &projectName, &orgID, nil)
 						if e == nil {
 							if len(resp.Projects) != 1 {
 								e = fmt.Errorf(

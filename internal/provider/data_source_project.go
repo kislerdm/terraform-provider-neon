@@ -89,7 +89,7 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	branches, err := client.ListProjectBranches(project.ID, nil)
+	branches, err := client.ListProjectBranches(project.ID, nil, nil, nil, nil, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
