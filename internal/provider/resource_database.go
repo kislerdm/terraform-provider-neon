@@ -68,7 +68,8 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 		BranchID:  d.Get("branch_id").(string),
 		Name:      d.Get("name").(string),
 	}
-	resp, err := meta.(*neon.Client).CreateProjectBranchDatabase(
+	client := meta.(*neon.Client)
+	resp, err := client.CreateProjectBranchDatabase(
 		r.ProjectID, r.BranchID, neon.DatabaseCreateRequest{
 			Database: neon.DatabaseCreateRequestDatabase{
 				Name:      r.Name,
@@ -79,6 +80,7 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 
 	d.SetId(r.toString())
 
@@ -114,7 +116,8 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		panic(err)
 	}
 
-	resp, err := meta.(*neon.Client).UpdateProjectBranchDatabase(
+	client := meta.(*neon.Client)
+	resp, err := client.UpdateProjectBranchDatabase(
 		r.ProjectID, r.BranchID, r.Name,
 		neon.DatabaseUpdateRequest{
 			Database: neon.DatabaseUpdateRequestDatabase{
@@ -126,7 +129,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return err
 	}
-
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	r.Name = resp.DatabaseResponse.Database.Name
 	d.SetId(r.toString())
 	return updateStateDatabase(d, resp.Database)
@@ -138,13 +141,16 @@ func resourceDatabaseDeleteRetry(ctx context.Context, d *schema.ResourceData, me
 
 func resourceDatabaseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Database")
-	if _, err := meta.(*neon.Client).DeleteProjectBranchDatabase(
+	client := meta.(*neon.Client)
+	resp, err := client.DeleteProjectBranchDatabase(
 		d.Get("project_id").(string),
 		d.Get("branch_id").(string),
 		d.Get("name").(string),
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	d.SetId("")
 	return updateStateDatabase(d, neon.Database{})
 }

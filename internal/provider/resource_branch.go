@@ -142,14 +142,15 @@ func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		cfg.Branch.ParentTimestamp = &t
 	}
 
-	resp, err := meta.(*neon.Client).CreateProjectBranch(
+	client := meta.(*neon.Client)
+	resp, err := client.CreateProjectBranch(
 		d.Get("project_id").(string),
 		&cfg,
 	)
 	if err != nil {
 		return err
 	}
-
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	d.SetId(resp.BranchResponse.Branch.ID)
 	if err := updateStateBranch(d, resp.BranchResponse.Branch); err != nil {
 		return err
@@ -174,8 +175,9 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		resp neon.BranchOperations
 		err  error
 	)
+	client := meta.(*neon.Client)
 	if d.HasChange("name") {
-		resp, err = meta.(*neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(),
+		resp, err = client.UpdateProjectBranch(d.Get("project_id").(string), d.Id(),
 			neon.BranchUpdateRequest{
 				Branch: neon.BranchUpdateRequestBranch{
 					Name: pointer(d.Get("name").(string)),
@@ -192,7 +194,7 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		if status == nil {
 			status = pointer(false)
 		}
-		resp, err = meta.(*neon.Client).UpdateProjectBranch(d.Get("project_id").(string), d.Id(),
+		resp, err = client.UpdateProjectBranch(d.Get("project_id").(string), d.Id(),
 			neon.BranchUpdateRequest{
 				Branch: neon.BranchUpdateRequestBranch{
 					Protected: status,
@@ -203,7 +205,7 @@ func resourceBranchUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 			return err
 		}
 	}
-
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	return updateStateBranch(d, resp.Branch)
 }
 
@@ -221,9 +223,12 @@ func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interf
 func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Branch")
 
-	if _, err := meta.(*neon.Client).DeleteProjectBranch(d.Get("project_id").(string), d.Id()); err != nil {
+	client := meta.(*neon.Client)
+	resp, err := client.DeleteProjectBranch(d.Get("project_id").(string), d.Id())
+	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 
 	d.SetId("")
 	return updateStateBranch(d, neon.Branch{})

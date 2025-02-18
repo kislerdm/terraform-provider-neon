@@ -212,13 +212,16 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	resp, err := meta.(*neon.Client).CreateProjectEndpoint(
+	client := meta.(*neon.Client)
+	resp, err := client.CreateProjectEndpoint(
 		d.Get("project_id").(string),
 		neon.EndpointCreateRequest{Endpoint: cfg},
 	)
 	if err != nil {
 		return err
 	}
+
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 
 	d.SetId(resp.Endpoint.ID)
 
@@ -267,7 +270,8 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	resp, err := meta.(*neon.Client).UpdateProjectEndpoint(
+	client := meta.(*neon.Client)
+	resp, err := client.UpdateProjectEndpoint(
 		d.Get("project_id").(string),
 		d.Id(),
 		neon.EndpointUpdateRequest{Endpoint: cfg},
@@ -275,6 +279,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	return updateStateEndpoint(d, resp.EndpointResponse.Endpoint)
 }
 
@@ -317,9 +322,12 @@ func resourceEndpointDeleteRetry(ctx context.Context, d *schema.ResourceData, me
 
 func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Endpoint")
-	if _, err := meta.(*neon.Client).DeleteProjectEndpoint(d.Get("project_id").(string), d.Id()); err != nil {
+	client := meta.(*neon.Client)
+	resp, err := client.DeleteProjectEndpoint(d.Get("project_id").(string), d.Id())
+	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	d.SetId("")
 	return updateStateEndpoint(d, neon.Endpoint{})
 }

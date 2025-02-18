@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,6 +11,8 @@ import (
 type sdkClientStub struct {
 	stubProjectPermission
 	stubProjectRolePassword
+	mockOpsReader
+
 	req interface{}
 	err error
 }
@@ -95,4 +98,25 @@ func (s *stubProjectPermission) ListProjectPermissions(_ string) (neon.ProjectPe
 		return neon.ProjectPermissions{}, s.err
 	}
 	return s.ProjectPermissions, nil
+}
+
+type mockOpsReader struct {
+	rec         map[string][]time.Time
+	maxRequests map[string]int
+	mu          *sync.Mutex
+}
+
+func (m mockOpsReader) GetProjectOperation(_ string, operationID string) (o neon.OperationResponse, err error) {
+	o = neon.OperationResponse{Operation: neon.Operation{
+		ID:     operationID,
+		Status: neon.OperationStatusFinished,
+	}}
+	m.mu.Lock()
+	m.rec[operationID] = append(m.rec[operationID], time.Now())
+	if m.maxRequests[operationID] > 0 {
+		o.Operation.Status = neon.OperationStatusRunning
+		m.maxRequests[operationID]--
+	}
+	m.mu.Unlock()
+	return o, nil
 }

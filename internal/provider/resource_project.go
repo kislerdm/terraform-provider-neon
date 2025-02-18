@@ -723,6 +723,8 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return err
 	}
 
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
+
 	projectID := resp.ProjectResponse.Project.ID
 	d.SetId(projectID)
 
@@ -799,10 +801,13 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	}
 	req.Project.Settings.EnableLogicalReplication = types.GetTristateBool(d, "enable_logical_replication")
 
-	_, err := meta.(sdkProject).UpdateProject(d.Id(), req)
+	client := meta.(sdkProject)
+	resp, err := client.UpdateProject(d.Id(), req)
 	if err != nil {
 		return err
 	}
+
+	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 
 	return resourceProjectRead(ctx, d, meta)
 }
@@ -889,4 +894,5 @@ type sdkProject interface {
 	GrantPermissionToProject(projectID string, cfg neon.GrantPermissionToProjectRequest) (neon.ProjectPermission, error)
 	RevokePermissionFromProject(projectID string, permissionID string) (neon.ProjectPermission, error)
 	ListProjectPermissions(projectID string) (neon.ProjectPermissions, error)
+	opsReader
 }
