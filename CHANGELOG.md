@@ -18,8 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [[#119](https://github.com/kislerdm/terraform-provider-neon/issues/119)] Fixed the output attribute `host` of the
   resource `neon_endpoint`: it will yield the correct URI for the endpoints with the
   [pooled mode](https://neon.tech/docs/connect/connection-pooling#how-to-use-connection-pooling) activated.
-- TODO: [[#137](https://github.com/kislerdm/terraform-provider-neon/issues/137)] Fixed operations execution management 
-  to avoid race condition.
+- [[#137](https://github.com/kislerdm/terraform-provider-neon/issues/137)] Fixed operations execution management 
+  by introducing await mechanism to wait until the running operations finish.
 - TODO: [[#133](https://github.com/kislerdm/terraform-provider-neon/issues/133)]
 - Documentation improvements:
   - Removed unclear warning from the page for the `neon_endpoint` resource.
