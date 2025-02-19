@@ -95,9 +95,6 @@ resource "neon_project" "example_in_org" {
 
 - `allowed_ips` (List of String) A list of IP addresses that are allowed to connect to the endpoints.
 Note that the feature is available to the Neon Scale plans only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow
-- `allowed_ips_primary_branch_only` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
-Apply the allow-list to the primary branch only.
-Note that the feature is available to the Neon Scale plans only.
 - `allowed_ips_protected_branches_only` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Apply the allow-list to the protected branches only.
 Note that the feature is available to the Neon Scale plans only.
