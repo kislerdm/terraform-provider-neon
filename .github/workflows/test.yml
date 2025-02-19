@@ -3,9 +3,13 @@ on:
   pull_request:
     paths-ignore:
       - 'README.md'
+      - '.github'
+      - 'cmd'
   push:
     paths-ignore:
       - 'README.md'
+      - '.github'
+      - 'cmd'
     branches:
       - master
   workflow_dispatch:
