@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [pooled mode](https://neon.tech/docs/connect/connection-pooling#how-to-use-connection-pooling) activated.
 - [[#137](https://github.com/kislerdm/terraform-provider-neon/issues/137)] Fixed operations execution management 
   by introducing await mechanism to wait until the running operations finish.
-- TODO: [[#133](https://github.com/kislerdm/terraform-provider-neon/issues/133)]
+- [[#133](https://github.com/kislerdm/terraform-provider-neon/issues/133)] Fixed state management when configuring network security.
 - Documentation improvements:
   - Removed unclear warning from the page for the `neon_endpoint` resource.
 

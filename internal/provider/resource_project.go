@@ -236,9 +236,8 @@ The zero value per attributed means 'unlimited'.`,
 	},
 }
 
-func mapToQuotaSettings(v map[string]interface{}) *neon.ProjectQuota {
-	o := neon.ProjectQuota{}
-
+func mapToQuotaSettings(v map[string]interface{}) (o *neon.ProjectQuota) {
+	o = &neon.ProjectQuota{}
 	if v, ok := v["active_time_seconds"].(int); ok && v > 0 {
 		o.ActiveTimeSeconds = pointer(int64(v))
 	}
@@ -258,8 +257,7 @@ func mapToQuotaSettings(v map[string]interface{}) *neon.ProjectQuota {
 	if v, ok := v["logical_size_bytes"].(int); ok && v > 0 {
 		o.LogicalSizeBytes = pointer(int64(v))
 	}
-
-	return &o
+	return o
 }
 
 var schemaDefaultEndpointSettings = &schema.Schema{
@@ -555,16 +553,18 @@ func updateStateProject(
 		return err
 	}
 
+	_ = d.Set("quota", []interface{}{map[string]interface{}{}})
+
 	if r.Settings != nil {
 		if r.Settings.Quota != nil {
 			if err := d.Set(
 				"quota", []interface{}{
 					map[string]interface{}{
-						"active_time_seconds":  int(*r.Settings.Quota.ActiveTimeSeconds),
-						"compute_time_seconds": int(*r.Settings.Quota.ComputeTimeSeconds),
-						"written_data_bytes":   int(*r.Settings.Quota.WrittenDataBytes),
-						"data_transfer_bytes":  int(*r.Settings.Quota.DataTransferBytes),
-						"logical_size_bytes":   int(*r.Settings.Quota.LogicalSizeBytes),
+						"active_time_seconds":  int(deref(r.Settings.Quota.ActiveTimeSeconds)),
+						"compute_time_seconds": int(deref(r.Settings.Quota.ComputeTimeSeconds)),
+						"written_data_bytes":   int(deref(r.Settings.Quota.WrittenDataBytes)),
+						"data_transfer_bytes":  int(deref(r.Settings.Quota.DataTransferBytes)),
+						"logical_size_bytes":   int(deref(r.Settings.Quota.LogicalSizeBytes)),
 					},
 				},
 			); err != nil {
@@ -633,6 +633,13 @@ func updateStateProject(
 	}
 
 	return nil
+}
+
+func deref(v *int64) int64 {
+	if v == nil {
+		return 0
+	}
+	return *v
 }
 
 func resourceProjectDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -765,41 +772,30 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
+	var quota *neon.ProjectQuota
 	if d.HasChange("quota") {
 		if v, ok := d.GetOk("quota"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
 			if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
-				req.Project.Settings = &neon.ProjectSettingsData{
-					Quota: mapToQuotaSettings(v),
-				}
+				quota = mapToQuotaSettings(v)
 			}
 		}
 	}
 
+	req.Project.Settings = &neon.ProjectSettingsData{
+		Quota: quota,
+		AllowedIps: &neon.AllowedIps{
+			ProtectedBranchesOnly: types.GetTristateBool(d, "allowed_ips_protected_branches_only"),
+		},
+		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
+	}
+
 	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {
-		var ips = make([]string, len(v.([]interface{})))
+		var allowedIPs = make([]string, len(v.([]interface{})))
 		for i, vv := range v.([]interface{}) {
-			ips[i] = fmt.Sprintf("%v", vv)
+			allowedIPs[i] = fmt.Sprintf("%v", vv)
 		}
-		if req.Project.Settings == nil {
-			req.Project.Settings = &neon.ProjectSettingsData{}
-		}
-		req.Project.Settings.AllowedIps = &neon.AllowedIps{
-			Ips: &ips,
-		}
+		req.Project.Settings.AllowedIps.Ips = &allowedIPs
 	}
-
-	if req.Project.Settings == nil {
-		req.Project.Settings = new(neon.ProjectSettingsData)
-	}
-	req.Project.Settings.AllowedIps = new(neon.AllowedIps)
-
-	req.Project.Settings.AllowedIps.ProtectedBranchesOnly = types.GetTristateBool(d,
-		"allowed_ips_protected_branches_only")
-
-	if req.Project.Settings == nil {
-		req.Project.Settings = &neon.ProjectSettingsData{}
-	}
-	req.Project.Settings.EnableLogicalReplication = types.GetTristateBool(d, "enable_logical_replication")
 
 	client := meta.(sdkProject)
 	resp, err := client.UpdateProject(d.Id(), req)
