@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated dependencies:
   - Neon Go SDK: [v0.12.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.6.1...v0.12.0)
+  - github.com/hashicorp/terraform-plugin-docs: [v0.20.1](https://github.com/hashicorp/terraform-plugin-docs/compare/v0.19.4...v0.20.1)
+  - github.com/hashicorp/terraform-plugin-sdk: [v2.36.0](https://github.com/hashicorp/terraform-plugin-sdk/compare/v2.33.0...v2.36.0)
 - **[BREAKING]** [#113](https://github.com/kislerdm/terraform-provider-neon/issues/113)] Set the default retention window to 1 day to avoid inconsistency with Neon.
 
 ## [v0.6.3] - 2024-10-05
