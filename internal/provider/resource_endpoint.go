@@ -43,7 +43,7 @@ func resourceEndpoint() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     endpointTypeRW,
-				Description: `Access type. **Note** that "read_write" is the only supported type yet.`,
+				Description: `Access type. **Note** that a single branch can have only one "read_write" endpoint.`,
 				ValidateFunc: func(d interface{}, k string) (warn []string, errs []error) {
 					switch v := d.(string); v {
 					case "read_write", "read_only":

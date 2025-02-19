@@ -52,7 +52,7 @@ See details: https://neon.tech/docs/connect/connection-pooling
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)
-- `type` (String) Access type. **Note** that "read_write" is the only supported type yet.
+- `type` (String) Access type. **Note** that a single branch can have only one "read_write" endpoint.
 
 ### Read-Only
 
