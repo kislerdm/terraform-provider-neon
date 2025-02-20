@@ -1,0 +1,56 @@
+<html lang="en">
+<head><script src='https://cdn.plot.ly/plotly-3.0.0.min.js'></script></head>
+<body><div id='plot' style="width:100%;height:100%"></div>
+<script type="module">
+    const input = {{ . }};
+    const data = [];
+    input.forEach((el) => {
+        data.push({
+            type: 'bar',
+            x: el.date,
+            y: el.count,
+            name: el.version,
+            hovertemplate: '%{x}: %{y}',
+        })
+    });
+
+    const layout = {
+        title: {
+            text: 'Downloads of kislerdm/neon from the terraform registry.',
+            font: {size: 24},
+        },
+        yaxis: {
+            title: {
+                text: 'Count',
+                font: {size: 20},
+            },
+            tickfont: {size: 16},
+            autorange: 'max',
+            linewidth: 1,
+            gridwidth: 2,
+            minor: {
+                gridwidth: 1
+            }
+        },
+        xaxis: {
+            title: {
+                text: 'Month',
+                font: {size: 20},
+            },
+            tickfont: {size: 16}
+        },
+        legend: {
+            yanchor: 'top',
+            xanchor: 'right',
+            xref: 'paper',
+            yref: 'paper',
+        },
+        barmode: 'stack',
+    };
+
+    const config = {responsive: true};
+
+    Plotly.newPlot('plot', data, layout, config);
+</script>
+</body>
+</html>
