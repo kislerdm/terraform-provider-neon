@@ -12,19 +12,18 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 )
 
 func main() {
 	var outPath string
 	var outPathRaw string
-	flag.StringVar(&outPath, "o", "public/index.html", "path to store generated HTML page.")
-	flag.StringVar(&outPathRaw, "raw", "/tmp/stats-tf-provider-downloads.txt", "path to store the raw data.")
+	flag.StringVar(&outPathRaw, "o", "/tmp", "dir to store the data.")
 	flag.Parse()
 
 	c, err := newCookies()
@@ -38,21 +37,15 @@ func main() {
 	}
 	defer func() { _ = fHTML.Close() }()
 
-	fRaw, err := os.OpenFile(outPathRaw, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Printf("could not open file for saving raw data %s: %v\n", outPathRaw, err)
-		return
-	}
-	defer func() { _ = fRaw.Close() }()
-
 	stats, err := fetchStatsWeb(c)
 	if err != nil {
 		log.Printf("could not fetch the data from terraform registry: %v\n", err)
 		return
 	}
-	if _, er := fRaw.Write([]byte(stats)); er != nil {
-		log.Printf("could not save the raw data to %s: %v\n", outPathRaw, er)
-		return
+
+	pOut := path.Join(outPathRaw, "data.txt")
+	if err = os.WriteFile(pOut, []byte(stats), 0644); err != nil {
+		log.Printf("could not save the raw data to %s: %v\n", pOut, err)
 	}
 
 	data, err := readData(stats)
@@ -62,16 +55,15 @@ func main() {
 	}
 	sortData(data)
 
-	dataJson, err := json.Marshal(data)
+	dataJson, err := json.Marshal(toHtmlData(data))
 	if err != nil {
 		log.Printf("could not serialise processed data: %v\n", err)
 		return
 	}
-	// html/template would require additional transformation of data,
-	// hence rely on text/template because no html escape is required.
-	if err = templateGen.Execute(fHTML, string(dataJson)); err != nil {
-		log.Printf("could not generate HTML page: %v\n", err)
-		return
+
+	pOut = path.Join(outPathRaw, "data.json")
+	if err = os.WriteFile(pOut, dataJson, 0644); err != nil {
+		log.Printf("could not save projected data to %s: %v\n", pOut, err)
 	}
 }
 
@@ -244,7 +236,27 @@ func isMonth(s string) bool {
 	return ok
 }
 
-//go:embed index.html.templ
-var templateHTML string
+type htmlData struct {
+	Dates    []string `json:"dates"`
+	Versions []string `json:"versions"`
+	// Downloads defines the number of downloads broken down by month and version
+	// {2025-01: {0.7.1: 10, 0.7.0: 5}}
+	Downloads map[string]map[string]int `json:"downloads"`
+}
 
-var templateGen = template.Must(template.New("page").Parse(templateHTML))
+func toHtmlData(v []record) htmlData {
+	o := htmlData{
+		Dates: v[0].Date,
+	}
+	o.Downloads = make(map[string]map[string]int, len(o.Dates))
+	for _, date := range o.Dates {
+		o.Downloads[date] = make(map[string]int)
+	}
+	for _, el := range v {
+		o.Versions = append(o.Versions, el.Version)
+		for i, date := range el.Date {
+			o.Downloads[date][el.Version] = el.Count[i]
+		}
+	}
+	return o
+}

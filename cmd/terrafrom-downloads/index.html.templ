@@ -2,55 +2,151 @@
 <head><script src='https://cdn.plot.ly/plotly-3.0.0.min.js'></script></head>
 <body><div id='plot' style="width:100%;height:100%"></div>
 <script type="module">
-    const input = {{ . }};
-    const data = [];
-    input.forEach((el) => {
-        data.push({
-            type: 'bar',
-            x: el.date,
-            y: el.count,
-            name: el.version,
-            hovertemplate: '%{x}: %{y}',
-        })
-    });
+    class Repo {
+        constructor() {
+            this.full = {{ . }}
+            this.state = this.full;
 
-    const layout = {
-        title: {
-            text: 'Downloads of kislerdm/neon from the terraform registry.',
-            font: {size: 24},
-        },
-        yaxis: {
-            title: {
-                text: 'Count',
-                font: {size: 20},
-            },
-            tickfont: {size: 16},
-            autorange: 'max',
-            linewidth: 1,
-            gridwidth: 2,
-            minor: {
-                gridwidth: 1
+            this.graph_layout = {
+                title: {
+                    text: 'Downloads of kislerdm/neon from the terraform registry.',
+                    font: {size: 24},
+                },
+                xaxis: {
+                    title: {
+                        text: 'Month',
+                        font: {size: 20},
+                    },
+                    tickfont: {size: 16}
+                },
+                yaxis: {
+                    title: {
+                        text: 'Count',
+                        font: {size: 20},
+                    },
+                    tickfont: {size: 16},
+                    autorange: 'max',
+                    linewidth: 1,
+                    gridwidth: 2,
+                    minor: {
+                        gridwidth: 1
+                    },
+                    scaleanchor: "x",
+                    domain: [0, 0.45],
+                },
+                yaxis2: {
+                    title: {
+                        text: 'Relative Distribution [%]',
+                        font: {size: 20},
+                    },
+                    tickfont: {size: 16},
+                    range: [0, 100],
+                    linewidth: 1,
+                    gridwidth: 2,
+                    minor: {
+                        gridwidth: 1
+                    },
+                    scaleanchor: "x",
+                    domain: [0.55, 1],
+                },
+                legend: {
+                    yanchor: 'top',
+                    xanchor: 'right',
+                    xref: 'paper',
+                    yref: 'paper',
+                },
+                showlegend: false,
+                barmode: 'stack',
+            };
+            this.graph_config = {responsive: true};
+        }
+
+        dates() {
+            return this.state.dates;
+        }
+
+        versions() {
+            return this.state.versions;
+        }
+
+        downloads() {
+            return this.state.downloads;
+        }
+
+        filter(versions, dates) {
+            this.state = this.full;
+            this.state.versions = versions;
+            this.state.dates = dates;
+            this.state.downloads = {};
+            for (let j = 0; j < dates.length; j++) {
+                const dateInd = dates[j];
+                const tmp = this.full.downloads[dateInd];
+                if (tmp !== undefined && tmp !== null) {
+                    this.state.downloads[dateInd] = {};
+                    for (let i = 0; i < versions.length; i++) {
+                        const versionInd = versions[i];
+                        let count = tmp[versionInd];
+                        if (count === undefined || count === null) {
+                            count = 0;
+                        }
+                        this.state.downloads[dateInd][versionInd] = count;
+                    }
+                }
             }
-        },
-        xaxis: {
-            title: {
-                text: 'Month',
-                font: {size: 20},
-            },
-            tickfont: {size: 16}
-        },
-        legend: {
-            yanchor: 'top',
-            xanchor: 'right',
-            xref: 'paper',
-            yref: 'paper',
-        },
-        barmode: 'stack',
-    };
+        }
 
-    const config = {responsive: true};
+        totalDownloadsByDate() {
+            const o = {};
+            const tmp = this.downloads();
+            this.dates().forEach((date) => {
+                o[date] = 0;
+                Object.values(tmp[date]).forEach((el) => {
+                    o[date] += el
+                })
+            })
+            return o;
+        }
 
-    Plotly.newPlot('plot', data, layout, config);
-</script>
+        graphData() {
+            const o = [];
+            const totalByDate = this.totalDownloadsByDate();
+            const countsTotal = [];
+            this.versions().forEach((version) => {
+                const counts = [];
+                const countsRelative = [];
+                this.dates().forEach((date) => {
+                    counts.push(this.downloads()[date][version]);
+                    countsTotal.push(totalByDate[date]);
+                    let countRelative = 0;
+                    if (totalByDate[date] > 0) {
+                        countRelative = this.downloads()[date][version] / totalByDate[date];
+                    }
+                    countsRelative.push(Math.round(countRelative*10000) / 100);
+                })
+                o.push({
+                    type: 'bar',
+                    x: this.dates(),
+                    y: countsRelative,
+                    name: version,
+                    text: counts,
+                    hovertemplate: '%{x}: %{y}\% (%{text})',
+                    yaxis: "y2",
+                })
+            })
+            o.push({
+                type: 'bar',
+                x: this.dates(),
+                y: countsTotal,
+                name: "Total",
+                hovertemplate: '%{x}: %{y}',
+                yaxis: "y",
+            })
+            return o;
+        }
+    }
+
+    const s = new Repo();
+
+    Plotly.newPlot('plot', s.graphData(), s.graph_layout, s.graph_config);</script>
 </body>
 </html>

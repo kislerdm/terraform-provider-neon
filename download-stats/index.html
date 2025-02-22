@@ -1,0 +1,160 @@
+<html lang="en">
+<head>
+    <script src='https://cdn.plot.ly/plotly-3.0.0.min.js'></script>
+</head>
+<body>
+<div id='plot' style="width:100%;height:100%"></div>
+<script type="module">
+    async function readData() {
+        const resp = await fetch("https://raw.githubusercontent.com/kislerdm/terraform-provider-neon/refs/heads/master/download-stats/data.json");
+        if (resp.status !== 200) {
+            console.error(resp);
+            throw new Error(`could not fetch data, resp: ${resp.status}`);
+        }
+        return await resp.json();
+    }
+
+    const full = await readData();
+    let state = full;
+
+    function dates() {
+        return state.dates;
+    }
+
+    function versions() {
+        return state.versions;
+    }
+
+    function downloads() {
+        return state.downloads;
+    }
+
+    function filter(versions, dates) {
+        state = full;
+        state.versions = versions;
+        state.dates = dates;
+        state.downloads = {};
+        for (let j = 0; j < dates.length; j++) {
+            const dateInd = dates[j];
+            const tmp = full.downloads[dateInd];
+            if (tmp !== undefined && tmp !== null) {
+                state.downloads[dateInd] = {};
+                for (let i = 0; i < versions.length; i++) {
+                    const versionInd = versions[i];
+                    let count = tmp[versionInd];
+                    if (count === undefined || count === null) {
+                        count = 0;
+                    }
+                    state.downloads[dateInd][versionInd] = count;
+                }
+            }
+        }
+    }
+
+    function totalDownloadsByDate() {
+        const o = {};
+        const tmp = downloads();
+        dates().forEach((date) => {
+            o[date] = 0;
+            Object.values(tmp[date]).forEach((el) => {
+                o[date] += el
+            })
+        })
+        return o;
+    }
+
+    function graphData() {
+        const o = [];
+        const totalByDate = totalDownloadsByDate();
+        const countsTotal = [];
+        versions().forEach((version) => {
+            const counts = [];
+            const countsRelative = [];
+            dates().forEach((date) => {
+                counts.push(downloads()[date][version]);
+                countsTotal.push(totalByDate[date]);
+                let countRelative = 0;
+                if (totalByDate[date] > 0) {
+                    countRelative = downloads()[date][version] / totalByDate[date];
+                }
+                countsRelative.push(Math.round(countRelative * 10000) / 100);
+            })
+            o.push({
+                type: 'bar',
+                x: dates(),
+                y: countsRelative,
+                name: version,
+                text: countsRelative,
+                hovertemplate: '%{x}: %{y}\%',
+                yaxis: "y",
+            })
+        })
+        o.push({
+            type: 'bar',
+            x: dates(),
+            y: countsTotal,
+            text: countsTotal,
+            name: "Total",
+            hovertemplate: '%{x}: %{y}',
+            yaxis: "y2",
+            showlegend: false,
+        })
+        return o;
+    }
+
+    const layout = {
+        title: {
+            text: 'Downloads of kislerdm/neon from the terraform registry.',
+            font: {size: 24},
+        },
+        xaxis: {
+            title: {
+                text: 'Month',
+                font: {size: 20},
+            },
+            tickfont: {size: 16}
+        },
+        yaxis: {
+            title: {
+                text: 'Relative Distribution [%]',
+                font: {size: 20},
+            },
+            tickfont: {size: 16},
+            range: [0, 100],
+            linewidth: 1,
+            gridwidth: 2,
+            minor: {
+                gridwidth: 1
+            },
+            scaleanchor: "x",
+            domain: [0, 0.45],
+        },
+        yaxis2: {
+            title: {
+                text: 'Count',
+                font: {size: 20},
+            },
+            tickfont: {size: 16},
+            autorange: 'max',
+            linewidth: 1,
+            gridwidth: 2,
+            minor: {
+                gridwidth: 1
+            },
+            scaleanchor: "x",
+            domain: [0.55, 1],
+        },
+        legend: {
+            y: 0,
+            title: {text: 'Legend'},
+            font: {
+                size: 16
+            }
+        },
+        barmode: 'stack',
+    };
+    const config = {responsive: true};
+
+    Plotly.newPlot('plot', graphData(), layout, config);</script>
+</body>
+</html>
