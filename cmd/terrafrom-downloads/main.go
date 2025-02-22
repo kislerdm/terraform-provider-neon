@@ -7,8 +7,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"iter"
 	"log"
+	"net/http"
 	"os"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,25 +22,45 @@ import (
 
 func main() {
 	var outPath string
+	var outPathRaw string
 	flag.StringVar(&outPath, "o", "public/index.html", "path to store generated HTML page.")
+	flag.StringVar(&outPathRaw, "raw", "/tmp/stats-tf-provider-downloads.txt", "path to store the raw data.")
 	flag.Parse()
 
-	stats, err := fetchStats()
+	c, err := newCookies()
 	if err != nil {
-		log.Fatalf("could not fetch the data from terraform registry: %v\n", err)
+		log.Fatalf("could not init cookies:%v\n", err)
 	}
-
-	data, err := readData(stats)
-	if err != nil {
-		log.Fatalf("could not process the data: %v\n", err)
-	}
-	sortData(data)
 
 	fHTML, err := os.OpenFile(outPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatalf("could not open file for saving HTML page %s: %v\n", outPath, err)
 	}
 	defer func() { _ = fHTML.Close() }()
+
+	fRaw, err := os.OpenFile(outPathRaw, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("could not open file for saving raw data %s: %v\n", outPathRaw, err)
+		return
+	}
+	defer func() { _ = fRaw.Close() }()
+
+	stats, err := fetchStatsWeb(c)
+	if err != nil {
+		log.Printf("could not fetch the data from terraform registry: %v\n", err)
+		return
+	}
+	if _, er := fRaw.Write([]byte(stats)); er != nil {
+		log.Printf("could not save the raw data to %s: %v\n", outPathRaw, er)
+		return
+	}
+
+	data, err := readData(stats)
+	if err != nil {
+		log.Printf("could not process the data: %v\n", err)
+		return
+	}
+	sortData(data)
 
 	dataJson, err := json.Marshal(data)
 	if err != nil {
@@ -51,11 +75,79 @@ func main() {
 	}
 }
 
-//go:embed stats.txt
-var statsData string
+func newCookies() (*cookies, error) {
+	o := &cookies{
+		Key: os.Getenv("TF_COOKIE_KEY"),
+	}
+	var err error
+	if o.Key == "" {
+		err = errors.Join(err, fmt.Errorf("env variable COOKIE_KEY must be set"))
+	}
+	if err != nil {
+		o = nil
+	}
+	return o, err
+}
 
-func fetchStats() (string, error) {
-	return statsData, nil
+type cookies struct {
+	// Key has to be updated on a monthly basis.
+	Key string `cookie:"terraform-registry"`
+}
+
+func (c cookies) Next() iter.Seq[*http.Cookie] {
+	val := reflect.ValueOf(c)
+	return func(yield func(v *http.Cookie) bool) {
+		for i := 0; i < val.NumField(); i++ {
+			fType := val.Type().Field(i)
+			v := &http.Cookie{
+				Name: fType.Tag.Get("cookie"),
+			}
+
+			switch fType.Type.Kind() {
+			case reflect.String:
+				v.Value = val.Field(i).String()
+			default:
+				v.Value = fmt.Sprintf("%v", val.Field(i).Interface())
+			}
+
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
+func fetchStatsWeb(c *cookies) (o string, err error) {
+	const url = "https://registry.terraform.io/v2/providers/3734/downloads"
+	r, er := http.NewRequest(http.MethodGet, url, nil)
+	if er != nil {
+		err = fmt.Errorf("could not make request to %s: %v\n", url, er)
+	}
+
+	var resp *http.Response
+	if err == nil {
+		if c != nil {
+			for cookie := range c.Next() {
+				r.AddCookie(cookie)
+			}
+		}
+		resp, er = http.DefaultClient.Do(r)
+		if er != nil {
+			err = fmt.Errorf("could not make request to %s: %v\n", url, er)
+		}
+	}
+
+	if err == nil {
+		defer func() { _ = resp.Body.Close() }()
+		b, er := io.ReadAll(resp.Body)
+		if er != nil {
+			err = fmt.Errorf("could not read response from %s: %v\n", url, er)
+		} else {
+			o = string(b)
+		}
+	}
+
+	return o, err
 }
 
 func sortData(v []record) {
