@@ -38,6 +38,7 @@ var p = &schema.Provider{
 		"neon_role":               resourceRole(),
 		"neon_database":           resourceDatabase(),
 		"neon_project_permission": resourceProjectPermission(),
+		"neon_jwks_url":           resourceJwksUrl(),
 	},
 	DataSourcesMap: map[string]*schema.Resource{
 		"neon_project":              dataSourceProject(),
