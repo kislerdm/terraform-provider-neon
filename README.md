@@ -47,7 +47,7 @@ provider "neon" {
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 0.13.x
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.14.x
 
 ## Building The Provider
 
@@ -89,7 +89,13 @@ make build
 
 It will yield the binary `terraform-provider-neon_vdev`.
 
-Run to install a :
+Run to install the provider locally:
+
+```commandline
+make install
+```
+
+It will yield the path to the built binary.
 
 To generate or update documentation, run `go docu`.
 
@@ -98,4 +104,3 @@ In order to run the full suite of Unit tests, run `make test`.
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
 *Note:* Acceptance tests create real resources, and often cost money to run.
-
