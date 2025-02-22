@@ -1,9 +1,45 @@
 <html lang="en">
 <head>
-    <script src='https://cdn.plot.ly/plotly-3.0.0.min.js'></script>
+    <title>kislerdm/neon download stats</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Download stats for kislerdm/neon">
+    <script src="https://cdn.plot.ly/plotly-3.0.0.min.js"></script>
+    <style>
+        html, body {
+            font-family: Verdana, sans-serif;
+            margin: 0
+        }
+        html {
+            overflow-x: hidden
+        }
+        h1 {
+            font-size: 30px;
+            padding-top: 10px;
+            text-align: center
+        }
+        a {
+            text-decoration: none;
+            color: inherit
+        }
+        #input {margin-left:50px}
+        select#versions {width:50px}
+        #filters {font-size:20px;font-style:italic;padding-right:10px}
+    </style>
 </head>
 <body>
-<div id='plot' style="width:100%;height:100%"></div>
+<h1>Terraform registry download statistics for <a href="https://registry.terraform.io/providers/kislerdm/neon" target="_blank">kislerdm/neon</a></h1>
+<div id="input">
+    <label id="filters"><b>Filters</b></label>
+    <label for="start">Start month:</label>
+    <input type="month" id="start" name="start" min="2023-01" max="2025-02" value="2023-01" required/>
+    <label for="end">End month:</label>
+    <input type="month" id="end" name="start" min="2025-02" max="2025-02" value="2025-02" required/>
+    <label for="versions">Versions:</label>
+    <select name="versions" id="versions" size="2" multiple required></select>
+    <button id="apply">Apply</button>
+</div>
+<div id="plot" style="width:100%;height:100%"></div>
 <script type="module">
     async function readData() {
         const resp = await fetch("https://raw.githubusercontent.com/kislerdm/terraform-provider-neon/refs/heads/master/download-stats/data.json");
@@ -17,23 +53,74 @@
     const full = await readData();
     let state = full;
 
+    function datesRef() {
+        return full.dates;
+    }
+
     function dates() {
         return state.dates;
+    }
+
+    function versionsRef() {
+        return full.versions;
     }
 
     function versions() {
         return state.versions;
     }
 
+    function downloadsRef() {
+        return full.downloads;
+    }
+
     function downloads() {
         return state.downloads;
     }
 
+    function defineDatesSelectors() {
+        const monthStart = document.getElementById("start");
+        monthStart.setAttribute("min", dates()[0]);
+        monthStart.setAttribute("max", dates()[dates().length - 1]);
+        monthStart.setAttribute("value", dates()[0]);
+
+        const monthEnd = document.getElementById("end");
+        monthEnd.setAttribute("min", dates()[0]);
+        monthStart.setAttribute("max", dates()[dates().length - 1]);
+        monthEnd.setAttribute("value", dates()[dates().length - 1]);
+    }
+
+    function defineVersionsSelector() {
+        const v = document.getElementById("versions");
+        v.innerHTML = null;
+        versions().forEach((version) => {
+            const opt = document.createElement("option");
+            opt.setAttribute("class", "version-option");
+            opt.setAttribute("value", version);
+            opt.setAttribute("selected", "true");
+            opt.text = version;
+            v.appendChild(opt);
+        })
+    }
+
+    let defineSelectors = (function() {
+        let executed = false;
+        return function() {
+            if (!executed) {
+                executed = true;
+                defineDatesSelectors();
+                defineVersionsSelector();
+            }
+        };
+    })();
+
+    defineSelectors();
+
     function filter(versions, dates) {
-        state = full;
-        state.versions = versions;
-        state.dates = dates;
-        state.downloads = {};
+        state = {
+            versions: versions,
+            dates: dates,
+            downloads: {},
+        };
         for (let j = 0; j < dates.length; j++) {
             const dateInd = dates[j];
             const tmp = full.downloads[dateInd];
@@ -80,22 +167,22 @@
                 countsRelative.push(Math.round(countRelative * 10000) / 100);
             })
             o.push({
-                type: 'bar',
+                type: "bar",
                 x: dates(),
                 y: countsRelative,
                 name: version,
                 text: countsRelative,
-                hovertemplate: '%{x}: %{y}\%',
+                hovertemplate: "%{x}: %{y}\%",
                 yaxis: "y",
             })
         })
         o.push({
-            type: 'bar',
+            type: "bar",
             x: dates(),
             y: countsTotal,
             text: countsTotal,
             name: "Total",
-            hovertemplate: '%{x}: %{y}',
+            hovertemplate: "%{x}: %{y}",
             yaxis: "y2",
             showlegend: false,
         })
@@ -103,20 +190,16 @@
     }
 
     const layout = {
-        title: {
-            text: 'Downloads of kislerdm/neon from the terraform registry.',
-            font: {size: 24},
-        },
         xaxis: {
             title: {
-                text: 'Month',
+                text: "Month",
                 font: {size: 20},
             },
             tickfont: {size: 16}
         },
         yaxis: {
             title: {
-                text: 'Relative Distribution [%]',
+                text: "Relative Distribution [%]",
                 font: {size: 20},
             },
             tickfont: {size: 16},
@@ -126,35 +209,80 @@
             minor: {
                 gridwidth: 1
             },
-            scaleanchor: "x",
             domain: [0, 0.45],
         },
         yaxis2: {
             title: {
-                text: 'Count',
+                text: "Count",
                 font: {size: 20},
             },
             tickfont: {size: 16},
-            autorange: 'max',
+            autorange: "max",
             linewidth: 1,
             gridwidth: 2,
             minor: {
                 gridwidth: 1
             },
-            scaleanchor: "x",
             domain: [0.55, 1],
         },
         legend: {
             y: 0,
-            title: {text: 'Legend'},
+            title: {text: "Legend"},
             font: {
                 size: 16
             }
         },
-        barmode: 'stack',
+        barmode: "stack",
     };
     const config = {responsive: true};
 
-    Plotly.newPlot('plot', graphData(), layout, config);</script>
+    function selectedVersions() {
+        const versionOps = document.getElementsByClassName("version-option");
+        let o = [];
+        for (let i = 0; i < versionOps.length; i++) {
+            const e = versionOps.item(i);
+            if (e.selected) {
+                o.push(e.getAttribute("value"));
+            }
+        }
+        return o;
+    }
+
+    function selectedDates() {
+        const startDate = document.getElementById("start").value;
+        const endDate = document.getElementById("end").value;
+        let l = 0, r = 0;
+        let lFound = false, rFound = false;
+        for (let i = 0; i < datesRef().length; i++) {
+            const j = datesRef().length - i
+            if (datesRef()[i] === startDate) {
+                l = i;
+                lFound = true;
+            }
+            if (datesRef()[j] === endDate) {
+                r = j;
+                rFound = true;
+            }
+            if (lFound && rFound) {
+                break
+            }
+        }
+        if (l > r) {
+            const tmp = r;
+            l = r;
+            r = tmp;
+        }
+        return datesRef().slice(l, r+1);
+    }
+
+    function redraw() {
+        filter(selectedVersions(), selectedDates());
+        Plotly.newPlot("plot", graphData(), layout, config);
+    }
+
+    redraw();
+
+    document.getElementById("apply").addEventListener("click", redraw);
+</script>
 </body>
 </html>
