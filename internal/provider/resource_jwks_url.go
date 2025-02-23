@@ -155,10 +155,8 @@ func resourceJwksUrlDelete(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	}
-	// todo - the response object doesn't have an OperationsResponse attribute
-	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
-	d.SetId("")
-	return updateStateJwksUrl(d, neon.JWKS{}, []string{})
+	d.SetId(resp.ID)
+	return updateStateJwksUrl(d, resp, []string{})
 }
 
 func resourceJwksUrlImport(_ context.Context, _ *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
