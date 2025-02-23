@@ -155,19 +155,12 @@ func resourceJwksUrlDelete(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	}
-	//todo - the response object doesn't have an OperationsResponse attribute
+	// todo - the response object doesn't have an OperationsResponse attribute
 	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	d.SetId("")
 	return updateStateJwksUrl(d, neon.JWKS{}, []string{})
 }
 
-func resourceJwksUrlImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
-	[]*schema.ResourceData, error,
-) {
-	tflog.Trace(ctx, "import JWKS URL")
-
-	if diags := resourceJwksUrlReadRetry(ctx, d, meta); diags.HasError() {
-		return nil, errors.New(diags[0].Summary)
-	}
-	return []*schema.ResourceData{d}, nil
+func resourceJwksUrlImport(_ context.Context, _ *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
+	return nil, errors.New("the resource does not support import, please recreate it instead")
 }
