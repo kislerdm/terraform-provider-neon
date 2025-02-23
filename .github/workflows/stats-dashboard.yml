@@ -6,6 +6,7 @@ on:
 permissions:
   pages: write
   id-token: write
+  contents: read
 
 concurrency:
   group: "pages"
@@ -18,8 +19,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        name: Check out repo
+      - name: Check out repo
+      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: download-stats/public
