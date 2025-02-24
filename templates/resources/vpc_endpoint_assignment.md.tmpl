@@ -1,0 +1,36 @@
+---
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/vpc_endpoint_assignment.md/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The VPC endpoint assignment to organization can be imported to the terraform state by its identifier.
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+For example:
+
+```hcl
+import {
+  to = {{.Name}}.example
+  id = "vpce-1234567890abcdef0"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import {{.Name}}.example vpce-1234567890abcdef0
+```
