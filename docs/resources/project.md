@@ -199,7 +199,7 @@ For example:
 
 ```hcl
 import {
-  to = neon_project.this
+  to = neon_project.example
   id = "shiny-cell-31746257"
 }
 ```
@@ -207,5 +207,5 @@ import {
 Import using the command `terraform import`:
 
 ```commandline
-terraform import neon_project.this shiny-cell-31746257
+terraform import neon_project.example shiny-cell-31746257
 ```

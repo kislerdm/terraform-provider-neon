@@ -75,7 +75,7 @@ For example:
 
 ```hcl
 import {
-  to = neon_branch.this
+  to = neon_branch.example
   id = "br-snowy-mountain-a5jkb18i"
 }
 ```
@@ -83,5 +83,5 @@ import {
 Import using the command `terraform import`:
 
 ```commandline
-terraform import neon_branch.this br-snowy-mountain-a5jkb18i
+terraform import neon_branch.example br-snowy-mountain-a5jkb18i
 ```

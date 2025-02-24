@@ -72,7 +72,7 @@ For example:
 
 ```hcl
 import {
-  to = neon_endpoint.this
+  to = neon_endpoint.example
   id = "ep-black-mouse-a64dr7wp"
 }
 ```
@@ -80,5 +80,5 @@ import {
 Import using the command `terraform import`:
 
 ```commandline
-terraform import neon_endpoint.this ep-black-mouse-a64dr7wp
+terraform import neon_endpoint.example ep-black-mouse-a64dr7wp
 ```

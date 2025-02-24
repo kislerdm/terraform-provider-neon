@@ -60,7 +60,7 @@ For example:
 
 ```hcl
 import {
-  to = neon_role.this
+  to = neon_role.example
   id = "shiny-cell-31746257/br-snowy-mountain-a5jkb18i/myRole"
 }
 ```
@@ -68,5 +68,5 @@ import {
 Import using the command `terraform import`:
 
 ```commandline
-terraform import neon_role.this "shiny-cell-31746257/br-snowy-mountain-a5jkb18i/myRole"
+terraform import neon_role.example "shiny-cell-31746257/br-snowy-mountain-a5jkb18i/myRole"
 ```
