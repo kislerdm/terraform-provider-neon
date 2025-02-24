@@ -1,0 +1,38 @@
+---
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/vpc_endpoint_restriction/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The VPC endpoint restriction can be imported to the terraform state by its identifier.
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+For example:
+
+```hcl
+import {
+  to = {{.Name}}.example
+  id = "vpce-1234567890abcdef0/cold-bread-99644485"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import {{.Name}}.example "vpce-1234567890abcdef0/cold-bread-99644485"
+```
+
+**Note** that the resource ID is the concatenation of the VPC ID and the project ID separated by the slash sign.
