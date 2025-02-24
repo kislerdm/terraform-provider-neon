@@ -70,3 +70,43 @@ func TestAccOrg(t *testing.T) {
 		},
 	)
 }
+
+func TestAccVPCEndpoint(t *testing.T) {
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("TF_ACC must be set to 1")
+	}
+
+	orgID := os.Getenv("ORG_ID")
+	if orgID == "" {
+		t.Skip("ORG_ID must be set")
+	}
+
+	t.Skip("the API is in preview, access pending approval")
+
+	vpcEndpointID := "vpce-0f8525ca307fa409f"
+	resourceDefinition := fmt.Sprintf(`resource "neon_vpc_endpoint_assignment" "_" {
+    org_id          = "%s"
+	region_id       = "eu-central-1"
+	vpc_endpoint_id = "%s"
+	label           = "foo"
+}`, orgID, vpcEndpointID)
+
+	resource.UnitTest(
+		t, resource.TestCase{
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"neon": func() (*schema.Provider, error) {
+					return newAccTest(), nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: resourceDefinition,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("neon_vpc_endpoint_assignment._", "vpc_endpoint_id", vpcEndpointID),
+						resource.TestCheckResourceAttr("neon_vpc_endpoint_assignment._", "id", vpcEndpointID),
+					),
+				},
+			},
+		},
+	)
+}
