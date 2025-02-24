@@ -15,7 +15,7 @@ func resourceAPIKey() *schema.Resource {
 	return &schema.Resource{
 		Description: `A key to access the Neon API.
 
-!> Note that the resource does not support import.
+~>**WARNING** The resource does not support import.
 `,
 		SchemaVersion: 1,
 		CreateContext: resourceAPIKeyCreateRetry,
