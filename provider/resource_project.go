@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
-	"github.com/kislerdm/terraform-provider-neon/internal/types"
+	"github.com/kislerdm/terraform-provider-neon/provider/types"
 )
 
 const providerDefaultHistoryRetentionSeconds = int(time.Hour/time.Second) * 24

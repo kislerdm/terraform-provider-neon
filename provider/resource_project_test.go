@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
-	"github.com/kislerdm/terraform-provider-neon/internal/types"
+	"github.com/kislerdm/terraform-provider-neon/provider/types"
 	"github.com/stretchr/testify/assert"
 )
 

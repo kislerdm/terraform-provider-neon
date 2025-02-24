@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
-	"github.com/kislerdm/terraform-provider-neon/internal/telemetry"
+	"github.com/kislerdm/terraform-provider-neon/provider/telemetry"
 )
 
 const Name = "kislerdm/neon"
