@@ -111,7 +111,6 @@ resource "neon_jwks_url" "_" {
 	jwks_url      = "https://bar.com"
 	depends_on    = [neon_project._]
 }`, projectName)
-		const resourceName = "neon_jwks_url._"
 
 		resource.Test(
 			t, resource.TestCase{

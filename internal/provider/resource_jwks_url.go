@@ -154,7 +154,7 @@ func resourceJwksUrlRead(ctx context.Context, d *schema.ResourceData, meta inter
 			}
 		}
 		if jwks.ID == "" {
-			err = errors.New(fmt.Sprintf("could not find JWKS %s for project %s", d.Id(), projectID))
+			err = fmt.Errorf("could not find JWKS %s for project %s", d.Id(), projectID)
 		} else {
 			err = updateStateJwksUrl(d, jwks, nil)
 		}
