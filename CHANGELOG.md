@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.8.0] - 2025-02-24
+
+### Added
+
+- Added the resource `neon_jwks_url` to manage the JWKs URL provided by the 3rd-party IdP required to establish [Neon RLS authorization](https://neon.tech/docs/guides/neon-rls-authorize).
+
+### Changed
+
+- Updated the Go version: 1.23.6 from 1.22.7.
+
 ## [v0.7.1] - 2025-02-19
 
 ### Fixed
