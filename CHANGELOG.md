@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added the resources `neon_vpc_endpoint_assignment` and `neon_vpc_endpoint_restriction` to manage the databases network traffic using AWS VPC.
+- Added the resources `neon_vpc_endpoint_assignment` and `neon_vpc_endpoint_restriction` to manage Neon Private Networking.
 
 ## [v0.8.0] - 2025-02-24
 
