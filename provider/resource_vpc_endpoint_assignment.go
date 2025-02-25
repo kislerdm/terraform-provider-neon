@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -25,29 +24,19 @@ See details: https://neon.tech/docs/guides/neon-private-networking#enable-privat
 			"org_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The Neon organization ID.",
 			},
 			"region_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The Neon region ID.",
-				ValidateFunc: func(v interface{}, s string) (warn []string, errs []error) {
-					switch vv := v.(string); vv {
-					case "us-east-1",
-						"us-east-2",
-						"eu-central-1",
-						"us-west-2",
-						"ap-southeast-1",
-						"ap-southeast-2":
-					default:
-						errs = append(errs, fmt.Errorf("%v is not supported value for %s", v, s))
-					}
-					return warn, errs
-				},
 			},
 			"vpc_endpoint_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The VPC endpoint ID.",
 			},
 			"label": {

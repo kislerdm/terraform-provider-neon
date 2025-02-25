@@ -28,11 +28,13 @@ parent organization of the Neon project.`,
 			"project_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The Neon project ID.",
 			},
 			"vpc_endpoint_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The VPC endpoint ID.",
 			},
 			"label": {
