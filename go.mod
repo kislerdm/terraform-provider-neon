@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.21.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.3
 	github.com/kislerdm/neon-sdk-go v0.13.0
 	github.com/stretchr/testify v1.10.0
 )
