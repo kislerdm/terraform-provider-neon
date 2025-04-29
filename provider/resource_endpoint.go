@@ -288,12 +288,21 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 ) {
 	tflog.Trace(ctx, "import Endpoint")
 
-	resp, err := meta.(*neon.Client).ListProjects(nil, nil, nil, nil, nil)
-	if err != nil {
-		return nil, err
+	var projects []neon.ProjectListItem
+	var cursor *string
+	for {
+		resp, err := meta.(*neon.Client).ListProjects(cursor, nil, nil, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		projects = append(projects, resp.Projects...)
+		if resp.PaginationResponse.Pagination == nil {
+			break
+		}
+		cursor = &resp.Pagination.Cursor
 	}
 
-	for _, project := range resp.Projects {
+	for _, project := range projects {
 		r, err := meta.(*neon.Client).ListProjectEndpoints(project.ID)
 		if err != nil {
 			return nil, err
