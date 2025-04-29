@@ -250,11 +250,11 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		if err != nil {
 			return nil, err
 		}
-		projects = append(projects, resp.Projects...)
-		if resp.PaginationResponse.Pagination == nil || (cursor != nil && *cursor == resp.PaginationResponse.Pagination.Cursor) {
+		if len(resp.Projects) == 0 || resp.PaginationResponse.Pagination == nil || (cursor != nil && *cursor == resp.PaginationResponse.Pagination.Cursor) {
 			tflog.Trace(ctx, "listing projects finished")
 			break
 		}
+		projects = append(projects, resp.Projects...)
 		cursor = &resp.Pagination.Cursor
 	}
 
