@@ -243,8 +243,6 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
 	var projects []neon.ProjectListItem
 	var cursor *string
 	for {
