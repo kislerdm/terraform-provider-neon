@@ -297,9 +297,6 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 			return nil, err
 		}
 		projects = append(projects, resp.Projects...)
-		if len(projects) == 0 {
-			tflog.Trace(ctx, "listing projects finished")
-		}
 		if resp.PaginationResponse.Pagination == nil || (cursor != nil && *cursor == resp.PaginationResponse.Pagination.Cursor) {
 			tflog.Trace(ctx, "listing projects finished")
 			break
