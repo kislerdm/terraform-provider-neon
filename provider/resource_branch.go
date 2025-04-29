@@ -243,6 +243,8 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
 	var projects []neon.ProjectListItem
 	var cursor *string
 	for {
@@ -251,7 +253,8 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 			return nil, err
 		}
 		projects = append(projects, resp.Projects...)
-		if resp.PaginationResponse.Pagination == nil {
+		if resp.PaginationResponse.Pagination == nil || (cursor != nil && *cursor == resp.PaginationResponse.Pagination.Cursor) {
+			tflog.Trace(ctx, "listing projects finished")
 			break
 		}
 		cursor = &resp.Pagination.Cursor
@@ -260,6 +263,7 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 	cursor = nil
 	for _, project := range projects {
 		for {
+			tflog.Trace(ctx, "listing batch of branches")
 			r, err := meta.(*neon.Client).ListProjectBranches(project.ID, nil, nil, cursor, nil, nil)
 			if err != nil {
 				return nil, err
@@ -275,7 +279,8 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 					return []*schema.ResourceData{d}, nil
 				}
 			}
-			if r.Pagination == nil || r.Pagination.Next == nil {
+			if r.Pagination == nil || r.Pagination.Next == nil || (cursor != nil && *cursor == *r.Pagination.Next) {
+				tflog.Trace(ctx, "listing branches finished")
 				break
 			}
 			cursor = r.Pagination.Next

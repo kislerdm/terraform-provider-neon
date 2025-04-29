@@ -291,12 +291,17 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 	var projects []neon.ProjectListItem
 	var cursor *string
 	for {
+		tflog.Trace(ctx, "listing batch of projects")
 		resp, err := meta.(*neon.Client).ListProjects(cursor, nil, nil, nil, nil)
 		if err != nil {
 			return nil, err
 		}
 		projects = append(projects, resp.Projects...)
-		if resp.PaginationResponse.Pagination == nil {
+		if len(projects) == 0 {
+			tflog.Trace(ctx, "listing projects finished")
+		}
+		if resp.PaginationResponse.Pagination == nil || (cursor != nil && *cursor == resp.PaginationResponse.Pagination.Cursor) {
+			tflog.Trace(ctx, "listing projects finished")
 			break
 		}
 		cursor = &resp.Pagination.Cursor
