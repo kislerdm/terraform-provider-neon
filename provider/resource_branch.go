@@ -243,26 +243,42 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
-	resp, err := meta.(*neon.Client).ListProjects(nil, nil, nil, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, project := range resp.Projects {
-		r, err := meta.(*neon.Client).ListProjectBranches(project.ID, nil, nil, nil, nil, nil)
+	var projects []neon.ProjectListItem
+	var cursor *string
+	for {
+		resp, err := meta.(*neon.Client).ListProjects(cursor, nil, nil, nil, nil)
 		if err != nil {
 			return nil, err
 		}
-		for _, br := range r.Branches {
-			if br.ID == d.Id() {
-				if err := d.Set("project_id", project.ID); err != nil {
-					return nil, err
-				}
-				if err := resourceBranchRead(ctx, d, meta); err != nil {
-					return nil, err
-				}
-				return []*schema.ResourceData{d}, nil
+		projects = append(projects, resp.Projects...)
+		if resp.PaginationResponse.Pagination == nil {
+			break
+		}
+		cursor = &resp.Pagination.Cursor
+	}
+
+	cursor = nil
+	for _, project := range projects {
+		for {
+			r, err := meta.(*neon.Client).ListProjectBranches(project.ID, nil, nil, cursor, nil, nil)
+			if err != nil {
+				return nil, err
 			}
+			for _, br := range r.Branches {
+				if br.ID == d.Id() {
+					if err := d.Set("project_id", project.ID); err != nil {
+						return nil, err
+					}
+					if err := resourceBranchRead(ctx, d, meta); err != nil {
+						return nil, err
+					}
+					return []*schema.ResourceData{d}, nil
+				}
+			}
+			if r.Pagination == nil || r.Pagination.Next == nil {
+				break
+			}
+			cursor = r.Pagination.Next
 		}
 	}
 
