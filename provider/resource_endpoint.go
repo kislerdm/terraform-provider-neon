@@ -60,14 +60,14 @@ func resourceEndpoint() *schema.Resource {
 			},
 			"region_id": schemaRegionID,
 			"autoscaling_limit_min_cu": {
-				Type:         schema.TypeFloat,
-				Optional:     true,
-				Computed:     true,
+				Type:     schema.TypeFloat,
+				Optional: true,
+				Computed: true,
 			},
 			"autoscaling_limit_max_cu": {
-				Type:         schema.TypeFloat,
-				Optional:     true,
-				Computed:     true,
+				Type:     schema.TypeFloat,
+				Optional: true,
+				Computed: true,
 			},
 			"pg_settings": {
 				Type:     schema.TypeMap,
