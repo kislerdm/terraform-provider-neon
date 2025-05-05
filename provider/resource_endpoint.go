@@ -61,13 +61,11 @@ func resourceEndpoint() *schema.Resource {
 			"region_id": schemaRegionID,
 			"autoscaling_limit_min_cu": {
 				Type:         schema.TypeFloat,
-				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
 				Computed:     true,
 			},
 			"autoscaling_limit_max_cu": {
 				Type:         schema.TypeFloat,
-				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
 				Computed:     true,
 			},

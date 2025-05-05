@@ -54,28 +54,6 @@ func pointer[V t](v V) *V {
 	return &v
 }
 
-func validateAutoscallingLimit(val interface{}, name string) (warns []string, errs []error) {
-	switch v := val.(type) {
-	case float64:
-		switch v {
-		case 0.25, 0.5, 1., 2., 3., 4., 5., 6., 7., 8., 9., 10.:
-			return
-		}
-	case int:
-		switch v {
-		case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10:
-			return
-		}
-	}
-	errs = append(
-		errs, fmt.Errorf(
-			`%v is unsopported value for %s,
-details: https://neon.tech/docs/manage/endpoints#compute-size-and-autoscaling-configuration`, val, name,
-		),
-	)
-	return
-}
-
 type complexID struct {
 	ProjectID, BranchID, Name string
 }

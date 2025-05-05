@@ -274,13 +274,11 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 			},
 			"autoscaling_limit_min_cu": {
 				Type:         schema.TypeFloat,
-				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
 				Computed:     true,
 			},
 			"autoscaling_limit_max_cu": {
 				Type:         schema.TypeFloat,
-				ValidateFunc: validateAutoscallingLimit,
 				Optional:     true,
 				Computed:     true,
 			},
@@ -332,7 +330,7 @@ var schemaDefaultBranch = &schema.Schema{
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
-				Description: `The name of the default branch provisioned upon creation of new project. 
+				Description: `The name of the default branch provisioned upon creation of new project.
 If not specified, the default branch name will be used.`,
 			},
 			"role_name": {
