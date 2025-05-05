@@ -273,14 +273,14 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 				Description: "Endpoint ID.",
 			},
 			"autoscaling_limit_min_cu": {
-				Type:         schema.TypeFloat,
-				Optional:     true,
-				Computed:     true,
+				Type:     schema.TypeFloat,
+				Optional: true,
+				Computed: true,
 			},
 			"autoscaling_limit_max_cu": {
-				Type:         schema.TypeFloat,
-				Optional:     true,
-				Computed:     true,
+				Type:     schema.TypeFloat,
+				Optional: true,
+				Computed: true,
 			},
 			"suspend_timeout_seconds": {
 				Type:         schema.TypeInt,
