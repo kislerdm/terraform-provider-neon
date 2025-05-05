@@ -148,7 +148,7 @@ Optional:
 
 - `database_name` (String) The name of the default database provisioned upon creation of new project. It's owned by the default role (`role_name`).
 If not specified, the default database name will be used.
-- `name` (String) The name of the default branch provisioned upon creation of new project. 
+- `name` (String) The name of the default branch provisioned upon creation of new project.
 If not specified, the default branch name will be used.
 - `role_name` (String) The name of the default role provisioned upon creation of new project.
 If not specified, the default role name will be used.
