@@ -556,3 +556,30 @@ func Test_newPooledHost(t *testing.T) {
 		})
 	}
 }
+
+func Test_resourceProjectDefaultEndpointSettingsShallAllowToSetSuspensionTimeout(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+	tests := map[string]struct {
+		in      int
+		isError bool
+	}{
+		"no suspension": {-1, false},
+		"invalid":       {-2, true},
+		"valid":         {300, false},
+	}
+	t.Parallel()
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			sh := schemaDefaultEndpointSettings.Elem.(*schema.Resource).Schema["suspend_timeout_seconds"]
+			_, errs := sh.ValidateFunc(test.in, "")
+			switch test.isError {
+			case true:
+				assert.Len(t, errs, 1)
+			case false:
+				assert.Nil(t, errs)
+			}
+		})
+	}
+}

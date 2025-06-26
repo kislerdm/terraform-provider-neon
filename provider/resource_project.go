@@ -283,10 +283,17 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 				Computed: true,
 			},
 			"suspend_timeout_seconds": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: intValidationNotNegative,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: func(v interface{}, s string) (warn []string, errs []error) {
+					switch vv, ok := v.(int); ok {
+					case vv == -1:
+					default:
+						warn, errs = intValidationNotNegative(v, s)
+					}
+					return warn, errs
+				},
 				Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
