@@ -64,7 +64,7 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				ForceNew:    true,
 				Description: "Postgres version",
 				ValidateFunc: func(i interface{}, _ string) (warns []string, errs []error) {
-					supportedVersion := func(v int) bool { return v > 13 && v < 18 }
+					supportedVersion := func(v int) bool { return v > 13 && v < 19 }
 
 					if v, ok := i.(int); !ok || !supportedVersion(v) {
 						errs = append(
