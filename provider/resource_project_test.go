@@ -502,7 +502,8 @@ func TestValidatePgVersion(t *testing.T) {
 		"15": false,
 		"16": false,
 		"17": false,
-		"18": true,
+		"18": false,
+		"19": true,
 	}
 
 	factories := map[string]func() (*schema.Provider, error){
