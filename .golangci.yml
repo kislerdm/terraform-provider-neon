@@ -1,31 +1,57 @@
-# Visit https://golangci-lint.run/ for usage documentation
-# and information on other useful linters
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - unparam
-  exclude-dirs:
-    - cmd
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - durationcheck
     - errcheck
     - godot
-    - gofmt
-    - gosimple
+    - govet
     - ineffassign
     - makezero
     - misspell
     - nilerr
     - predeclared
     - staticcheck
-    - tenv
     - unconvert
     - unparam
     - unused
-    - govet
+
+  settings:
+    staticcheck:
+      checks:
+      - "all"
+      - "-QF1008"
+      - "-ST1003"
+    predeclared:
+      ignore:
+        - new
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - unparam
+        path: _test\.go
+    paths:
+      - cmd
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - cmd
+      - third_party$
+      - builtin$
+      - examples$
