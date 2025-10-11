@@ -5,14 +5,11 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"reflect"
-	"regexp"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
 	"github.com/kislerdm/terraform-provider-neon/provider/types"
@@ -488,55 +485,6 @@ func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(
 		reqUpdateIps := reqUpdate.Project.Settings.AllowedIps
 		assert.False(t, *reqUpdateIps.ProtectedBranchesOnly)
 	})
-}
-
-func TestValidatePgVersion(t *testing.T) {
-	tests := map[string]bool{
-		"8":  true,
-		"9":  true,
-		"10": true,
-		"11": true,
-		"12": true,
-		"13": true,
-		"14": false,
-		"15": false,
-		"16": false,
-		"17": false,
-		"18": false,
-		"19": true,
-	}
-
-	factories := map[string]func() (*schema.Provider, error){
-		"neon": func() (*schema.Provider, error) {
-			return NewUnitTest(), nil
-		},
-	}
-
-	t.Parallel()
-	for inputVersion, wantErr := range tests {
-		t.Run(inputVersion, func(t *testing.T) {
-			def := fmt.Sprintf(`resource "neon_project" "this" {pg_version = %s}`, inputVersion)
-			var wantErrRegEx *regexp.Regexp
-			if wantErr {
-				wantErrRegEx = regexp.MustCompile(fmt.Sprintf("postgres version %s is not supported",
-					inputVersion))
-			}
-
-			testCase := resource.TestCase{
-				ProviderFactories: factories,
-				Steps: []resource.TestStep{
-					{
-						Config:             def,
-						PlanOnly:           true,
-						ExpectNonEmptyPlan: !wantErr,
-						ExpectError:        wantErrRegEx,
-					},
-				},
-			}
-
-			resource.UnitTest(t, testCase)
-		})
-	}
 }
 
 func Test_newPooledHost(t *testing.T) {

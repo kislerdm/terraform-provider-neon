@@ -73,17 +73,6 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Computed:    true,
 				ForceNew:    true,
 				Description: "Postgres version",
-				ValidateFunc: func(i interface{}, _ string) (warns []string, errs []error) {
-					supportedVersion := func(v int) bool { return v > 13 && v < 19 }
-
-					if v, ok := i.(int); !ok || !supportedVersion(v) {
-						errs = append(
-							errs, fmt.Errorf("postgres version %v is not supported", i),
-						)
-					}
-
-					return
-				},
 			},
 			"store_password": newStoreProjectPasswordDefault(),
 			"history_retention_seconds": {
