@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.10.0] - Unreleased
 
+### Removed
+
+- [[#157](https://github.com/kislerdm/terraform-provider-neon/issues/157)] Removed the client-side validation of the autoscaling limit input.
+- Removed client-side validation of the Postgres version input.
+
 ### Fixed
 
+- [[#154](https://github.com/kislerdm/terraform-provider-neon/issues/154)], [[#156](https://github.com/kislerdm/terraform-provider-neon/issues/156)] Fixed projects listing when importing resources.   
 - [[#166](https://github.com/kislerdm/terraform-provider-neon/issues/166)] Fixed the `neon_project` resource validation to configure the default endpoint to never suspend.
 - [[#179](https://github.com/kislerdm/terraform-provider-neon/issues/179)] Fixed the `neon_project` resource diff management when the `org_id` is attribute is not set in the terraform module.
 
