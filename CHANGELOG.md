@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- [[#166](https://github.com/kislerdm/terraform-provider-neon/issues/166)] Fixed the `neon_project` resource validation to configure the default endpoint to never suspend.      
+- [[#166](https://github.com/kislerdm/terraform-provider-neon/issues/166)] Fixed the `neon_project` resource validation to configure the default endpoint to never suspend.
+- [[#179](https://github.com/kislerdm/terraform-provider-neon/issues/179)] Fixed the `neon_project` resource diff management when the `org_id` is attribute is not set in the terraform module.
 
 ## [v0.9.0] - 2025-02-25
 
