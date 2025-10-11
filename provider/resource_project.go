@@ -45,9 +45,19 @@ API: https://api-docs.neon.tech/reference/createproject`,
 				Description: "Project ID.",
 			},
 			"org_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					var f = true
+					switch {
+					case new == old:
+					case new == "" && old == d.Get(k).(string):
+					default:
+						f = false
+					}
+					return f
+				},
 				Description: "Identifier of the organisation to which this project belongs.",
 			},
 			"name": {
