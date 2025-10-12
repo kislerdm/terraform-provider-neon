@@ -21,7 +21,6 @@ import (
 )
 
 func main() {
-	var outPath string
 	var outPathRaw string
 	flag.StringVar(&outPathRaw, "o", "/tmp", "dir to store the data.")
 	flag.Parse()
@@ -30,12 +29,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not init cookies:%v\n", err)
 	}
-
-	fHTML, err := os.OpenFile(outPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatalf("could not open file for saving HTML page %s: %v\n", outPath, err)
-	}
-	defer func() { _ = fHTML.Close() }()
 
 	stats, err := fetchStatsWeb(c)
 	if err != nil {
@@ -73,7 +66,7 @@ func newCookies() (*cookies, error) {
 	}
 	var err error
 	if o.Key == "" {
-		err = errors.Join(err, fmt.Errorf("env variable COOKIE_KEY must be set"))
+		err = errors.Join(err, fmt.Errorf("env variable TF_COOKIE_KEY must be set"))
 	}
 	if err != nil {
 		o = nil
