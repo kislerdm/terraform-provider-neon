@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added the resource `neon_org_api_key` to manage API keys on per org. level.
+- [[#148](https://github.com/kislerdm/terraform-provider-neon/issues/148)] Added the resource `neon_org_api_key` to manage API keys on per org. level.
 
 ### Changed
 
