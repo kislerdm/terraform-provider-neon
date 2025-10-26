@@ -153,7 +153,7 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 		return err
 	}
 	if v.Settings.PgSettings != nil {
-		if err := d.Set("pg_settings", pgSettingsToMap(*v.Settings.PgSettings)); err != nil {
+		if err := d.Set("pg_settings", v.Settings.PgSettings); err != nil {
 			return err
 		}
 	}
@@ -206,7 +206,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	if v, ok := d.GetOk("pg_settings"); ok {
 		cfg.Settings = &neon.EndpointSettingsData{
-			PgSettings: mapToPgSettings(v.(map[string]interface{})),
+			PgSettings: v.(map[string]interface{}),
 		}
 	}
 
@@ -264,7 +264,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 	if v, ok := d.GetOk("pg_settings"); ok {
 		cfg.Settings = &neon.EndpointSettingsData{
-			PgSettings: mapToPgSettings(v.(map[string]interface{})),
+			PgSettings: v.(map[string]interface{}),
 		}
 	}
 

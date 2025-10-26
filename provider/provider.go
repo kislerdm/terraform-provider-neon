@@ -41,6 +41,7 @@ var p = &schema.Provider{
 		"neon_jwks_url":                 resourceJwksUrl(),
 		"neon_vpc_endpoint_assignment":  resourceVPCEndpointAssignment(),
 		"neon_vpc_endpoint_restriction": resourceVPCEndpointRestriction(),
+		"neon_org_api_key":              resourceOrgAPIKey(),
 	},
 	DataSourcesMap: map[string]*schema.Resource{
 		"neon_project":              dataSourceProject(),
