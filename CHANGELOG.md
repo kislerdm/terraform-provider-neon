@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - [[#126](https://github.com/kislerdm/terraform-provider-neon/issues/126)] Added the block `maintenance_window` to the `neon_project` resource to configure the [Neon maintenance window](https://neon.com/docs/manage/updates#updates-on-paid-plans).
+- Added examples to the documentation of the resource `neon_org_api_key`.
 
 ## [v0.11.0] - 2025-10-26
 
