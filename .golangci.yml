@@ -26,9 +26,8 @@ linters:
       ignore:
         - new
     govet:
-      checks:
-        - "all"
-        - "-buildtag"
+      disable:
+        - "buildtag"
 
   exclusions:
     generated: lax
