@@ -25,6 +25,10 @@ linters:
     predeclared:
       ignore:
         - new
+    govet:
+      checks:
+        - "all"
+        - "-buildtag"
 
   exclusions:
     generated: lax
