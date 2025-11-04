@@ -25,6 +25,40 @@ Storing passwords facilitates access to Neon features that require authorization
 }
 
 func resourceProject() *schema.Resource {
+	maintenanceWindowSettings := &schema.Schema{
+		Type:     schema.TypeList,
+		MaxItems: 1,
+		Computed: true,
+		Optional: true,
+		Description: "A time period during which Neon may perform maintenance on the project's infrastructure. " +
+			"During this time, the project's compute endpoints may be unavailable and existing " +
+			"connections can be interrupted.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"weekdays": {
+					Type:     schema.TypeList,
+					Required: true,
+					MinItems: 1,
+					MaxItems: 7,
+					Description: "A list of weekdays when the maintenance window is active. " +
+						"Encoded as ints, where 1 - Monday, and 7 - Sunday.",
+					Elem: &schema.Schema{
+						Type: schema.TypeInt,
+					},
+				},
+				"start_time": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "Start time of the maintenance window, in the format of \"HH:MM\". Uses UTC.",
+				},
+				"end_time": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "End time of the maintenance window, in the format of \"HH:MM\". Uses UTC.",
+				},
+			},
+		},
+	}
 	return &schema.Resource{
 		Description: `Neon Project.
 
@@ -173,6 +207,7 @@ See details: https://neon.tech/docs/introduction/logical-replication
 				Computed:    true,
 				Description: "Default endpoint ID.",
 			},
+			"maintenance_window": maintenanceWindowSettings,
 		},
 	}
 }
@@ -636,6 +671,19 @@ func updateStateProject(
 		return err
 	}
 
+	if r.Settings != nil && r.Settings.MaintenanceWindow != nil {
+		maintenanceWindow := r.Settings.MaintenanceWindow
+		if err := d.Set("maintenance_window", []map[string]interface{}{
+			{
+				"weekdays":   maintenanceWindow.Weekdays,
+				"start_time": maintenanceWindow.StartTime,
+				"end_time":   maintenanceWindow.EndTime,
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -722,6 +770,24 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
+	if v, ok := d.GetOk("maintenance_window"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+		if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+			if projectDef.Settings == nil {
+				projectDef.Settings = &neon.ProjectSettingsData{}
+			}
+			weekdaysRaw := v["weekdays"].([]interface{})
+			var weekdays = make([]int, len(weekdaysRaw))
+			for i, weekday := range weekdaysRaw {
+				weekdays[i] = weekday.(int)
+			}
+			projectDef.Settings.MaintenanceWindow = &neon.MaintenanceWindow{
+				EndTime:   v["end_time"].(string),
+				StartTime: v["start_time"].(string),
+				Weekdays:  weekdays,
+			}
+		}
+	}
+
 	client := meta.(sdkProject)
 
 	resp, err := client.CreateProject(
@@ -785,12 +851,31 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
+	var maintenanceWindow = new(neon.MaintenanceWindow)
+	if v, ok := d.GetOk("maintenance_window"); ok {
+		if len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
+			if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
+				weekdaysRaw := v["weekdays"].([]interface{})
+				var weekdays = make([]int, len(weekdaysRaw))
+				for i, weekday := range weekdaysRaw {
+					weekdays[i] = weekday.(int)
+				}
+				maintenanceWindow.Weekdays = weekdays
+				maintenanceWindow.StartTime = v["start_time"].(string)
+				maintenanceWindow.EndTime = v["end_time"].(string)
+			}
+		}
+	} else {
+		maintenanceWindow = nil
+	}
+
 	req.Project.Settings = &neon.ProjectSettingsData{
 		Quota: quota,
 		AllowedIps: &neon.AllowedIps{
 			ProtectedBranchesOnly: types.GetTristateBool(d, "allowed_ips_protected_branches_only"),
 		},
 		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
+		MaintenanceWindow:        maintenanceWindow,
 	}
 
 	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {

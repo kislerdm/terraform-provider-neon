@@ -67,3 +67,15 @@ resource "neon_project" "example_in_org" {
   name   = "myproject"
   org_id = "org-restless-silence-28866559"
 }
+
+### Set custom maintenance window
+# Note that the feature is only available to the users of non-Free plan
+# https://neon.com/docs/manage/updates
+resource "neon_project" "custom_maintenance_window" {
+  name = "myproject"
+  maintenance_window {
+    weekdays   = [6, 7]
+    start_time = "07:00"
+    end_time   = "08:00"
+  }
+}
