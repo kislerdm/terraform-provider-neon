@@ -1,0 +1,19 @@
+---
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/neon_org_api_key/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The resource does not support import.
