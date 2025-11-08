@@ -65,6 +65,18 @@ func resourceProject() *schema.Resource {
 See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
 API: https://api-docs.neon.tech/reference/createproject`,
 		SchemaVersion: 11,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Version: 9,
+				Type:    resourceProjectV9().CoreConfigSchema().ImpliedType(),
+				Upgrade: upgradeResourceProjectV9toV11,
+			},
+			{
+				Version: 10,
+				Type:    resourceProjectV10().CoreConfigSchema().ImpliedType(),
+				Upgrade: upgradeResourceProjectV9toV11,
+			},
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceProjectImport,
 		},
@@ -210,6 +222,43 @@ See details: https://neon.tech/docs/introduction/logical-replication
 			"maintenance_window": maintenanceWindowSettings,
 		},
 	}
+}
+
+func upgradeResourceProjectV9toV11(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{},
+	error) {
+	if rawState == nil {
+		return nil, fmt.Errorf("resource neon_project state upgrade failed, state is nil")
+	}
+	poolerHost := newPooledHost(rawState["database_host"].(string))
+	c := dbConnectionInfo{
+		userName:   rawState["user_name"].(string),
+		pass:       rawState["database_password"].(string),
+		dbName:     rawState["database_name"].(string),
+		host:       rawState["database_host"].(string),
+		poolerHost: poolerHost,
+	}
+	rawState["database_host_pooler"] = poolerHost
+	rawState["connection_uri_pooler"] = c.poolerConnectionURI()
+
+	client := meta.(sdkProject)
+	projectID := rawState["id"].(string)
+	resp, err := client.GetProject(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("error reading the project %s: %w", projectID, err)
+	}
+
+	if resp.Project.Settings != nil && resp.Project.Settings.MaintenanceWindow != nil {
+		maintenanceWindow := resp.Project.Settings.MaintenanceWindow
+		rawState["maintenance_window"] = []map[string]interface{}{
+			{
+				"weekdays":   maintenanceWindow.Weekdays,
+				"start_time": maintenanceWindow.StartTime,
+				"end_time":   maintenanceWindow.EndTime,
+			},
+		}
+	}
+
+	return rawState, nil
 }
 
 var schemaQuota = &schema.Schema{
@@ -980,4 +1029,311 @@ type sdkProject interface {
 	RevokePermissionFromProject(projectID string, permissionID string) (neon.ProjectPermission, error)
 	ListProjectPermissions(projectID string) (neon.ProjectPermissions, error)
 	opsReader
+}
+
+func resourceProjectV10() *schema.Resource {
+	return &schema.Resource{
+		SchemaVersion: 10,
+		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Project ID.",
+			},
+			"org_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Identifier of the organisation to which this project belongs.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Project name.",
+			},
+			"region_id": schemaRegionID,
+			"pg_version": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "Postgres version",
+				ValidateFunc: func(i interface{}, _ string) (warns []string, errs []error) {
+					supportedVersion := func(v int) bool { return v > 13 && v < 18 }
+
+					if v, ok := i.(int); !ok || !supportedVersion(v) {
+						errs = append(
+							errs, fmt.Errorf("postgres version %v is not supported", i),
+						)
+					}
+
+					return
+				},
+			},
+			"store_password": newStoreProjectPasswordDefault(),
+			"history_retention_seconds": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      providerDefaultHistoryRetentionSeconds,
+				ValidateFunc: intValidationNotNegative,
+				Description: `The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
+Default: 1 day, see https://neon.tech/docs/reference/glossary#point-in-time-restore.`,
+			},
+			"compute_provisioner": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: `Provisioner The Neon compute provisioner.
+Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
+`,
+				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+					switch v := i.(string); v {
+					case "k8s-pod", "k8s-neonvm":
+					default:
+						errs = append(
+							errs,
+							errors.New(
+								v+" is not supported for "+s+
+									". See details: https://api-docs.neon.tech/reference/createproject",
+							),
+						)
+					}
+					return
+				},
+			},
+			"quota":                     schemaQuota,
+			"default_endpoint_settings": schemaDefaultEndpointSettings,
+			"branch":                    schemaDefaultBranch,
+			"allowed_ips": {
+				Type:     schema.TypeList,
+				MinItems: 1,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: `A list of IP addresses that are allowed to connect to the endpoints.
+Note that the feature is available to the Neon Scale plans only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow`,
+			},
+			"allowed_ips_primary_branch_only": types.NewOptionalTristateBool(
+				`Apply the allow-list to the primary branch only.
+Note that the feature is available to the Neon Scale plans only.`,
+				false),
+			"allowed_ips_protected_branches_only": types.NewOptionalTristateBool(
+				`Apply the allow-list to the protected branches only.
+Note that the feature is available to the Neon Scale plans only.`, false),
+			"enable_logical_replication": types.NewOptionalTristateBool(
+				`Sets wal_level=logical for all compute endpoints in this project.
+All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
+See details: https://neon.tech/docs/introduction/logical-replication
+`, true),
+			// computed fields
+			"default_branch_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default branch ID.",
+			},
+			"database_host": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default database host.",
+			},
+			"database_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default database name.",
+			},
+			"database_user": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default database role.",
+			},
+			"database_password": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default database access password.",
+			},
+			"connection_uri": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default connection uri. **Note** that it contains access credentials.",
+			},
+			"default_endpoint_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default endpoint ID.",
+			},
+		},
+	}
+}
+
+func resourceProjectV9() *schema.Resource {
+	return &schema.Resource{
+		SchemaVersion: 9,
+		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Project ID.",
+			},
+			"org_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Identifier of the organisation to which this project belongs.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Project name.",
+			},
+			"region_id": schemaRegionID,
+			"pg_version": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "Postgres version",
+				ValidateFunc: func(i interface{}, _ string) (warns []string, errs []error) {
+					supportedVersion := func(v int) bool { return v > 13 && v < 18 }
+
+					if v, ok := i.(int); !ok || !supportedVersion(v) {
+						errs = append(
+							errs, fmt.Errorf("postgres version %v is not supported", i),
+						)
+					}
+
+					return
+				},
+			},
+			"store_password": newStoreProjectPasswordDefault(),
+			"history_retention_seconds": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      providerDefaultHistoryRetentionSeconds,
+				ValidateFunc: intValidationNotNegative,
+				Description: `The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
+Default: 7 days, see https://neon.tech/docs/reference/glossary#point-in-time-restore.`,
+			},
+			"compute_provisioner": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: `Provisioner The Neon compute provisioner.
+Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
+`,
+				ValidateFunc: func(i interface{}, s string) (warns []string, errs []error) {
+					switch v := i.(string); v {
+					case "k8s-pod", "k8s-neonvm":
+					default:
+						errs = append(
+							errs,
+							errors.New(
+								v+" is not supported for "+s+
+									". See details: https://api-docs.neon.tech/reference/createproject",
+							),
+						)
+					}
+					return
+				},
+			},
+			"quota":                     schemaQuota,
+			"default_endpoint_settings": schemaDefaultEndpointSettings,
+			"branch": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Branch ID.",
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							Description: `The name of the default branch provisioned upon creation of new project. 
+If not specified, the default branch name will be used.`,
+						},
+						"role_name": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							Description: `The name of the default role provisioned upon creation of new project.
+If not specified, the default role name will be used.`,
+						},
+						"database_name": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							Description: `The name of the default database provisioned upon creation of new project. It's owned by the default role (` + "`role_name`" + `).
+If not specified, the default database name will be used.`,
+						},
+					},
+				},
+			},
+			"allowed_ips": {
+				Type:     schema.TypeList,
+				MinItems: 1,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: `A list of IP addresses that are allowed to connect to the endpoints.
+Note that the feature is available to the Neon Scale plans only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow`,
+			},
+			"allowed_ips_primary_branch_only": types.NewOptionalTristateBool(
+				`Apply the allow-list to the primary branch only.
+Note that the feature is available to the Neon Scale plans only.`,
+				false),
+			"allowed_ips_protected_branches_only": types.NewOptionalTristateBool(
+				`Apply the allow-list to the protected branches only.
+Note that the feature is available to the Neon Scale plans only.`, false),
+			"enable_logical_replication": types.NewOptionalTristateBool(
+				`Sets wal_level=logical for all compute endpoints in this project.
+All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
+See details: https://neon.tech/docs/introduction/logical-replication
+`, true),
+			// computed fields
+			"default_branch_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default branch ID.",
+			},
+			"database_host": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default database host.",
+			},
+			"database_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default database name.",
+			},
+			"database_user": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default database role.",
+			},
+			"database_password": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default database access password.",
+			},
+			"connection_uri": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Default connection uri. **Note** that it contains access credentials.",
+			},
+			"default_endpoint_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Default endpoint ID.",
+			},
+		},
+	}
 }

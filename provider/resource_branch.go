@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -24,6 +25,34 @@ func resourceBranch() *schema.Resource {
 		ReadContext:   resourceBranchReadRetry,
 		UpdateContext: resourceBranchUpdateRetry,
 		DeleteContext: resourceBranchDeleteRetry,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Version: 7,
+				Type:    resourceBranchV7().CoreConfigSchema().ImpliedType(),
+				Upgrade: func(_ context.Context, rawState map[string]interface{}, meta interface{}) (
+					map[string]interface{}, error) {
+					if rawState == nil {
+						return nil, fmt.Errorf("resource neon_branch state upgrade failed, state is nil")
+					}
+
+					projectID := rawState["project_id"].(string)
+					branchID := rawState["id"].(string)
+
+					resp, err := meta.(*neon.Client).GetProjectBranch(projectID, branchID)
+					if err != nil {
+						return nil, fmt.Errorf("error reading the branch %s of the project %s: %w",
+							branchID, projectID, err)
+					}
+
+					rawState["protected"] = "no"
+					if resp.BranchResponse.Branch.Protected {
+						rawState["protected"] = "yes"
+					}
+
+					return rawState, nil
+				},
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:        schema.TypeString,
@@ -291,4 +320,57 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 func isValidBranchID(s string) bool {
 	const prefix = "br-"
 	return strings.HasPrefix(s, prefix) && len(strings.TrimPrefix(s, prefix)) > 0
+}
+
+func resourceBranchV7() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"project_id": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Project ID.",
+			},
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Branch ID.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Branch name.",
+			},
+			"parent_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "ID of the branch to check out.",
+			},
+			"parent_lsn": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"parent_timestamp"},
+				Description: `Log Sequence Number (LSN) horizon for the data to be present in the new branch.
+See details: https://neon.tech/docs/reference/glossary/#lsn`,
+			},
+			"parent_timestamp": {
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ValidateFunc:  intValidationNotNegative,
+				ConflictsWith: []string{"parent_lsn"},
+				Description: `Timestamp horizon for the data to be present in the new branch.
+**Note**: it's defined as Unix epoch.'`,
+			},
+			"logical_size": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Branch logical size in MB.",
+			},
+		},
+	}
 }
