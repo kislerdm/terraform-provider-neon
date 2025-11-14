@@ -62,8 +62,8 @@ github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
-github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
+github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
@@ -107,8 +107,8 @@ github.com/hashicorp/terraform-plugin-docs v0.21.0 h1:yoyA/Y719z9WdFJAhpUkI1jRbK
 github.com/hashicorp/terraform-plugin-docs v0.21.0/go.mod h1:J4Wott1J2XBKZPp/NkQv7LMShJYOcrqhQ2myXBcu64s=
 github.com/hashicorp/terraform-plugin-go v0.26.0 h1:cuIzCv4qwigug3OS7iKhpGAbZTiypAfFQmw8aE65O2M=
 github.com/hashicorp/terraform-plugin-go v0.26.0/go.mod h1:+CXjuLDiFgqR+GcrM5a2E2Kal5t5q2jb0E3D57tTdNY=
-github.com/hashicorp/terraform-plugin-log v0.9.0 h1:i7hOA+vdAItN1/7UrfBqBwvYPQ9TFvymaRGZED3FCV0=
-github.com/hashicorp/terraform-plugin-log v0.9.0/go.mod h1:rKL8egZQ/eXSyDqzLUuwUYLVdlYeamldAHSxjUFADow=
+github.com/hashicorp/terraform-plugin-log v0.10.0 h1:eu2kW6/QBVdN4P3Ju2WiB2W3ObjkAsyfBsL3Wh1fj3g=
+github.com/hashicorp/terraform-plugin-log v0.10.0/go.mod h1:/9RR5Cv2aAbrqcTSdNmY1NRHP4E3ekrXRGjqORpXyB0=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1 h1:WNMsTLkZf/3ydlgsuXePa3jvZFwAJhruxTxP/c1Viuw=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1/go.mod h1:P6o64QS97plG44iFzSM6rAn6VJIC/Sy9a9IkEtl79K4=
 github.com/hashicorp/terraform-registry-address v0.2.4 h1:JXu/zHB2Ymg/TGVCRu10XqNa4Sh2bWcqCNyKWjnCPJA=
@@ -136,12 +136,6 @@ github.com/jhump/protoreflect v1.15.1 h1:HUMERORf3I3ZdX05WaQ6MIpd/NJ434hTp5YiKgf
 github.com/jhump/protoreflect v1.15.1/go.mod h1:jD/2GMKKE6OqX8qTjhADU1e6DShO+gavG9e0Q693nKo=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=
 github.com/kevinburke/ssh_config v1.2.0/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
-github.com/kislerdm/neon-sdk-go v0.13.1-0.20250425124305-4079c2c3e572 h1:vIT/uXmpNS3e6KRvvu5zTV08PiI2EcV9IH5dLM60IlA=
-github.com/kislerdm/neon-sdk-go v0.13.1-0.20250425124305-4079c2c3e572/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
-github.com/kislerdm/neon-sdk-go v0.14.0 h1:eaFJFOPzO51qWDO1us+s1gDjJBrUbG2szv9AvikDbDU=
-github.com/kislerdm/neon-sdk-go v0.14.0/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
-github.com/kislerdm/neon-sdk-go v0.14.1 h1:4VkJ6ReSsB1rjxIMA/v/OLL6lEjW/Y3DfBkMDZIkkvY=
-github.com/kislerdm/neon-sdk-go v0.14.1/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
 github.com/kislerdm/neon-sdk-go v0.16.0 h1:wRi7QwbViolURHrZKTiPJ6sNDhpiDFH4WWxlNaYJb24=
 github.com/kislerdm/neon-sdk-go v0.16.0/go.mod h1:WSwEZ7oeR5KfQoCuDh/04LZxnSKDcvfsZyfG/QicDb8=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
