@@ -92,6 +92,10 @@ func Test_resourceProjectCreate(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			if err := types.SetTristateBool(definition, "block_public_connections", pointer(true)); err != nil {
+				t.Fatal(err)
+			}
+
 			if err := definition.Set(
 				"branch", []interface{}{
 					map[string]interface{}{
@@ -243,6 +247,22 @@ func Test_resourceProjectCreate(t *testing.T) {
 
 					if len(ipsMap) > 0 || len(ipsExcess) > 0 {
 						t.Fatalf("unexpected allowed IPs. want = %v, got = %v\n", ips, got)
+					}
+				},
+			)
+
+			t.Run(
+				"shall set block_public_connections", func(t *testing.T) {
+					if v.Project.Settings == nil {
+						t.Fatal("unexpected Settings, shall be not nil")
+					}
+
+					if v.Project.Settings.BlockPublicConnections == nil {
+						t.Fatal("unexpected BlockPublicConnections, shall be not nil")
+					}
+
+					if !*v.Project.Settings.BlockPublicConnections {
+						t.Error("BlockPublicConnections should be true")
 					}
 				},
 			)
@@ -449,6 +469,58 @@ func Test_resourceProjectCreate_requestBody_allowed_ips_protected_branches_flag(
 	}
 }
 
+func Test_resourceProjectCreate_requestBody_block_public_connections(t *testing.T) {
+	tests := map[string]struct {
+		projectName              string
+		blockPublicConnections   bool
+		wantBlockPublicConnections *bool
+	}{
+		"shall create project with block_public_connections is false": {
+			projectName:              "foo",
+			blockPublicConnections:   false,
+			wantBlockPublicConnections: nil,
+		},
+		"shall create project with block_public_connections is true": {
+			projectName:              "foo",
+			blockPublicConnections:   true,
+			wantBlockPublicConnections: pointer(true),
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			meta := &sdkClientStub{}
+			resource := resourceProject()
+			definition := resource.TestResourceData()
+
+			assert.NoError(t, definition.Set("name", tt.projectName))
+
+			if tt.blockPublicConnections {
+				assert.NoError(t,
+					types.SetTristateBool(definition,
+						"block_public_connections",
+						&tt.blockPublicConnections),
+				)
+			}
+
+			assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+			v, ok := meta.req.(neon.ProjectCreateRequest)
+			assert.Truef(t, ok, "unexpected request object type")
+			assert.Equal(t, tt.projectName, *v.Project.Name)
+
+			if tt.wantBlockPublicConnections == nil {
+				if v.Project.Settings != nil {
+					assert.Nil(t, v.Project.Settings.BlockPublicConnections)
+				}
+			} else {
+				assert.NotNil(t, v.Project.Settings)
+				assert.Equal(t, tt.wantBlockPublicConnections, v.Project.Settings.BlockPublicConnections)
+			}
+		})
+	}
+}
+
 func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(t *testing.T) {
 	wantIPs := []string{"192.168.1.15", "192.168.2.0/20"}
 
@@ -484,6 +556,63 @@ func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(
 
 		reqUpdateIps := reqUpdate.Project.Settings.AllowedIps
 		assert.False(t, *reqUpdateIps.ProtectedBranchesOnly)
+	})
+}
+
+func Test_resourceProjectUpdate_requestBody_block_public_connections(t *testing.T) {
+	t.Run("shall set 'block_public_connections' to false", func(t *testing.T) {
+		meta := &sdkClientStub{}
+		resource := resourceProject()
+		definition := resource.TestResourceData()
+
+		assert.NoError(t, definition.Set("name", "Foo"))
+		assert.NoError(t, types.SetTristateBool(definition, "block_public_connections", pointer(true)))
+
+		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+		reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		assert.NotNil(t, reqCreate.Project.Settings)
+		assert.NotNil(t, reqCreate.Project.Settings.BlockPublicConnections)
+		assert.True(t, *reqCreate.Project.Settings.BlockPublicConnections)
+
+		n := resource.TestResourceData()
+		assert.NoError(t, types.SetTristateBool(n, "block_public_connections", pointer(false)))
+
+		assert.False(t, *types.GetTristateBool(n, "block_public_connections"))
+
+		assert.NoError(t, resourceProjectUpdate(context.TODO(), n, meta))
+
+		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		assert.NotNil(t, reqUpdate.Project.Settings.BlockPublicConnections)
+		assert.False(t, *reqUpdate.Project.Settings.BlockPublicConnections)
+	})
+
+	t.Run("shall toggle 'block_public_connections' from false to true", func(t *testing.T) {
+		meta := &sdkClientStub{}
+		resource := resourceProject()
+		definition := resource.TestResourceData()
+
+		assert.NoError(t, definition.Set("name", "Foo"))
+		// Initially set to false (or omitted, which defaults to false/nil)
+
+		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+		n := resource.TestResourceData()
+		assert.NoError(t, types.SetTristateBool(n, "block_public_connections", pointer(true)))
+
+		assert.True(t, *types.GetTristateBool(n, "block_public_connections"))
+
+		assert.NoError(t, resourceProjectUpdate(context.TODO(), n, meta))
+
+		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		assert.NotNil(t, reqUpdate.Project.Settings.BlockPublicConnections)
+		assert.True(t, *reqUpdate.Project.Settings.BlockPublicConnections)
 	})
 }
 

@@ -62,6 +62,15 @@ resource "neon_project" "example_with_allowed_ips_protected_branch_only" {
   allowed_ips_protected_branches_only = "yes"
 }
 
+### Block public connections to the project's endpoints
+# Note that the feature is only available to the users of the Scale plans:
+# https://neon.tech/docs/introduction/ip-allow
+resource "neon_project" "example_with_blocked_public_connections" {
+  name = "my-project-with-blocked-public-connections"
+
+  block_public_connections = "yes"
+}
+
 ### Create project in the organisation
 resource "neon_project" "example_in_org" {
   name   = "myproject"

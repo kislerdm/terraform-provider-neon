@@ -153,6 +153,9 @@ Note that the feature is available to the Neon Scale plans only. Details: https:
 			"allowed_ips_protected_branches_only": types.NewOptionalTristateBool(
 				`Apply the allow-list to the protected branches only.
 Note that the feature is available to the Neon Scale plans only.`, false),
+			"block_public_connections": types.NewOptionalTristateBool(
+				`Block public connections to the project's endpoints.
+Note that the feature is available to the Neon Scale plans only.`, false),
 			"enable_logical_replication": types.NewOptionalTristateBool(
 				`Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
@@ -626,6 +629,12 @@ func updateStateProject(
 				return err
 			}
 		}
+		if _, ok := d.GetOk("block_public_connections"); ok ||
+			(r.Settings.BlockPublicConnections != nil && *r.Settings.BlockPublicConnections) {
+			if err := types.SetTristateBool(d, "block_public_connections", r.Settings.BlockPublicConnections); err != nil {
+				return err
+			}
+		}
 		if _, ok := d.GetOk("enable_logical_replication"); ok ||
 			(r.Settings.EnableLogicalReplication != nil && *r.Settings.EnableLogicalReplication) {
 			if err := types.SetTristateBool(d, "enable_logical_replication",
@@ -757,6 +766,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			"allowed_ips_protected_branches_only")
 	}
 
+	if v := types.GetTristateBool(d, "block_public_connections"); v != nil {
+		if projectDef.Settings == nil {
+			projectDef.Settings = &neon.ProjectSettingsData{}
+		}
+		projectDef.Settings.BlockPublicConnections = v
+	}
+
 	if v := types.GetTristateBool(d, "enable_logical_replication"); v != nil {
 		if projectDef.Settings == nil {
 			projectDef.Settings = &neon.ProjectSettingsData{}
@@ -874,6 +890,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		AllowedIps: &neon.AllowedIps{
 			ProtectedBranchesOnly: types.GetTristateBool(d, "allowed_ips_protected_branches_only"),
 		},
+		BlockPublicConnections:   types.GetTristateBool(d, "block_public_connections"),
 		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
 		MaintenanceWindow:        maintenanceWindow,
 	}
