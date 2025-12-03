@@ -49,7 +49,7 @@ See details: https://neon.tech/docs/guides/neon-private-networking#enable-privat
 }
 
 func resourceVPCEndpointAssignmentCreate(_ context.Context, d *schema.ResourceData, meta interface{}) error {
-	err := meta.(*neon.Client).AssignOrganizationVPCEndpoint(
+	err := meta.(sdkVPCEndpoint).AssignOrganizationVPCEndpoint(
 		d.Get("org_id").(string),
 		d.Get("region_id").(string),
 		d.Get("vpc_endpoint_id").(string),
@@ -64,7 +64,7 @@ func resourceVPCEndpointAssignmentCreate(_ context.Context, d *schema.ResourceDa
 }
 
 func resourceVPCEndpointAssignmentRead(_ context.Context, d *schema.ResourceData, meta interface{}) error {
-	resp, err := meta.(*neon.Client).GetOrganizationVPCEndpointDetails(
+	resp, err := meta.(sdkVPCEndpoint).GetOrganizationVPCEndpointDetails(
 		d.Get("org_id").(string),
 		d.Get("region_id").(string),
 		d.Get("vpc_endpoint_id").(string),
@@ -76,7 +76,7 @@ func resourceVPCEndpointAssignmentRead(_ context.Context, d *schema.ResourceData
 }
 
 func resourceVPCEndpointAssignmentDelete(_ context.Context, d *schema.ResourceData, meta interface{}) error {
-	err := meta.(*neon.Client).DeleteOrganizationVPCEndpoint(
+	err := meta.(sdkVPCEndpoint).DeleteOrganizationVPCEndpoint(
 		d.Get("org_id").(string),
 		d.Get("region_id").(string),
 		d.Get("vpc_endpoint_id").(string),
@@ -100,8 +100,24 @@ func resourceVPCEndpointAssignmentDeleteRetry(ctx context.Context, d *schema.Res
 }
 
 func resourceVPCEndpointAssignmentImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	r, err := parseVPCEndpointAssignmentID(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	setResourceAttrsFromVPCEndpointAssignmentID(d, r)
 	if err := resourceVPCEndpointAssignmentRead(ctx, d, meta); err != nil {
 		return nil, err
 	}
+
+	// Set ID to vpc_endpoint_id only for backwards compatibility with existing state
+	d.SetId(r.VPCEndpointID)
+
 	return []*schema.ResourceData{d}, nil
+}
+
+type sdkVPCEndpoint interface {
+	AssignOrganizationVPCEndpoint(string, string, string, neon.VPCEndpointAssignment) error
+	GetOrganizationVPCEndpointDetails(string, string, string) (neon.VPCEndpointDetails, error)
+	DeleteOrganizationVPCEndpoint(string, string, string) error
 }

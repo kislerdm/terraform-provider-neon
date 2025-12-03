@@ -11,10 +11,31 @@ import (
 type sdkClientStub struct {
 	stubProjectPermission
 	stubProjectRolePassword
+	stubVPCEndpoint
 	mockOpsReader
 
 	req interface{}
 	err error
+}
+
+type stubVPCEndpoint struct {
+	VPCEndpointDetails neon.VPCEndpointDetails
+	err                error
+}
+
+func (s *stubVPCEndpoint) AssignOrganizationVPCEndpoint(_, _, _ string, _ neon.VPCEndpointAssignment) error {
+	return s.err
+}
+
+func (s *stubVPCEndpoint) GetOrganizationVPCEndpointDetails(_, _, _ string) (neon.VPCEndpointDetails, error) {
+	if s.err != nil {
+		return neon.VPCEndpointDetails{}, s.err
+	}
+	return s.VPCEndpointDetails, nil
+}
+
+func (s *stubVPCEndpoint) DeleteOrganizationVPCEndpoint(_, _, _ string) error {
+	return s.err
 }
 
 func (s *sdkClientStub) UpdateProject(_ string, cfg neon.ProjectUpdateRequest) (neon.UpdateProjectRespObj, error) {

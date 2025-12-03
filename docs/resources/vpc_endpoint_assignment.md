@@ -41,7 +41,7 @@ resource "neon_vpc_endpoint_assignment" "example" {
 
 ## Import
 
-The VPC endpoint assignment to organization can be imported to the terraform state by its identifier.
+The VPC endpoint assignment to organization can be imported to the terraform state using a composite identifier in the format: `{{.OrgID}}/{{.RegionID}}/{{.VPCEndpointID}}`
 
 Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
 
@@ -50,12 +50,12 @@ For example:
 ```hcl
 import {
   to = neon_vpc_endpoint_assignment.example
-  id = "vpce-1234567890abcdef0"
+  id = "org-foo-bar-01234567/aws-us-east-1/vpce-1234567890abcdef0"
 }
 ```
 
 Import using the command `terraform import`:
 
 ```commandline
-terraform import neon_vpc_endpoint_assignment.example vpce-1234567890abcdef0
+terraform import neon_vpc_endpoint_assignment.example org-foo-bar-01234567/aws-us-east-1/vpce-1234567890abcdef0
 ```

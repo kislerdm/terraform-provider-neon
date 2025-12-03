@@ -62,3 +62,28 @@ func parseComplexID(s string) (complexID, error) {
 		Name:      spl[2],
 	}, nil
 }
+
+// VPC Endpoint Assignment composite ID helpers
+type vpcEndpointAssignmentID struct {
+	OrgID, RegionID, VPCEndpointID string
+}
+
+func setResourceAttrsFromVPCEndpointAssignmentID(d *schema.ResourceData, r vpcEndpointAssignmentID) {
+	_ = d.Set("org_id", r.OrgID)
+	_ = d.Set("region_id", r.RegionID)
+	_ = d.Set("vpc_endpoint_id", r.VPCEndpointID)
+}
+
+func parseVPCEndpointAssignmentID(s string) (vpcEndpointAssignmentID, error) {
+	spl := strings.Split(s, "/")
+	if len(spl) != 3 {
+		return vpcEndpointAssignmentID{}, errors.New(
+			"ID of this resource type shall follow the template: {{.OrgID}}/{{.RegionID}}/{{.VPCEndpointID}}",
+		)
+	}
+	return vpcEndpointAssignmentID{
+		OrgID:          spl[0],
+		RegionID:       spl[1],
+		VPCEndpointID:  spl[2],
+	}, nil
+}
