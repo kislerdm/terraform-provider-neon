@@ -35,3 +35,26 @@ resource "neon_project_permission" "share" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+
+
+## Import
+
+The project permission can be imported to the terraform state by its identifier.
+
+The identifier uses the format: `{{project_id}}/{{permission_id}}`
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+```hcl
+import {
+  to = neon_project_permission.example
+  id = "spring-flower-123456/12345678-1234-1234-1234-123456789abc"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import neon_project_permission.example spring-flower-123456/12345678-1234-1234-1234-123456789abc
+```
