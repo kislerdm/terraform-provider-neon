@@ -49,6 +49,8 @@ var p = &schema.Provider{
 		"neon_branch_endpoints":     dataSourceBranchEndpoints(),
 		"neon_branch_roles":         dataSourceBranchRoles(),
 		"neon_branch_role_password": dataSourceBranchRolePassword(),
+		"neon_regions":              dataSourceRegions(),
+		"neon_default_region":       dataSourceDefaultRegion(),
 	},
 }
 
