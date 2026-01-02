@@ -134,6 +134,7 @@ func resourceProjectPermissionRead(ctx context.Context, d *schema.ResourceData, 
 
 	if !found {
 		tflog.Trace(ctx, "no project permission found")
+		return errors.New("no project permission found")
 	}
 
 	return nil
