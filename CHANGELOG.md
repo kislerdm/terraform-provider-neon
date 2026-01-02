@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **[BREAKING]** Changed the `id` attribute of the `neon_project_permission`. It's identical to the identifier assigned 
-  by Neon now. 
+  by Neon now.
 
 ## [v0.12.0] - 2025-11-04
 
