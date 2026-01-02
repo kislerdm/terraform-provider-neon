@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -238,54 +239,23 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 	[]*schema.ResourceData, error,
 ) {
 	tflog.Trace(ctx, "import Branch")
+	tflog.Debug(ctx, "split the identifier", map[string]interface{}{"identifier": d.Id()})
+
+	els := strings.SplitN(d.Id(), "/", 2)
+	if len(els) != 2 {
+		return nil, fmt.Errorf("invalid identifier, expected {{.ProjectID}}/{{.BranchID}}")
+	}
+	_ = d.Set("project_id", els[0])
+	d.SetId(els[1])
 
 	if !isValidBranchID(d.Id()) {
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
-	var projects []neon.ProjectListItem
-	var cursor *string
-	for {
-		resp, err := meta.(*neon.Client).ListProjects(cursor, nil, nil, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-		if len(resp.Projects) == 0 || resp.PaginationResponse.Pagination == nil || (cursor != nil && *cursor == resp.PaginationResponse.Pagination.Cursor) {
-			tflog.Trace(ctx, "listing projects finished")
-			break
-		}
-		projects = append(projects, resp.Projects...)
-		cursor = &resp.Pagination.Cursor
+	if err := resourceBranchRead(ctx, d, meta); err != nil {
+		return nil, err
 	}
-
-	cursor = nil
-	for _, project := range projects {
-		for {
-			tflog.Trace(ctx, "listing batch of branches")
-			r, err := meta.(*neon.Client).ListProjectBranches(project.ID, nil, nil, cursor, nil, nil)
-			if err != nil {
-				return nil, err
-			}
-			for _, br := range r.Branches {
-				if br.ID == d.Id() {
-					if err := d.Set("project_id", project.ID); err != nil {
-						return nil, err
-					}
-					if err := resourceBranchRead(ctx, d, meta); err != nil {
-						return nil, err
-					}
-					return []*schema.ResourceData{d}, nil
-				}
-			}
-			if r.Pagination == nil || r.Pagination.Next == nil || (cursor != nil && *cursor == *r.Pagination.Next) {
-				tflog.Trace(ctx, "listing branches finished")
-				break
-			}
-			cursor = r.Pagination.Next
-		}
-	}
-
-	return nil, errors.New("no branch " + d.Id() + " found")
+	return []*schema.ResourceData{d}, nil
 }
 
 func isValidBranchID(s string) bool {

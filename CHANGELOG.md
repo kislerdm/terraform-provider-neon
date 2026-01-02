@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed documentation for the resource `neon_project_permission`.
 - [[193](https://github.com/kislerdm/terraform-provider-neon/issues/193)] Fixed the import logic for the resource
   `neon_endpoint`.
+- [[198](https://github.com/kislerdm/terraform-provider-neon/issues/198)] Fixed the import logic for the resource
+  `neon_branch`. 
 
 ### Changed
 

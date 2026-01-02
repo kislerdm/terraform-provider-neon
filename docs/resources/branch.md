@@ -67,7 +67,8 @@ Set whether the branch is protected.
 
 ## Import
 
-The Neon Branch can be imported to the terraform state by its identifier.
+The Neon Branch can be imported to the terraform state by its composite identifier that consists of
+`ProjectID` and `BranchID` separated by a forward slash.
 
 Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
 
@@ -76,12 +77,12 @@ For example:
 ```hcl
 import {
   to = neon_branch.example
-  id = "br-snowy-mountain-a5jkb18i"
+  id = "curly-poetry-30604233/br-snowy-mountain-a5jkb18i"
 }
 ```
 
 Import using the command `terraform import`:
 
 ```commandline
-terraform import neon_branch.example br-snowy-mountain-a5jkb18i
+terraform import neon_branch.example "curly-poetry-30604233/br-snowy-mountain-a5jkb18i"
 ```

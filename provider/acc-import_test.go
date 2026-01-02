@@ -230,7 +230,7 @@ func TestAccResourcesImport(t *testing.T) {
   project_id = "%s"
 }`, customBranchName, projectID),
 							ImportState:   true,
-							ImportStateId: customBranchID,
+							ImportStateId: fmt.Sprintf("%s/%s", projectID, customBranchID),
 							Check: resource.ComposeTestCheckFunc(
 								// THEN
 								resource.TestCheckResourceAttr("neon_branch.this", "name", customBranchName),
