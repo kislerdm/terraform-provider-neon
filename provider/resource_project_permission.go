@@ -114,6 +114,8 @@ func resourceProjectPermissionImport(ctx context.Context, d *schema.ResourceData
 	}
 
 	if !found {
+		d.SetId("")
+		_ = d.Set("project_id", "")
 		return nil, errors.New("no permission found")
 	}
 
