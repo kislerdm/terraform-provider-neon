@@ -10,14 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added the following attributes to the resource `neon_project`: 
-  - `block_public_connections`
-  - `block_vpc_connections`
+  - `block_public_connections`;
+  - `block_vpc_connections`.
 
 ### Fixed
 
 - [[191](https://github.com/kislerdm/terraform-provider-neon/issues/191)] Fixed the import logic for the resource 
   `neon_vpc_endpoint_assignment`.
 - Fixed documentation for the resource `neon_project_permission`.
+- [[193](https://github.com/kislerdm/terraform-provider-neon/issues/193)] Fixed the import logic for the resource
+  `neon_endpoint`.
+
+### Changed
+
+- **[BREAKING]** Changed the `id` attribute of the `neon_project_permission`. It's identical to the identifier assigned 
+  by Neon now. 
 
 ## [v0.12.0] - 2025-11-04
 
