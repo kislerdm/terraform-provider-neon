@@ -30,3 +30,6 @@ testacc: ## Runs acceptance tests.
 
 docu: ## Generates docu.
 	@ go generate
+
+lint: ## Runs the linter.
+	@ golangci-lint run -c .golangci.yml --timeout 10m || echo 'install golangci-lint'
