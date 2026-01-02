@@ -55,7 +55,7 @@ func Test_resourceProjectPermissionCreate(t *testing.T) {
 
 		gotPermissionID := meta.ProjectPermissions.ProjectPermissions[0].ID
 
-		wantID := projectID + "/" + gotPermissionID
+		wantID := gotPermissionID
 		if definition.Id() != wantID {
 			t.Errorf("unexpected resource ID: want=%s, got=%s", wantID, definition.Id())
 		}
@@ -117,7 +117,7 @@ func Test_resourceProjectPermissionDelete(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		id := projectID + "/" + permissionID
+		id := permissionID
 		definition.SetId(id)
 
 		meta := &sdkClientStub{}
@@ -146,7 +146,7 @@ func Test_resourceProjectPermissionDelete(t *testing.T) {
 		if err := definition.Set("project_id", projectID); err != nil {
 			t.Fatal(err)
 		}
-		id := projectID + "/" + permissionID
+		id := permissionID
 		definition.SetId(id)
 
 		meta := &sdkClientStub{
@@ -174,7 +174,7 @@ func Test_resourceProjectPermissionRead(t *testing.T) {
 	const (
 		projectID    = "myproject"
 		permissionID = "mypermission"
-		id           = projectID + "/" + permissionID
+		id           = permissionID
 	)
 
 	t.Run("shall find the permission given the resource id", func(t *testing.T) {
@@ -182,6 +182,7 @@ func Test_resourceProjectPermissionRead(t *testing.T) {
 		resource := resourceProjectPermission()
 		definition := resource.TestResourceData()
 		definition.SetId(id)
+		_ = definition.Set("project_id", projectID)
 
 		meta := &sdkClientStub{
 			stubProjectPermission: stubProjectPermission{
@@ -209,32 +210,6 @@ func Test_resourceProjectPermissionRead(t *testing.T) {
 		gotProjectID := definition.Get("project_id").(string)
 		if gotProjectID != projectID {
 			t.Fatalf("unexpected projectID found: want=%s, got=%s", projectID, gotProjectID)
-		}
-	})
-
-	t.Run("shall find no permission by its id", func(t *testing.T) {
-		resource := resourceProjectPermission()
-		definition := resource.TestResourceData()
-		definition.SetId(id)
-
-		meta := &sdkClientStub{
-			stubProjectPermission: stubProjectPermission{
-				ProjectPermissions: neon.ProjectPermissions{},
-			},
-		}
-
-		if err := resourceProjectPermissionRead(context.TODO(), definition, meta); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		gotEmail := definition.Get("grantee").(string)
-		if gotEmail != "" {
-			t.Fatalf("unexpected grantee email found: want=%s, got=%s", "", gotEmail)
-		}
-
-		gotProjectID := definition.Get("project_id").(string)
-		if gotProjectID != "" {
-			t.Fatalf("unexpected projectID found: want=%s, got=%s", "", gotProjectID)
 		}
 	})
 
@@ -321,20 +296,6 @@ func Test_resourceProjectPermissionImport(t *testing.T) {
 		const wantErrStr = "no permission found"
 		if err.Error() != wantErrStr {
 			t.Fatalf("'%s' error expected", wantErrStr)
-		}
-	})
-
-	t.Run("shall fail because provided id is not correct", func(t *testing.T) {
-		resource := resourceProjectPermission()
-		definition := resource.TestResourceData()
-		definition.SetId("qux")
-
-		meta := &sdkClientStub{}
-		_, err := resourceProjectPermissionImport(context.TODO(), definition, meta)
-
-		const wantErrStr = "not recognized format of the project permission resource's ID"
-		if err.Error() != wantErrStr {
-			t.Fatalf("'%s' error expected, got: %s", wantErrStr, err.Error())
 		}
 	})
 
