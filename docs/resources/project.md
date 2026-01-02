@@ -81,6 +81,15 @@ resource "neon_project" "example_with_allowed_ips_protected_branch_only" {
   allowed_ips_protected_branches_only = "yes"
 }
 
+### Block public connections to the project's endpoints
+# Note that the feature is only available to the users of the Scale plans:
+# https://neon.tech/docs/introduction/ip-allow
+resource "neon_project" "example_with_blocked_public_connections" {
+  name = "my-project-with-blocked-public-connections"
+
+  block_public_connections = "yes"
+}
+
 ### Create project in the organisation
 resource "neon_project" "example_in_org" {
   name   = "myproject"
@@ -109,6 +118,9 @@ resource "neon_project" "custom_maintenance_window" {
 Note that the feature is available to the Neon Scale plans only. Details: https://neon.tech/docs/manage/projects#configure-ip-allow
 - `allowed_ips_protected_branches_only` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Apply the allow-list to the protected branches only.
+Note that the feature is available to the Neon Scale plans only.
+- `block_public_connections` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
+Block public connections to the project's endpoints.
 Note that the feature is available to the Neon Scale plans only.
 - `branch` (Block List, Max: 1) (see [below for nested schema](#nestedblock--branch))
 - `compute_provisioner` (String) Provisioner The Neon compute provisioner.
