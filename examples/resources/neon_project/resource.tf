@@ -88,3 +88,10 @@ resource "neon_project" "custom_maintenance_window" {
     end_time   = "08:00"
   }
 }
+
+### Block connections that use VPC
+resource "neon_project" "example_with_blocked_vpc_connections" {
+  name = "my-project-with-blocked-vpc-connections"
+
+  block_vpc_connections = "yes"
+}

@@ -154,8 +154,10 @@ Note that the feature is available to the Neon Scale plans only. Details: https:
 				`Apply the allow-list to the protected branches only.
 Note that the feature is available to the Neon Scale plans only.`, false),
 			"block_public_connections": types.NewOptionalTristateBool(
-				`Block public connections to the project's endpoints.
-Note that the feature is available to the Neon Scale plans only.`, false),
+				`Block connections from public internet. This supersedes the AllowedIPs list.`,
+				false),
+			"block_vpc_connections": types.NewOptionalTristateBool(
+				`Block connections that use VPC endpoints.`, false),
 			"enable_logical_replication": types.NewOptionalTristateBool(
 				`Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
@@ -642,6 +644,14 @@ func updateStateProject(
 				return err
 			}
 		}
+
+		if _, ok := d.GetOk("block_vpc_connections"); ok ||
+			(r.Settings.BlockVpcConnections != nil && *r.Settings.BlockVpcConnections) {
+			if err := types.SetTristateBool(d, "block_vpc_connections",
+				r.Settings.BlockVpcConnections); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := d.Set("default_branch_id", defaultBranchID); err != nil {
@@ -773,6 +783,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		projectDef.Settings.BlockPublicConnections = v
 	}
 
+	if v := types.GetTristateBool(d, "block_vpc_connections"); v != nil {
+		if projectDef.Settings == nil {
+			projectDef.Settings = &neon.ProjectSettingsData{}
+		}
+		projectDef.Settings.BlockVpcConnections = v
+	}
+
 	if v := types.GetTristateBool(d, "enable_logical_replication"); v != nil {
 		if projectDef.Settings == nil {
 			projectDef.Settings = &neon.ProjectSettingsData{}
@@ -893,6 +910,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		BlockPublicConnections:   types.GetTristateBool(d, "block_public_connections"),
 		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
 		MaintenanceWindow:        maintenanceWindow,
+		BlockVpcConnections:      types.GetTristateBool(d, "block_vpc_connections"),
 	}
 
 	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {

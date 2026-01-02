@@ -471,18 +471,18 @@ func Test_resourceProjectCreate_requestBody_allowed_ips_protected_branches_flag(
 
 func Test_resourceProjectCreate_requestBody_block_public_connections(t *testing.T) {
 	tests := map[string]struct {
-		projectName              string
-		blockPublicConnections   bool
+		projectName                string
+		blockPublicConnections     bool
 		wantBlockPublicConnections *bool
 	}{
 		"shall create project with block_public_connections is false": {
-			projectName:              "foo",
-			blockPublicConnections:   false,
+			projectName:                "foo",
+			blockPublicConnections:     false,
 			wantBlockPublicConnections: nil,
 		},
 		"shall create project with block_public_connections is true": {
-			projectName:              "foo",
-			blockPublicConnections:   true,
+			projectName:                "foo",
+			blockPublicConnections:     true,
 			wantBlockPublicConnections: pointer(true),
 		},
 	}
@@ -660,4 +660,132 @@ func Test_resourceProjectDefaultEndpointSettingsShallAllowToSetSuspensionTimeout
 			}
 		})
 	}
+}
+
+func Test_resourceProjectCreate_requestBody_block_vpc_connections(t *testing.T) {
+	T := pointer(true)
+	F := pointer(false)
+	tests := map[string]struct {
+		projectName string
+		in          *bool
+		want        *bool
+	}{
+		"not set": {
+			projectName: "foo",
+			in:          nil,
+			want:        nil,
+		},
+		"set to true": {
+			projectName: "foo",
+			in:          T,
+			want:        T,
+		},
+		"set to false": {
+			projectName: "foo",
+			in:          F,
+			want:        F,
+		},
+	}
+	t.Parallel()
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			meta := &sdkClientStub{}
+			resource := resourceProject()
+			definition := resource.TestResourceData()
+
+			assert.NoError(t, definition.Set("name", tt.projectName))
+
+			assert.NoError(t, types.SetTristateBool(definition, "block_vpc_connections", tt.in))
+			assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+			v, ok := meta.req.(neon.ProjectCreateRequest)
+			assert.Truef(t, ok, "unexpected request object type")
+			assert.Equal(t, tt.projectName, *v.Project.Name)
+			if tt.in == nil {
+				assert.Nil(t, v.Project.Settings)
+			} else {
+				assert.Equal(t, tt.want, v.Project.Settings.BlockVpcConnections)
+			}
+		})
+	}
+}
+
+func Test_resourceProjectUpdate_requestBody_block_vpc_connections(t *testing.T) {
+	t.Run("shall explicitly set block_vpc_connections from true to false", func(t *testing.T) {
+		meta := &sdkClientStub{}
+		resource := resourceProject()
+		definition := resource.TestResourceData()
+
+		assert.NoError(t, definition.Set("name", "Foo"))
+		assert.NoError(t, definition.Set("block_vpc_connections", "yes"))
+
+		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+		reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		assert.NotNil(t, reqCreate.Project.Settings)
+		assert.NotNil(t, reqCreate.Project.Settings.BlockVpcConnections)
+		assert.True(t, *reqCreate.Project.Settings.BlockVpcConnections)
+
+		assert.NoError(t, definition.Set("block_vpc_connections", "no"))
+		assert.NoError(t, resourceProjectUpdate(context.TODO(), definition, meta))
+
+		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		assert.NotNil(t, reqUpdate.Project.Settings.BlockVpcConnections)
+		assert.False(t, *reqUpdate.Project.Settings.BlockVpcConnections)
+	})
+	t.Run(
+		"shall not change block_vpc_connections initially set to true if the config is removed from tf definition",
+		func(t *testing.T) {
+			meta := &sdkClientStub{}
+			resource := resourceProject()
+			definition := resource.TestResourceData()
+
+			assert.NoError(t, definition.Set("name", "Foo"))
+			assert.NoError(t, definition.Set("block_vpc_connections", "yes"))
+
+			assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+			reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
+			assert.Truef(t, ok, "unexpected request object type")
+
+			assert.NotNil(t, reqCreate.Project.Settings)
+			assert.NotNil(t, reqCreate.Project.Settings.BlockVpcConnections)
+			assert.True(t, *reqCreate.Project.Settings.BlockVpcConnections)
+
+			assert.NoError(t, definition.Set("block_vpc_connections", ""))
+			assert.NoError(t, resourceProjectUpdate(context.TODO(), definition, meta))
+
+			reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+			assert.Truef(t, ok, "unexpected request object type")
+
+			assert.NotNil(t, reqUpdate.Project.Settings)
+			assert.Nil(t, reqUpdate.Project.Settings.BlockVpcConnections)
+		})
+	t.Run("shall set block_vpc_connections to true from false", func(t *testing.T) {
+		meta := &sdkClientStub{}
+		resource := resourceProject()
+		definition := resource.TestResourceData()
+
+		assert.NoError(t, definition.Set("name", "Foo"))
+
+		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+		reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		assert.Nil(t, reqCreate.Project.Settings)
+
+		assert.NoError(t, definition.Set("block_vpc_connections", "yes"))
+		assert.NoError(t, resourceProjectUpdate(context.TODO(), definition, meta))
+
+		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+
+		assert.NotNil(t, reqUpdate.Project.Settings.BlockVpcConnections)
+		assert.True(t, *reqUpdate.Project.Settings.BlockVpcConnections)
+	})
 }
