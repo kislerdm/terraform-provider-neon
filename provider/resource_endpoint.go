@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -175,6 +177,9 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	if err := d.Set("suspend_timeout_seconds", int64(v.SuspendTimeoutSeconds)); err != nil {
 		return err
 	}
+	if err := d.Set("branch_id", v.BranchID); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -285,44 +290,21 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 	[]*schema.ResourceData, error,
 ) {
 	tflog.Trace(ctx, "import Endpoint")
-
-	var projects []neon.ProjectListItem
-	var cursor *string
-	for {
-		tflog.Trace(ctx, "listing batch of projects")
-		resp, err := meta.(*neon.Client).ListProjects(cursor, nil, nil, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-		if len(resp.Projects) == 0 || resp.PaginationResponse.Pagination == nil || (cursor != nil && *cursor == resp.PaginationResponse.Pagination.Cursor) {
-			tflog.Trace(ctx, "listing projects finished")
-			break
-		}
-		projects = append(projects, resp.Projects...)
-		cursor = &resp.Pagination.Cursor
+	tflog.Debug(ctx, "split input ID")
+	els := strings.SplitN(d.Id(), "/", 2)
+	if len(els) != 2 {
+		return nil, fmt.Errorf("invalid format of provided identifier, expected: {{.ProjectID}}/{{.EndpointID}}")
 	}
 
-	for _, project := range projects {
-		r, err := meta.(*neon.Client).ListProjectEndpoints(project.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, endpoint := range r.Endpoints {
-			if endpoint.ID == d.Id() {
-				if err := d.Set("project_id", project.ID); err != nil {
-					return nil, err
-				}
-				if err := resourceEndpointRead(ctx, d, meta); err != nil {
-					return nil, err
-				}
-				return []*schema.ResourceData{d}, nil
-			}
-		}
-
+	projectID := els[0]
+	d.SetId(els[1])
+	if err := d.Set("project_id", projectID); err != nil {
+		return nil, err
 	}
-
-	return nil, errors.New("no endpoint " + d.Id() + " found")
+	if err := resourceEndpointRead(ctx, d, meta); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceEndpointDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

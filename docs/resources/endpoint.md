@@ -64,21 +64,23 @@ The maximum value is 604800 seconds (1 week)
 
 ## Import
 
-The Neon Endpoint can be imported to the terraform state by its identifier.
+The Neon Endpoint can be imported to the terraform state by providing the composite identifier that consists
+of the `ProjectID` and the `EndpointID`.
 
 Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
 
-For example:
+For example, use the composite identifier `curly-poetry-30604233/ep-black-mouse-a64dr7wp`
+to import the endpoint `ep-black-mouse-a64dr7wp` from the project `curly-poetry-30604233`:
 
 ```hcl
 import {
   to = neon_endpoint.example
-  id = "ep-black-mouse-a64dr7wp"
+  id = "curly-poetry-30604233/ep-black-mouse-a64dr7wp"
 }
 ```
 
 Import using the command `terraform import`:
 
 ```commandline
-terraform import neon_endpoint.example ep-black-mouse-a64dr7wp
+terraform import neon_endpoint.example curly-poetry-30604233/ep-black-mouse-a64dr7wp
 ```

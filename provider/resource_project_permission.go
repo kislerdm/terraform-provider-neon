@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -56,13 +57,7 @@ func resourceProjectPermissionCreate(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		return err
 	}
-
-	id := joinedIDProjectPermission{
-		projectID:    projectID,
-		permissionID: resp.ID,
-	}
-	d.SetId(id.ToString())
-
+	d.SetId(resp.ID)
 	return nil
 }
 
@@ -71,14 +66,13 @@ func resourceProjectPermissionDeleteRetry(ctx context.Context, d *schema.Resourc
 }
 
 func resourceProjectPermissionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	joinedID, _ := parseJoinedIDProjectPermission(d.Id())
-
+	projectID := d.Get("project_id").(string)
 	tflog.Trace(ctx, "revoke project permission", map[string]interface{}{
-		"projectID":    joinedID.projectID,
-		"permissionID": joinedID.permissionID,
+		"projectID":    projectID,
+		"permissionID": d.Id(),
 	})
 
-	if _, err := meta.(sdkProject).RevokePermissionFromProject(joinedID.projectID, joinedID.permissionID); err != nil {
+	if _, err := meta.(sdkProject).RevokePermissionFromProject(projectID, d.Id()); err != nil {
 		return err
 	}
 
@@ -88,6 +82,17 @@ func resourceProjectPermissionDelete(ctx context.Context, d *schema.ResourceData
 
 func resourceProjectPermissionImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	tflog.Trace(ctx, "import project permission", map[string]interface{}{"id": d.Id()})
+	tflog.Debug(ctx, "parse provided identifier")
+	els := strings.SplitN(d.Id(), "/", 2)
+	if len(els) != 2 {
+		return nil, fmt.Errorf("invalid identifier, expected {{.ProjectID}}/{{.PermissionID}}")
+	}
+
+	projectID := els[0]
+	if err := d.Set("project_id", projectID); err != nil {
+		return nil, err
+	}
+	d.SetId(els[1])
 
 	var found bool
 	diags := projectReadiness.Retry(
@@ -135,12 +140,7 @@ func resourceProjectPermissionRead(ctx context.Context, d *schema.ResourceData, 
 func readProjectPermission(ctx context.Context, d *schema.ResourceData, meta interface{}) (error, bool) {
 	tflog.Trace(ctx, "parse project permission found", map[string]interface{}{"id": d.Id()})
 
-	joinedID, err := parseJoinedIDProjectPermission(d.Id())
-	if err != nil {
-		return err, false
-	}
-
-	projectID := joinedID.projectID
+	projectID := d.Get("project_id").(string)
 	tflog.Trace(ctx, "list project permissions", map[string]interface{}{"projectID": projectID})
 
 	resp, err := meta.(sdkProject).ListProjectPermissions(projectID)
@@ -150,14 +150,11 @@ func readProjectPermission(ctx context.Context, d *schema.ResourceData, meta int
 
 	tflog.Trace(ctx, "search project permission", map[string]interface{}{
 		"projectID":    projectID,
-		"permissionID": joinedID.permissionID,
+		"permissionID": d.Id(),
 	})
 
 	for _, permission := range resp.ProjectPermissions {
-		if permission.ID == joinedID.permissionID {
-			if err := d.Set("project_id", projectID); err != nil {
-				return err, false
-			}
+		if permission.ID == d.Id() {
 			if err := d.Set("grantee", permission.GrantedToEmail); err != nil {
 				return err, false
 			}
@@ -165,27 +162,4 @@ func readProjectPermission(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 	return nil, false
-}
-
-type joinedIDProjectPermission struct {
-	projectID, permissionID string
-}
-
-const joinedIDProjectPermissionSeparator = "/"
-
-func (v joinedIDProjectPermission) ToString() string {
-	return v.projectID + joinedIDProjectPermissionSeparator + v.permissionID
-}
-
-func parseJoinedIDProjectPermission(s string) (*joinedIDProjectPermission, error) {
-	els := strings.SplitN(s, joinedIDProjectPermissionSeparator, 2)
-
-	if len(els) != 2 {
-		return nil, errors.New("not recognized format of the project permission resource's ID")
-	}
-
-	return &joinedIDProjectPermission{
-		projectID:    els[0],
-		permissionID: els[1],
-	}, nil
 }

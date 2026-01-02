@@ -278,7 +278,7 @@ func TestAccResourcesImport(t *testing.T) {
 }`, projectID, customBranchID),
 							// WHEN run terraform import
 							ImportState:   true,
-							ImportStateId: customEndpointID,
+							ImportStateId: fmt.Sprintf("%s/%s", projectID, customEndpointID),
 							Check: resource.ComposeTestCheckFunc(
 								// THEN
 								// endpointTypeRW is the default type
@@ -300,13 +300,10 @@ func TestAccResourcesImport(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		grantID := joinedIDProjectPermission{
-			projectID:    projectID,
-			permissionID: respGrant.ID,
-		}
 
 		sleepDuringRunningOperations(t, client, projectID)
 
+		grantID := fmt.Sprintf("%s/%s", projectID, respGrant.ID)
 		resource.UnitTest(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -323,7 +320,7 @@ func TestAccResourcesImport(t *testing.T) {
 }`, projectID, granteeEmail),
 						// WHEN run terraform import
 						ImportState:   true,
-						ImportStateId: grantID.ToString(),
+						ImportStateId: grantID,
 						// THEN
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("neon_project_permission.this", "grantee", granteeEmail),
