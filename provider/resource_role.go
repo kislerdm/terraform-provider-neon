@@ -124,6 +124,7 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	resp, err := meta.(*neon.Client).GetProjectBranchRole(projectID, branchID, name)
 	if err != nil {
 		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			tflog.Warn(ctx, "role not found, removing from state", map[string]any{"id": d.Id()})
 			d.SetId("")
 			return nil
 		}
@@ -135,6 +136,7 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(projectID, branchID, name)
 		if err != nil {
 			if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+				tflog.Warn(ctx, "role password not found, removing from state", map[string]any{"id": d.Id()})
 				d.SetId("")
 				return nil
 			}

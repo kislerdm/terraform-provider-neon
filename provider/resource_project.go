@@ -940,6 +940,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 	resp, err := client.GetProject(d.Id())
 	if err != nil {
 		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			tflog.Warn(ctx, "project not found, removing from state", map[string]any{"id": d.Id()})
 			d.SetId("")
 			return nil
 		}

@@ -100,6 +100,7 @@ func resourceDatabaseRead(ctx context.Context, d *schema.ResourceData, meta inte
 	)
 	if err != nil {
 		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			tflog.Warn(ctx, "database not found, removing from state", map[string]any{"id": d.Id()})
 			d.SetId("")
 			return nil
 		}

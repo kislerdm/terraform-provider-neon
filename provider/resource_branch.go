@@ -217,6 +217,7 @@ func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interf
 	resp, err := meta.(*neon.Client).GetProjectBranch(d.Get("project_id").(string), d.Id())
 	if err != nil {
 		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			tflog.Warn(ctx, "branch not found, removing from state", map[string]any{"id": d.Id()})
 			d.SetId("")
 			return nil
 		}
