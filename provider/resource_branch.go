@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -215,6 +216,10 @@ func resourceBranchRead(ctx context.Context, d *schema.ResourceData, meta interf
 
 	resp, err := meta.(*neon.Client).GetProjectBranch(d.Get("project_id").(string), d.Id())
 	if err != nil {
+		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

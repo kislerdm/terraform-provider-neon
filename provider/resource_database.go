@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -98,6 +99,10 @@ func resourceDatabaseRead(ctx context.Context, d *schema.ResourceData, meta inte
 		d.Get("project_id").(string), d.Get("branch_id").(string), d.Get("name").(string),
 	)
 	if err != nil {
+		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

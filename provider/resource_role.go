@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -122,6 +123,10 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	resp, err := meta.(*neon.Client).GetProjectBranchRole(projectID, branchID, name)
 	if err != nil {
+		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -129,6 +134,10 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	if role.Password == nil {
 		r, err := meta.(*neon.Client).GetProjectBranchRolePassword(projectID, branchID, name)
 		if err != nil {
+			if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+				d.SetId("")
+				return nil
+			}
 			return err
 		}
 		role.Password = pointer(r.Password)

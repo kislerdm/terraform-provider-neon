@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -243,6 +244,10 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		d.Id(),
 	)
 	if err != nil {
+		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -938,6 +939,10 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	resp, err := client.GetProject(d.Id())
 	if err != nil {
+		if neonErr, ok := err.(neon.Error); ok && neonErr.HTTPCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

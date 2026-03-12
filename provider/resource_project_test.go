@@ -789,3 +789,29 @@ func Test_resourceProjectUpdate_requestBody_block_vpc_connections(t *testing.T) 
 		assert.True(t, *reqUpdate.Project.Settings.BlockVpcConnections)
 	})
 }
+
+func Test_resourceProjectRead(t *testing.T) {
+	if os.Getenv("TF_ACC") == "1" {
+		t.Skip("acceptance tests are running")
+	}
+
+	t.Parallel()
+
+	t.Run("shall remove resource from state when project returns 404", func(t *testing.T) {
+		meta := &sdkClientStub{
+			err: neon.Error{HTTPCode: 404},
+		}
+
+		resource := resourceProject()
+		d := resource.TestResourceData()
+		if err := d.Set("name", "foo"); err != nil {
+			t.Fatal(err)
+		}
+		d.SetId("nonexistent-project-id")
+
+		err := resourceProjectRead(context.TODO(), d, meta)
+
+		assert.NoError(t, err)
+		assert.Empty(t, d.Id())
+	})
+}

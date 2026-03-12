@@ -44,7 +44,7 @@ func (s *sdkClientStub) UpdateProject(_ string, cfg neon.ProjectUpdateRequest) (
 }
 
 func (s *sdkClientStub) GetProject(_ string) (neon.ProjectResponse, error) {
-	return neon.ProjectResponse{}, nil
+	return neon.ProjectResponse{}, s.err
 }
 
 func (s *sdkClientStub) ListProjectBranches(_ string, _ *string, _ *string, _ *string, _ *string, _ *int) (neon.ListProjectBranchesRespObj, error) {
