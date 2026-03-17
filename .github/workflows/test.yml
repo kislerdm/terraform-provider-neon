@@ -126,7 +126,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
-      - uses: opentofu/setup-opentofu@v1
+      - uses: opentofu/setup-opentofu@v2
         with:
           tofu_version: ${{ matrix.terraform }}
           tofu_wrapper: false
