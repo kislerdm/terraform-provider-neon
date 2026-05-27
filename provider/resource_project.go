@@ -331,10 +331,8 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 				Optional: true,
 				Computed: true,
 				ValidateFunc: func(v interface{}, s string) (warn []string, errs []error) {
-					switch vv, ok := v.(int); ok {
-					case vv == -1:
-					default:
-						warn, errs = intValidationNotNegative(v, s)
+					if vv, ok := v.(int); ok && vv < -1 {
+						errs = append(errs, fmt.Errorf("%s must be -1 (never suspend) or a non-negative integer, got: %d", s, vv))
 					}
 					return warn, errs
 				},
@@ -357,7 +355,7 @@ func mapToDefaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpoi
 		o.AutoscalingLimitMaxCu = pointer(neon.ComputeUnit(v))
 	}
 
-	if v, ok := v["suspend_timeout_seconds"].(int); ok && v > 0 {
+	if v, ok := v["suspend_timeout_seconds"].(int); ok && v != 0 {
 		o.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v))
 	}
 	return &o

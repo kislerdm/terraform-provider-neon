@@ -662,6 +662,35 @@ func Test_resourceProjectDefaultEndpointSettingsShallAllowToSetSuspensionTimeout
 	}
 }
 
+func Test_mapToDefaultEndpointsSettings_suspendTimeoutSeconds(t *testing.T) {
+	tests := map[string]struct {
+		in   int
+		want *neon.SuspendTimeoutSeconds
+	}{
+		"never suspend": {
+			in:   -1,
+			want: pointer(neon.SuspendTimeoutSeconds(-1)),
+		},
+		"custom timeout": {
+			in:   300,
+			want: pointer(neon.SuspendTimeoutSeconds(300)),
+		},
+		"zero is skipped": {
+			in:   0,
+			want: nil,
+		},
+	}
+	t.Parallel()
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := mapToDefaultEndpointsSettings(map[string]interface{}{
+				"suspend_timeout_seconds": tt.in,
+			})
+			assert.Equal(t, tt.want, got.SuspendTimeoutSeconds)
+		})
+	}
+}
+
 func Test_resourceProjectCreate_requestBody_block_vpc_connections(t *testing.T) {
 	T := pointer(true)
 	F := pointer(false)
