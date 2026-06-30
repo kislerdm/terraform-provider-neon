@@ -162,7 +162,7 @@ Note that the feature is available to the Neon Scale plans only.`, false),
 				`Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
 See details: https://neon.tech/docs/introduction/logical-replication
-`, true),
+`, false),
 			// computed fields
 			"default_branch_id": {
 				Type:        schema.TypeString,
@@ -884,41 +884,59 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	var maintenanceWindow = new(neon.MaintenanceWindow)
+	var maintenanceWindow *neon.MaintenanceWindow
 	if v, ok := d.GetOk("maintenance_window"); ok {
 		if len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
 			if v, ok := v.([]interface{})[0].(map[string]interface{}); ok && len(v) > 0 {
 				weekdaysRaw := v["weekdays"].([]interface{})
-				var weekdays = make([]int, len(weekdaysRaw))
+				weekdays := make([]int, len(weekdaysRaw))
 				for i, weekday := range weekdaysRaw {
 					weekdays[i] = weekday.(int)
 				}
-				maintenanceWindow.Weekdays = weekdays
-				maintenanceWindow.StartTime = v["start_time"].(string)
-				maintenanceWindow.EndTime = v["end_time"].(string)
+				maintenanceWindow = &neon.MaintenanceWindow{
+					Weekdays:  weekdays,
+					StartTime: v["start_time"].(string),
+					EndTime:   v["end_time"].(string),
+				}
 			}
 		}
-	} else {
-		maintenanceWindow = nil
 	}
 
-	req.Project.Settings = &neon.ProjectSettingsData{
-		Quota: quota,
-		AllowedIps: &neon.AllowedIps{
-			ProtectedBranchesOnly: types.GetTristateBool(d, "allowed_ips_protected_branches_only"),
-		},
-		BlockPublicConnections:   types.GetTristateBool(d, "block_public_connections"),
-		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
-		MaintenanceWindow:        maintenanceWindow,
-		BlockVpcConnections:      types.GetTristateBool(d, "block_vpc_connections"),
-	}
-
-	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {
-		var allowedIPs = make([]string, len(v.([]interface{})))
-		for i, vv := range v.([]interface{}) {
-			allowedIPs[i] = fmt.Sprintf("%v", vv)
+	if d.HasChange("enable_logical_replication") {
+		oldVal, newVal := d.GetChange("enable_logical_replication")
+		if oldVal == types.ValTrue && (newVal == types.ValFalse || newVal == types.ValNull) {
+			return fmt.Errorf(
+				"enable_logical_replication cannot be disabled once enabled: " +
+					"the Neon API does not support reverting this setting",
+			)
 		}
-		req.Project.Settings.AllowedIps.Ips = &allowedIPs
+	}
+
+	if d.HasChange("quota") || d.HasChange("allowed_ips") || d.HasChange("allowed_ips_protected_branches_only") ||
+		d.HasChange("block_public_connections") || d.HasChange("block_vpc_connections") ||
+		d.HasChange("enable_logical_replication") || d.HasChange("maintenance_window") {
+
+		req.Project.Settings = &neon.ProjectSettingsData{
+			Quota: quota,
+			AllowedIps: &neon.AllowedIps{
+				ProtectedBranchesOnly: types.GetTristateBool(d, "allowed_ips_protected_branches_only"),
+			},
+			BlockPublicConnections:   types.GetTristateBool(d, "block_public_connections"),
+			EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
+			BlockVpcConnections:      types.GetTristateBool(d, "block_vpc_connections"),
+		}
+
+		if d.HasChange("maintenance_window") {
+			req.Project.Settings.MaintenanceWindow = maintenanceWindow
+		}
+
+		if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {
+			var allowedIPs = make([]string, len(v.([]interface{})))
+			for i, vv := range v.([]interface{}) {
+				allowedIPs[i] = fmt.Sprintf("%v", vv)
+			}
+			req.Project.Settings.AllowedIps.Ips = &allowedIPs
+		}
 	}
 
 	client := meta.(sdkProject)
