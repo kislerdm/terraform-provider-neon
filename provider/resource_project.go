@@ -331,8 +331,10 @@ var schemaDefaultEndpointSettings = &schema.Schema{
 				Optional: true,
 				Computed: true,
 				ValidateFunc: func(v interface{}, s string) (warn []string, errs []error) {
-					if vv, ok := v.(int); ok && vv < -1 {
-						errs = append(errs, fmt.Errorf("%s must be -1 (never suspend) or a non-negative integer, got: %d", s, vv))
+					switch vv, ok := v.(int); ok {
+					case vv == -1:
+					default:
+						warn, errs = intValidationNotNegative(v, s)
 					}
 					return warn, errs
 				},
