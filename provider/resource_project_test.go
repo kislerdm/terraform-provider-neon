@@ -643,9 +643,11 @@ func Test_resourceProjectDefaultEndpointSettingsShallAllowToSetSuspensionTimeout
 		in      int
 		isError bool
 	}{
-		"no suspension": {-1, false},
-		"invalid":       {-2, true},
-		"valid":         {300, false},
+		"never suspend (-1) is allowed":      {-1, false},
+		"negative other than -1 is rejected": {-2, true},
+		"large negative is rejected":         {-300, true},
+		"zero is allowed":                    {0, false},
+		"positive is allowed":                {300, false},
 	}
 	t.Parallel()
 	for name, test := range tests {
