@@ -213,6 +213,14 @@ See details: https://neon.tech/docs/introduction/logical-replication
 				Description: "Default endpoint ID.",
 			},
 			"maintenance_window": maintenanceWindowSettings,
+			"hipaa": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Description: `Enable HIPAA compliance for the project. 
+Note that HIPAA must be configured for the organization first.
+~~Warning~~:Once enabled, HIPAA cannot be disabled.`,
+			},
 		},
 	}
 }
@@ -652,6 +660,12 @@ func updateStateProject(
 				return err
 			}
 		}
+
+		if r.Settings.Hipaa != nil {
+			if err := d.Set("hipaa", *r.Settings.Hipaa); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := d.Set("default_branch_id", defaultBranchID); err != nil {
@@ -735,6 +749,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		Provisioner:    pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 		RegionID:       pointer(d.Get("region_id").(string)),
 		StorePasswords: types.GetTristateBool(d, "store_password"),
+		Settings:       &neon.ProjectSettingsData{Hipaa: pointer(d.Get("hipaa").(bool))},
 	}
 
 	if v, ok := d.Get("history_retention_seconds").(int); ok && v >= 0 {
@@ -911,6 +926,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
 		MaintenanceWindow:        maintenanceWindow,
 		BlockVpcConnections:      types.GetTristateBool(d, "block_vpc_connections"),
+		Hipaa:                    pointer(d.Get("hipaa").(bool)),
 	}
 
 	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {

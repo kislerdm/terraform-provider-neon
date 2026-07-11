@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -208,4 +209,257 @@ resource "neon_vpc_endpoint_restriction" "_" {
 			},
 		},
 	)
+}
+
+// issue 203: https://github.com/kislerdm/terraform-provider-neon/issues/203
+func TestAccHIPAA(t *testing.T) {
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("TF_ACC must be set to 1")
+	}
+
+	orgID := os.Getenv("ORG_ID")
+	if orgID == "" {
+		t.Skip("ORG_ID must be set")
+	}
+
+	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID, nil)
+		for _, project := range resp.Projects {
+			_, _ = client.DeleteProject(project.ID)
+		}
+	})
+
+	var newResourceDefinition = func(projectName string, hipaaEnabled bool) string {
+		return fmt.Sprintf(`resource "neon_project" "this" {
+    org_id = "%s"
+	name   = "%s"
+	hipaa  = %v
+}`, orgID, projectName, hipaaEnabled)
+	}
+
+	t.Run("shall fail to disable initially enable HIPAA", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: newResourceDefinition(projectName, true),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"neon_project.this",
+								"hipaa", "true",
+							),
+							func(state *terraform.State) error {
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								if err != nil {
+									return err
+								}
+
+								if len(resp.Projects) != 1 {
+									return fmt.Errorf(
+										"project %s should have been creted in the org %s", projectName, orgID,
+									)
+								}
+
+								settings := resp.Projects[0].Settings
+								if settings == nil || settings.Hipaa == nil || !*settings.Hipaa {
+									return fmt.Errorf("project %s does not have hipaa enabled", projectName)
+								}
+
+								return nil
+							},
+						),
+					},
+					{
+						Config:      newResourceDefinition(projectName, false),
+						ExpectError: regexp.MustCompile("disabling HIPAA is not allowed"),
+					},
+				},
+			},
+		)
+	})
+
+	t.Run("shall enable initially implicitly disabled HIPAA", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {
+    org_id = "%s"
+	name   = "%s"
+}`, orgID, projectName),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"neon_project.this",
+								"hipaa", "false",
+							),
+							func(state *terraform.State) error {
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								if err != nil {
+									return err
+								}
+
+								if len(resp.Projects) != 1 {
+									return fmt.Errorf(
+										"project %s should have been creted in the org %s", projectName, orgID,
+									)
+								}
+
+								settings := resp.Projects[0].Settings
+								if settings == nil || settings.Hipaa == nil || *settings.Hipaa {
+									return fmt.Errorf("project %s does have hipaa enabled", projectName)
+								}
+
+								return nil
+							},
+						),
+					},
+					{
+						Config: newResourceDefinition(projectName, true),
+						Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(
+							"neon_project.this",
+							"hipaa", "true",
+						),
+							func(state *terraform.State) error {
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								if err != nil {
+									return err
+								}
+
+								if len(resp.Projects) != 1 {
+									return fmt.Errorf(
+										"project %s should have been creted in the org %s", projectName, orgID,
+									)
+								}
+
+								settings := resp.Projects[0].Settings
+								if settings == nil || settings.Hipaa == nil || !*settings.Hipaa {
+									return fmt.Errorf("project %s does not have hipaa enabled", projectName)
+								}
+
+								return nil
+							}),
+					},
+				},
+			},
+		)
+	})
+
+	t.Run("shall enable initially explicitly disabled HIPAA", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: newResourceDefinition(projectName, false),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"neon_project.this",
+								"hipaa", "false",
+							),
+							func(state *terraform.State) error {
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								if err != nil {
+									return err
+								}
+
+								if len(resp.Projects) != 1 {
+									return fmt.Errorf(
+										"project %s should have been creted in the org %s", projectName, orgID,
+									)
+								}
+
+								settings := resp.Projects[0].Settings
+								if settings == nil || settings.Hipaa == nil || *settings.Hipaa {
+									return fmt.Errorf("project %s does have hipaa enabled", projectName)
+								}
+
+								return nil
+							},
+						),
+					},
+					{
+						Config: newResourceDefinition(projectName, true),
+						Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(
+							"neon_project.this",
+							"hipaa", "true",
+						),
+							func(state *terraform.State) error {
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								if err != nil {
+									return err
+								}
+
+								if len(resp.Projects) != 1 {
+									return fmt.Errorf(
+										"project %s should have been creted in the org %s", projectName, orgID,
+									)
+								}
+
+								settings := resp.Projects[0].Settings
+								if settings == nil || settings.Hipaa == nil || !*settings.Hipaa {
+									return fmt.Errorf("project %s does not have hipaa enabled", projectName)
+								}
+
+								return nil
+							}),
+					},
+				},
+			},
+		)
+	})
+
+	t.Run("shall import project with enabled HIPAA", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: newResourceDefinition(projectName, true),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"neon_project.this",
+								"hipaa", "true",
+							),
+						),
+					},
+					{
+						ImportState:  true,
+						Config:       newResourceDefinition(projectName, true),
+						ResourceName: "neon_project.this",
+						Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(
+							"neon_project.this",
+							"hipaa", "true",
+						)),
+					},
+				},
+			},
+		)
+	})
 }
