@@ -54,7 +54,7 @@ resource "neon_branch" "child" {
 - `parent_lsn` (String) Log Sequence Number (LSN) horizon for the data to be present in the new branch.
 See details: https://neon.tech/docs/reference/glossary/#lsn
 - `parent_timestamp` (Number) Timestamp horizon for the data to be present in the new branch.
-**Note**: it's defined as Unix epoch.'
+**Note**: it's defined as Unix epoch.
 - `protected` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Set whether the branch is protected.
 
