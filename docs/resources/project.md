@@ -136,8 +136,13 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 - `default_endpoint_settings` (Block List, Max: 1) (see [below for nested schema](#nestedblock--default_endpoint_settings))
 - `enable_logical_replication` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Sets wal_level=logical for all compute endpoints in this project.
-All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
-See details: https://neon.tech/docs/introduction/logical-replication
+All active endpoints will be suspended. See details: https://neon.tech/docs/introduction/logical-replication
+
+**Warning**: Once enabled, logical replication cannot be disabled.
+- `hipaa` (Boolean) Enable HIPAA compliance for the project. 
+Note that HIPAA must be configured for the organization first.
+
+**Warning**: Once enabled, HIPAA cannot be disabled.
 - `history_retention_seconds` (Number) The number of seconds to retain the point-in-time restore (PITR) backup history for this project.
 Default: 1 day, see https://neon.tech/docs/reference/glossary#point-in-time-restore.
 - `maintenance_window` (Block List, Max: 1) A time period during which Neon may perform maintenance on the project's infrastructure. During this time, the project's compute endpoints may be unavailable and existing connections can be interrupted. (see [below for nested schema](#nestedblock--maintenance_window))

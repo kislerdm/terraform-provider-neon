@@ -160,9 +160,9 @@ Note that the feature is available to the Neon Scale plans only.`, false),
 				`Block connections that use VPC endpoints.`, false),
 			"enable_logical_replication": types.NewOptionalTristateBool(
 				`Sets wal_level=logical for all compute endpoints in this project.
-All active endpoints will be suspended. Once enabled, logical replication cannot be disabled.
-See details: https://neon.tech/docs/introduction/logical-replication
-`, true),
+All active endpoints will be suspended. See details: https://neon.tech/docs/introduction/logical-replication
+
+**Warning**: Once enabled, logical replication cannot be disabled.`, true),
 			// computed fields
 			"default_branch_id": {
 				Type:        schema.TypeString,
@@ -219,7 +219,8 @@ See details: https://neon.tech/docs/introduction/logical-replication
 				ForceNew: false,
 				Description: `Enable HIPAA compliance for the project. 
 Note that HIPAA must be configured for the organization first.
-~~Warning~~:Once enabled, HIPAA cannot be disabled.`,
+
+**Warning**: Once enabled, HIPAA cannot be disabled.`,
 			},
 		},
 	}
