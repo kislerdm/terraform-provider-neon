@@ -161,8 +161,9 @@ Note that the feature is available to the Neon Scale plans only.`, false),
 			"enable_logical_replication": types.NewOptionalTristateBool(
 				`Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. See details: https://neon.tech/docs/introduction/logical-replication
+**Note**: removal of this config from the manifest will correspond to the API call with the respective setting set to false. 
 
-**Warning**: Once enabled, logical replication cannot be disabled.`, true),
+**Warning**: Once enabled, logical replication cannot be disabled.`, false),
 			// computed fields
 			"default_branch_id": {
 				Type:        schema.TypeString,
@@ -923,13 +924,17 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		maintenanceWindow = nil
 	}
 
+	withLogicalReplication := types.GetTristateBool(d, "enable_logical_replication")
+	if _, ok := d.GetOk("enable_logical_replication"); !ok && d.HasChange("enable_logical_replication") {
+		withLogicalReplication = pointer(false)
+	}
 	req.Project.Settings = &neon.ProjectSettingsData{
 		Quota: quota,
 		AllowedIps: &neon.AllowedIps{
 			ProtectedBranchesOnly: types.GetTristateBool(d, "allowed_ips_protected_branches_only"),
 		},
 		BlockPublicConnections:   types.GetTristateBool(d, "block_public_connections"),
-		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
+		EnableLogicalReplication: withLogicalReplication,
 		MaintenanceWindow:        maintenanceWindow,
 		BlockVpcConnections:      types.GetTristateBool(d, "block_vpc_connections"),
 		Hipaa:                    types.GetTristateBool(d, "hipaa"),

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [[203](https://github.com/kislerdm/terraform-provider-neon/issues/203)] Added the attribute `hipaa` to the resource `neon_project` to configure the project's HIPAA compliance.
 
+### Fixed
+
+- [[218](https://github.com/kislerdm/terraform-provider-neon/issues/218)] Fixed state management for the `enable_logical_replication` of the resource `neon_project`. It can be changed in-place now.
+
 ## [v0.13.0] - 2026-01-02
 
 ### Added

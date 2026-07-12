@@ -137,6 +137,7 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 - `enable_logical_replication` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. See details: https://neon.tech/docs/introduction/logical-replication
+**Note**: removal of this config from the manifest will correspond to the API call with the respective setting set to false. 
 
 **Warning**: Once enabled, logical replication cannot be disabled.
 - `hipaa` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.

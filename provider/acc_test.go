@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -50,8 +51,6 @@ func TestAcc(t *testing.T) {
 	end2end(t, client)
 
 	projectAllowedIPs(t, client)
-
-	projectLogicalReplication(t, client)
 
 	fetchDataSources(t)
 
@@ -692,103 +691,6 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 	})
 }
 
-func projectLogicalReplication(t *testing.T, client *neon.Client) {
-	t.Run("shall create project without logical replication", func(t *testing.T) {
-		projectName := newProjectName()
-		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
-			name      				   = "%s"
-			region_id 				   = "aws-us-west-2"
-			pg_version				   = 16
-		}`, projectName)
-		const resourceNameProject = "neon_project.this"
-		resource.Test(
-			t, resource.TestCase{
-				ProviderFactories: map[string]func() (*schema.Provider, error){
-					"neon": func() (*schema.Provider, error) {
-						return newAccTest(), nil
-					},
-				},
-				Steps: []resource.TestStep{
-					{
-						ResourceName: "project",
-						Config:       resourceDefinition,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								resourceNameProject,
-								"name", projectName,
-							),
-							resource.TestCheckNoResourceAttr(
-								resourceNameProject, "enable_logical_replication",
-							),
-							func(state *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								if ref.Settings.EnableLogicalReplication == nil || *ref.Settings.EnableLogicalReplication {
-									return errors.New("unexpected enable_logical_replication value, shall be 'false'")
-								}
-
-								return nil
-							},
-						),
-					},
-				},
-			})
-	})
-
-	t.Run("shall create project with logical replication", func(t *testing.T) {
-		projectName := newProjectName()
-
-		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
-			name      				   = "%s"
-			region_id 				   = "aws-us-west-2"
-			pg_version				   = 16
-			enable_logical_replication = "yes"
-		}`, projectName)
-
-		const resourceNameProject = "neon_project.this"
-		resource.Test(
-			t, resource.TestCase{
-				ProviderFactories: map[string]func() (*schema.Provider, error){
-					"neon": func() (*schema.Provider, error) {
-						return newAccTest(), nil
-					},
-				},
-				Steps: []resource.TestStep{
-					{
-						ResourceName: "project",
-						Config:       resourceDefinition,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								resourceNameProject,
-								"name", projectName,
-							),
-							resource.TestCheckResourceAttr(
-								resourceNameProject,
-								"enable_logical_replication", "yes",
-							),
-							func(state *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
-									return errors.New("unexpected enable_logical_replication value, shall be 'yes'")
-								}
-
-								return nil
-							},
-						),
-					},
-				},
-			},
-		)
-	})
-}
-
 func fetchDataSources(t *testing.T) {
 	t.Run(
 		"shall successfully fetch project", func(t *testing.T) {
@@ -1404,4 +1306,316 @@ func TestAccMaintenanceWindow(t *testing.T) {
 			},
 		},
 	)
+}
+
+func TestLogicalReplication(t *testing.T) {
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("TF_ACC must be set to 1")
+	}
+
+	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	projectNamePrefix += "logicalReplication-"
+
+	t.Cleanup(func() {
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		for _, project := range resp.Projects {
+			_, _ = client.DeleteProject(project.ID)
+		}
+	})
+
+	var newProjectName = func() string {
+		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
+
+	var newResourceDefinition = func(projectName string, withLogicalReplication string) string {
+		return fmt.Sprintf(`resource "neon_project" "this" {
+	name                        = "%s"
+	enable_logical_replication  = "%s"
+}`, projectName, withLogicalReplication)
+	}
+
+	const resourceNameProject = "neon_project.this"
+
+	t.Run("shall enable logical replication", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: newResourceDefinition(projectName, "yes"),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"name", projectName,
+							),
+							resource.TestCheckResourceAttr(
+								resourceNameProject, "enable_logical_replication", "yes",
+							),
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'true'")
+								}
+
+								return nil
+							},
+						),
+					},
+				},
+			})
+	})
+
+	t.Run("shall keep enable logical replication implicitly disabled", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckNoResourceAttr(resourceNameProject, "enable_logical_replication"),
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								if ref.Settings.EnableLogicalReplication == nil || *ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'false'")
+								}
+
+								return nil
+							},
+						),
+					},
+					{
+						Config:             fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName),
+						PlanOnly:           true,
+						ExpectNonEmptyPlan: false,
+					},
+				},
+			})
+	})
+
+	t.Run("shall enable initially implicitly disabled logical replication", func(t *testing.T) {
+		projectName := newProjectName()
+		var projectID string
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckNoResourceAttr(resourceNameProject, "enable_logical_replication"),
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								projectID = ref.ID
+
+								if ref.Settings.EnableLogicalReplication == nil || *ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'false'")
+								}
+
+								return nil
+							},
+						),
+					},
+					{
+						Config: newResourceDefinition(projectName, "yes"),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(resourceNameProject, "enable_logical_replication",
+								"yes"),
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'true'")
+								}
+
+								return nil
+							},
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+								if projectID != ref.ID {
+									return errors.New("unexpected project recreation")
+								}
+								return nil
+							},
+						),
+					},
+				},
+			})
+	})
+
+	t.Run("shall enable initially disabled logical replication", func(t *testing.T) {
+		projectName := newProjectName()
+		var projectID string
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: newResourceDefinition(projectName, "no"),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(resourceNameProject, "enable_logical_replication",
+								"no"),
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								projectID = ref.ID
+
+								if ref.Settings.EnableLogicalReplication == nil || *ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'false'")
+								}
+
+								return nil
+							},
+						),
+					},
+					{
+						Config: newResourceDefinition(projectName, "yes"),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(resourceNameProject, "enable_logical_replication",
+								"yes"),
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'true'")
+								}
+
+								return nil
+							},
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+								if projectID != ref.ID {
+									return errors.New("unexpected project recreation")
+								}
+								return nil
+							},
+						),
+					},
+				},
+			})
+	})
+
+	t.Run("shall fail to disable initially enabled logical replication", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: newResourceDefinition(projectName, "yes"),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(resourceNameProject, "enable_logical_replication",
+								"yes"),
+							func(state *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
+									return errors.New("unexpected enable_logical_replication value, shall be 'true'")
+								}
+
+								return nil
+							},
+						),
+					},
+					{
+						Config:      newResourceDefinition(projectName, "no"),
+						ExpectError: regexp.MustCompile("400"),
+					},
+				},
+			})
+	})
+
+	t.Run("shall fail to disable initially enabled logical replication if the config was removed from manifest",
+		func(t *testing.T) {
+			projectName := newProjectName()
+			resource.Test(
+				t, resource.TestCase{
+					ProviderFactories: map[string]func() (*schema.Provider, error){
+						"neon": func() (*schema.Provider, error) {
+							return newAccTest(), nil
+						},
+					},
+					Steps: []resource.TestStep{
+						{
+							Config: newResourceDefinition(projectName, "yes"),
+							Check: resource.ComposeTestCheckFunc(
+								resource.TestCheckResourceAttr(resourceNameProject, "enable_logical_replication",
+									"yes"),
+								func(state *terraform.State) error {
+									ref, err := readProjectInfo(client, projectName)
+									if err != nil {
+										return err
+									}
+
+									if ref.Settings.EnableLogicalReplication == nil || !*ref.Settings.EnableLogicalReplication {
+										return errors.New("unexpected enable_logical_replication value, shall be 'true'")
+									}
+
+									return nil
+								},
+							),
+						},
+						{
+							Config:      fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName),
+							ExpectError: regexp.MustCompile("400"),
+						},
+					},
+				})
+		})
 }
