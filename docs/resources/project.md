@@ -139,7 +139,8 @@ Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. See details: https://neon.tech/docs/introduction/logical-replication
 
 **Warning**: Once enabled, logical replication cannot be disabled.
-- `hipaa` (Boolean) Enable HIPAA compliance for the project. 
+- `hipaa` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
+Enable HIPAA compliance for the project. 
 Note that HIPAA must be configured for the organization first.
 
 **Warning**: Once enabled, HIPAA cannot be disabled.

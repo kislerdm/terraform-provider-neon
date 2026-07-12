@@ -227,6 +227,8 @@ func TestAccHIPAA(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	projectNamePrefix += "hipaa-"
+
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID, nil)
 		for _, project := range resp.Projects {
@@ -234,15 +236,15 @@ func TestAccHIPAA(t *testing.T) {
 		}
 	})
 
-	var newResourceDefinition = func(projectName string, hipaaEnabled bool) string {
+	var newResourceDefinition = func(projectName string, withHipaa string) string {
 		return fmt.Sprintf(`resource "neon_project" "this" {
     org_id = "%s"
 	name   = "%s"
-	hipaa  = %v
-}`, orgID, projectName, hipaaEnabled)
+	hipaa  = "%s"
+}`, orgID, projectName, withHipaa)
 	}
 
-	t.Run("shall fail to disable initially enable HIPAA", func(t *testing.T) {
+	t.Run("shall fail to disable initially enabled HIPAA", func(t *testing.T) {
 		projectName := newProjectName()
 		resource.Test(
 			t, resource.TestCase{
@@ -253,11 +255,11 @@ func TestAccHIPAA(t *testing.T) {
 				},
 				Steps: []resource.TestStep{
 					{
-						Config: newResourceDefinition(projectName, true),
+						Config: newResourceDefinition(projectName, "yes"),
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr(
 								"neon_project.this",
-								"hipaa", "true",
+								"hipaa", "yes",
 							),
 							func(state *terraform.State) error {
 								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
@@ -281,7 +283,7 @@ func TestAccHIPAA(t *testing.T) {
 						),
 					},
 					{
-						Config:      newResourceDefinition(projectName, false),
+						Config:      newResourceDefinition(projectName, "no"),
 						ExpectError: regexp.MustCompile("disabling HIPAA is not allowed"),
 					},
 				},
@@ -305,10 +307,7 @@ func TestAccHIPAA(t *testing.T) {
 	name   = "%s"
 }`, orgID, projectName),
 						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"neon_project.this",
-								"hipaa", "false",
-							),
+							resource.TestCheckNoResourceAttr("neon_project.this", "hipaa"),
 							func(state *terraform.State) error {
 								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
 								if err != nil {
@@ -331,10 +330,10 @@ func TestAccHIPAA(t *testing.T) {
 						),
 					},
 					{
-						Config: newResourceDefinition(projectName, true),
+						Config: newResourceDefinition(projectName, "yes"),
 						Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(
 							"neon_project.this",
-							"hipaa", "true",
+							"hipaa", "yes",
 						),
 							func(state *terraform.State) error {
 								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
@@ -372,11 +371,11 @@ func TestAccHIPAA(t *testing.T) {
 				},
 				Steps: []resource.TestStep{
 					{
-						Config: newResourceDefinition(projectName, false),
+						Config: newResourceDefinition(projectName, "no"),
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr(
 								"neon_project.this",
-								"hipaa", "false",
+								"hipaa", "no",
 							),
 							func(state *terraform.State) error {
 								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
@@ -400,10 +399,10 @@ func TestAccHIPAA(t *testing.T) {
 						),
 					},
 					{
-						Config: newResourceDefinition(projectName, true),
+						Config: newResourceDefinition(projectName, "yes"),
 						Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(
 							"neon_project.this",
-							"hipaa", "true",
+							"hipaa", "yes",
 						),
 							func(state *terraform.State) error {
 								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
@@ -441,22 +440,54 @@ func TestAccHIPAA(t *testing.T) {
 				},
 				Steps: []resource.TestStep{
 					{
-						Config: newResourceDefinition(projectName, true),
+						Config: newResourceDefinition(projectName, "yes"),
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr(
 								"neon_project.this",
-								"hipaa", "true",
+								"hipaa", "yes",
 							),
 						),
 					},
 					{
 						ImportState:  true,
-						Config:       newResourceDefinition(projectName, true),
+						Config:       newResourceDefinition(projectName, "yes"),
 						ResourceName: "neon_project.this",
 						Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(
 							"neon_project.this",
-							"hipaa", "true",
+							"hipaa", "yes",
 						)),
+					},
+				},
+			},
+		)
+	})
+
+	t.Run("shall have empty plan after for implicitly disabled HIPAA if no config changed", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {
+    org_id = "%s"
+	name   = "%s"
+}`, orgID, projectName),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckNoResourceAttr("neon_project.this", "hipaa"),
+						),
+					},
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {
+    org_id = "%s"
+	name   = "%s"
+}`, orgID, projectName),
+						PlanOnly:           true,
+						ExpectNonEmptyPlan: false,
 					},
 				},
 			},

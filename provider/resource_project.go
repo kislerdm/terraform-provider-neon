@@ -213,15 +213,10 @@ All active endpoints will be suspended. See details: https://neon.tech/docs/intr
 				Description: "Default endpoint ID.",
 			},
 			"maintenance_window": maintenanceWindowSettings,
-			"hipaa": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: false,
-				Description: `Enable HIPAA compliance for the project. 
+			"hipaa": types.NewOptionalTristateBool(`Enable HIPAA compliance for the project. 
 Note that HIPAA must be configured for the organization first.
 
-**Warning**: Once enabled, HIPAA cannot be disabled.`,
-			},
+**Warning**: Once enabled, HIPAA cannot be disabled.`, false),
 		},
 	}
 }
@@ -663,8 +658,12 @@ func updateStateProject(
 		}
 
 		if r.Settings.Hipaa != nil {
-			if err := d.Set("hipaa", *r.Settings.Hipaa); err != nil {
-				return err
+			switch {
+			case !*r.Settings.Hipaa && types.IsNull(d, "hipaa"):
+			default:
+				if err := types.SetTristateBool(d, "hipaa", r.Settings.Hipaa); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -750,7 +749,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		Provisioner:    pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 		RegionID:       pointer(d.Get("region_id").(string)),
 		StorePasswords: types.GetTristateBool(d, "store_password"),
-		Settings:       &neon.ProjectSettingsData{Hipaa: pointer(d.Get("hipaa").(bool))},
 	}
 
 	if v, ok := d.Get("history_retention_seconds").(int); ok && v >= 0 {
@@ -811,6 +809,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			projectDef.Settings = &neon.ProjectSettingsData{}
 		}
 		projectDef.Settings.EnableLogicalReplication = v
+	}
+
+	if v := types.GetTristateBool(d, "hipaa"); v != nil {
+		if projectDef.Settings == nil {
+			projectDef.Settings = &neon.ProjectSettingsData{}
+		}
+		projectDef.Settings.Hipaa = v
 	}
 
 	if v, ok := d.GetOk("branch"); ok && len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
@@ -927,7 +932,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		EnableLogicalReplication: types.GetTristateBool(d, "enable_logical_replication"),
 		MaintenanceWindow:        maintenanceWindow,
 		BlockVpcConnections:      types.GetTristateBool(d, "block_vpc_connections"),
-		Hipaa:                    pointer(d.Get("hipaa").(bool)),
+		Hipaa:                    types.GetTristateBool(d, "hipaa"),
 	}
 
 	if v, ok := d.GetOk("allowed_ips"); ok && len(v.([]interface{})) > 0 {
