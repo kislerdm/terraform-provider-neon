@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -235,6 +237,10 @@ func TestAccHIPAA(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
+
+	var newProjectName = func() string {
+		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
 
 	var newResourceDefinition = func(projectName string, withHipaa string) string {
 		return fmt.Sprintf(`resource "neon_project" "this" {
