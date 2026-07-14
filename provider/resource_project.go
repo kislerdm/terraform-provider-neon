@@ -928,7 +928,6 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	var maintenanceWindow = new(neon.MaintenanceWindow)
-	maintenanceWindow = nil
 	if d.HasChange("maintenance_window") {
 		if v, ok := d.GetOk("maintenance_window"); ok {
 			if len(v.([]interface{})) > 0 && v.([]interface{})[0] != nil {
@@ -943,6 +942,8 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 					maintenanceWindow.EndTime = v["end_time"].(string)
 				}
 			}
+		} else {
+			maintenanceWindow = nil
 		}
 	}
 
