@@ -789,3 +789,30 @@ func Test_resourceProjectUpdate_requestBody_block_vpc_connections(t *testing.T) 
 		assert.True(t, *reqUpdate.Project.Settings.BlockVpcConnections)
 	})
 }
+
+func Test_resourceProjectUpdate_requestBody_maintenance_window(t *testing.T) {
+	// 	issue https://github.com/kislerdm/terraform-provider-neon/issues/223
+	t.Run(`shall not send maintenance_window in the project update request 
+if it's not configured in the tf manifest`, func(t *testing.T) {
+		meta := &sdkClientStub{}
+		resource := resourceProject()
+		definition := resource.TestResourceData()
+
+		assert.NoError(t, definition.Set("name", "Foo"))
+		// configure a project's setting to verify the maintenance_window request's attribute
+		assert.NoError(t, definition.Set("hipaa", "yes"))
+		assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+		reqCreate, ok := meta.req.(neon.ProjectCreateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+		assert.Nilf(t, reqCreate.Project.Settings.MaintenanceWindow, "unexpected maintenance_window value")
+
+		// 	update the project
+		assert.NoError(t, definition.Set("hipaa", "no"))
+		assert.NoError(t, resourceProjectUpdate(context.TODO(), definition, meta))
+
+		reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+		assert.Truef(t, ok, "unexpected request object type")
+		assert.Nilf(t, reqUpdate.Project.Settings.MaintenanceWindow, "unexpected maintenance_window value")
+	})
+}

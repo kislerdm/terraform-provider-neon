@@ -1207,7 +1207,7 @@ func TestAccMaintenanceWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix := projectNamePrefix + "-maintenanceWindow-"
+	projectNamePrefix += "maintenanceWindow-"
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
 		for _, project := range resp.Projects {
@@ -1215,7 +1215,9 @@ func TestAccMaintenanceWindow(t *testing.T) {
 		}
 	})
 
-	projectName := projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
+	var newProjectName = func() string {
+		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
 
 	var (
 		wantWeekdays  = []int{1, 2}
@@ -1231,6 +1233,7 @@ func TestAccMaintenanceWindow(t *testing.T) {
 		}
 	}
 
+	projectName := newProjectName()
 	resource.Test(
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -1302,6 +1305,24 @@ func TestAccMaintenanceWindow(t *testing.T) {
 							strconv.Itoa(len(wantWeekdays)),
 						),
 					),
+				},
+				{
+					ResourceName: "neon_project.this",
+					Config: fmt.Sprintf(`resource "neon_project" "this" { 
+	name = "%s"
+	maintenance_window {
+		weekdays   = [%s]
+	    start_time = "%s"
+	    end_time   = "%s"
+	}
+}`, projectName, weekdaysStr, wantStartTime, wantEndTime),
+					PlanOnly: true,
+				},
+				{
+					ResourceName: "neon_project.this",
+					Config:       fmt.Sprintf(`resource "neon_project" "this" {name = %s}`, projectName),
+					ImportState:  true,
+					PlanOnly:     true,
 				},
 			},
 		},
