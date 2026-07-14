@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - [[203](https://github.com/kislerdm/terraform-provider-neon/issues/203)] Added the attribute `hipaa` to the resource `neon_project` to configure the project's HIPAA compliance.
+- [[221](https://github.com/kislerdm/terraform-provider-neon/issues/221)] Added the attribute `default_branch_protected` to the resource `neon_project` to configure protection of the default branch. 
 
 ### Fixed
 

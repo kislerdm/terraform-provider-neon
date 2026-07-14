@@ -1640,3 +1640,140 @@ func TestLogicalReplication(t *testing.T) {
 				})
 		})
 }
+
+func TestDefaultBranchProtected(t *testing.T) {
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("TF_ACC must be set to 1")
+	}
+
+	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	projectNamePrefix += "defaultBranchProtected-"
+
+	t.Cleanup(func() {
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		for _, project := range resp.Projects {
+			_, _ = client.DeleteProject(project.ID)
+		}
+	})
+
+	var newProjectName = func() string {
+		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
+
+	var newResourceDefinition = func(projectName string, withDefaultBranchProtected bool) string {
+		return fmt.Sprintf(`resource "neon_project" "this" {
+	name                      = "%s"
+	default_branch_protected  = %v
+}`, projectName, withDefaultBranchProtected)
+	}
+
+	const resourceNameProject = "neon_project.this"
+
+	t.Run("shall enable/disable default branch protection", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: newResourceDefinition(projectName, true),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"name", projectName,
+							),
+							resource.TestCheckResourceAttr(
+								resourceNameProject, "default_branch_protected", "true",
+							),
+							func(_ *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								resp, err := client.ListProjectBranches(ref.ID,
+									nil, nil, nil, nil, nil)
+								if err != nil {
+									return err
+								}
+								for _, branch := range resp.Branches {
+									if branch.Default {
+										assert.Truef(t, branch.Protected, "default branch shall be protected")
+									}
+								}
+								return nil
+							},
+						),
+					},
+					{
+						Config: newResourceDefinition(projectName, false),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"name", projectName,
+							),
+							resource.TestCheckResourceAttr(
+								resourceNameProject, "default_branch_protected", "false",
+							),
+							func(_ *terraform.State) error {
+								ref, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+
+								resp, err := client.ListProjectBranches(ref.ID,
+									nil, nil, nil, nil, nil)
+								if err != nil {
+									return err
+								}
+								for _, branch := range resp.Branches {
+									if branch.Default {
+										assert.Truef(t, !branch.Protected, "default branch shall not be protected")
+									}
+								}
+								return nil
+							},
+						),
+					},
+				},
+			})
+	})
+
+	t.Run("shall maintain default branch protection", func(t *testing.T) {
+		projectName := newProjectName()
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								resourceNameProject,
+								"name", projectName,
+							),
+							resource.TestCheckResourceAttr(
+								resourceNameProject, "default_branch_protected", "false",
+							),
+						),
+					},
+					{
+						Config:   fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName),
+						PlanOnly: true,
+					},
+				},
+			})
+	})
+}

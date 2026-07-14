@@ -68,6 +68,12 @@ func (s *sdkClientStub) CreateProject(cfg neon.ProjectCreateRequest) (neon.Creat
 	return neon.CreatedProject{}, s.err
 }
 
+func (s *sdkClientStub) UpdateProjectBranch(_ string, _ string, cfg neon.BranchUpdateRequest) (neon.BranchOperations,
+	error) {
+	s.req = cfg
+	return neon.BranchOperations{}, s.err
+}
+
 type stubProjectRolePassword struct {
 	Password string
 	err      error

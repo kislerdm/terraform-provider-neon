@@ -218,6 +218,12 @@ All active endpoints will be suspended. See details: https://neon.tech/docs/intr
 Note that HIPAA must be configured for the organization first.
 
 **Warning**: Once enabled, HIPAA cannot be disabled.`, false),
+			"default_branch_protected": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Set default branch as protected. **Note** that the default value is false.",
+			},
 		},
 	}
 }
@@ -531,11 +537,8 @@ func (i dbConnectionInfo) poolerConnectionURI() string {
 	return "postgres://" + i.userName + ":" + i.pass + "@" + i.poolerHost + "/" + i.dbName + sslMode
 }
 
-func updateStateProject(
-	d *schema.ResourceData, r neon.Project,
-	defaultBranchID, defaultBranchName string,
-	dbConnectionInfo dbConnectionInfo,
-) error {
+func updateStateProject(d *schema.ResourceData, r neon.Project, defaultBranchID, defaultBranchName string,
+	dbConnectionInfo dbConnectionInfo, defaultBranchProtected bool) error {
 	if r.OrgID != nil {
 		if err := d.Set("org_id", *r.OrgID); err != nil {
 			return err
@@ -718,6 +721,10 @@ func updateStateProject(
 		}
 	}
 
+	if err := d.Set("default_branch_protected", defaultBranchProtected); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -867,7 +874,21 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return err
 	}
 
-	return updateStateProject(d, resp.ProjectResponse.Project, branch.ID, branch.Name, info)
+	defaultBranchProtected := d.Get("default_branch_protected").(bool)
+	// Warning: The condition shall be updated if Neon changes the default behaviour.
+	if defaultBranchProtected != branch.Protected {
+		resp, err := client.UpdateProjectBranch(projectID, branch.ID, neon.BranchUpdateRequest{
+			Branch: neon.BranchUpdateRequestBranch{
+				Protected: &defaultBranchProtected,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
+	}
+
+	return updateStateProject(d, resp.ProjectResponse.Project, branch.ID, branch.Name, info, defaultBranchProtected)
 }
 
 func resourceProjectCreateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -957,6 +978,20 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 
+	if d.HasChange("default_branch_protected") {
+		defaultBranchProtected := d.Get("default_branch_protected").(bool)
+		branchID := d.Get("default_branch_id").(string)
+		resp, err := client.UpdateProjectBranch(d.Id(), branchID, neon.BranchUpdateRequest{
+			Branch: neon.BranchUpdateRequestBranch{
+				Protected: &defaultBranchProtected,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
+	}
+
 	return resourceProjectRead(ctx, d, meta)
 }
 
@@ -978,14 +1013,14 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	var branchMain neon.Branch
 	for _, v := range branches.Branches {
-		if v.Primary != nil && *v.Primary {
+		if v.Default {
 			branchMain = v
 			break
 		}
 	}
 
 	if branchMain.ID == "" {
-		return updateStateProject(d, project, branchMain.ID, branchMain.Name, dbConnectionInfo{})
+		return updateStateProject(d, project, branchMain.ID, branchMain.Name, dbConnectionInfo{}, branchMain.Protected)
 	}
 
 	endpoints, err := client.ListProjectBranchEndpoints(d.Id(), branchMain.ID)
@@ -1003,7 +1038,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return err
 	}
 
-	return updateStateProject(d, project, branchMain.ID, branchMain.Name, info)
+	return updateStateProject(d, project, branchMain.ID, branchMain.Name, info, branchMain.Protected)
 }
 
 func resourceProjectReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -1018,7 +1053,8 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	d.SetId("")
-	return updateStateProject(d, neon.Project{}, "", "", dbConnectionInfo{})
+	return updateStateProject(d, neon.Project{}, "", "", dbConnectionInfo{},
+		false)
 }
 
 func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
@@ -1042,5 +1078,6 @@ type sdkProject interface {
 	GrantPermissionToProject(projectID string, cfg neon.GrantPermissionToProjectRequest) (neon.ProjectPermission, error)
 	RevokePermissionFromProject(projectID string, permissionID string) (neon.ProjectPermission, error)
 	ListProjectPermissions(projectID string) (neon.ProjectPermissions, error)
+	UpdateProjectBranch(projectID string, branchID string, cfg neon.BranchUpdateRequest) (neon.BranchOperations, error)
 	opsReader
 }

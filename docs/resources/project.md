@@ -133,6 +133,7 @@ Block connections that use VPC endpoints.
 - `branch` (Block List, Max: 1) (see [below for nested schema](#nestedblock--branch))
 - `compute_provisioner` (String) Provisioner The Neon compute provisioner.
 Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
+- `default_branch_protected` (Boolean) Set default branch as protected. **Note** that the default value is false.
 - `default_endpoint_settings` (Block List, Max: 1) (see [below for nested schema](#nestedblock--default_endpoint_settings))
 - `enable_logical_replication` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Sets wal_level=logical for all compute endpoints in this project.
