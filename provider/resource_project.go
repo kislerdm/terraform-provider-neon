@@ -357,7 +357,7 @@ func mapToDefaultEndpointsSettings(v map[string]interface{}) *neon.DefaultEndpoi
 		o.AutoscalingLimitMaxCu = pointer(neon.ComputeUnit(v))
 	}
 
-	if v, ok := v["suspend_timeout_seconds"].(int); ok && v != 0 {
+	if v, ok := v["suspend_timeout_seconds"].(int); ok && v > -2 {
 		o.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v))
 	}
 	return &o

@@ -669,17 +669,20 @@ func Test_mapToDefaultEndpointsSettings_suspendTimeoutSeconds(t *testing.T) {
 		in   int
 		want *neon.SuspendTimeoutSeconds
 	}{
-		"never suspend": {
+		"shall set a custom timeout as -1, a/k/a 'never suspend'": {
 			in:   -1,
 			want: pointer(neon.SuspendTimeoutSeconds(-1)),
 		},
-		"custom timeout": {
+		"shall set a custom positive timeout": {
 			in:   300,
 			want: pointer(neon.SuspendTimeoutSeconds(300)),
 		},
-		"zero is skipped": {
+		"shall set zero": {
 			in:   0,
-			want: nil,
+			want: pointer(neon.SuspendTimeoutSeconds(0)),
+		},
+		"shall not set negative number less than -1": {
+			in: -10,
 		},
 	}
 	t.Parallel()
