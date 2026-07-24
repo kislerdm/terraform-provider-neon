@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -88,7 +89,20 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceDatabaseReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceDatabaseRead, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceDatabaseRead, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			tflog.Debug(ctx, "database not found, removing from state",
+				map[string]interface{}{
+					"project_id":  d.Get("project_id"),
+					"branch_id":   d.Get("branch_id"),
+					"database_id": d.Id(),
+				})
+			d.SetId("")
+			tflog.Debug(ctx, "recreating database", map[string]interface{}{
+				"project_id": d.Get("project_id"), "branch_id": d.Get("branch_id"),
+			})
+			return resourceDatabaseCreate(ctx, d, meta)
+		}})
 }
 
 func resourceDatabaseRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -136,7 +150,14 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceDatabaseDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceDatabaseDelete, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceDatabaseDelete, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			return nil
+		},
+		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			return nil
+		},
+	})
 }
 
 func resourceDatabaseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -166,7 +187,10 @@ func resourceDatabaseImport(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	setResourceAttrsFromComplexID(d, r)
-	if diags := resourceDatabaseReadRetry(ctx, d, meta); diags.HasError() {
+
+	if diags := projectReadiness.Retry(resourceDatabaseRead, ctx, d, meta); diags.HasError() {
+		setResourceAttrsFromComplexID(d, complexID{})
+		d.SetId("")
 		return nil, errors.New(diags[0].Summary)
 	}
 
