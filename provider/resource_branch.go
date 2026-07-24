@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -112,15 +113,40 @@ func resourceBranchCreateRetry(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceBranchReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceBranchRead, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceBranchRead, ctx, d, meta,
+		map[int]FallbackFn{
+			http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+				tflog.Debug(ctx, "branch not found, removing from state",
+					map[string]interface{}{"project_id": d.Get("project_id"), "branch_id": d.Id()})
+				d.SetId("")
+				tflog.Debug(ctx, "recreating branch", map[string]interface{}{
+					"project_id": d.Get("project_id")})
+				return resourceBranchCreate(ctx, d, meta)
+			}})
 }
 
 func resourceBranchUpdateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceBranchUpdate, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceBranchUpdate, ctx, d, meta,
+		map[int]FallbackFn{
+			http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+				tflog.Debug(ctx, "branch not found, removing from state",
+					map[string]interface{}{"project_id": d.Get("project_id"), "branch_id": d.Id()})
+				d.SetId("")
+				tflog.Debug(ctx, "recreating branch", map[string]interface{}{
+					"project_id": d.Get("project_id")})
+				return resourceBranchCreate(ctx, d, meta)
+			}})
 }
 
 func resourceBranchDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceBranchDelete, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceBranchDelete, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			return nil
+		},
+		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			return nil
+		},
+	})
 }
 
 func resourceBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {

@@ -49,6 +49,45 @@ func (r *delay) Retry(
 	return diag.FromErr(err)
 }
 
+type FallbackFn func(context.Context, *schema.ResourceData, interface{}) error
+
+func (r *delay) RetryWithFallback(
+	fn func(context.Context, *schema.ResourceData, interface{}) error,
+	ctx context.Context, d *schema.ResourceData, meta interface{},
+	fallbacks map[int]FallbackFn,
+) diag.Diagnostics {
+	var i uint8
+	var err error
+	for i < r.maxCnt {
+		tflog.Debug(ctx, "API call attempt "+strconv.Itoa(int(i)))
+
+		switch e := fn(ctx, d, meta).(type) {
+		case nil:
+			return nil
+		case neon.Error:
+			tflog.Debug(ctx, "API call error code: "+strconv.Itoa(e.HTTPCode))
+			switch e.HTTPCode {
+			case 200:
+				return nil
+			case http.StatusTooManyRequests, http.StatusInternalServerError, http.StatusLocked:
+				tflog.Debug(ctx, "API call delay "+strconv.FormatInt(r.delay.Milliseconds(), 10)+" ms.")
+				err = e
+				i++
+				time.Sleep(r.delay)
+			default:
+				if fallback, ok := fallbacks[e.HTTPCode]; ok {
+					tflog.Debug(ctx, "API call fallback for error code: "+strconv.Itoa(e.HTTPCode))
+					return r.Retry(fallback, ctx, d, meta)
+				}
+				return diag.FromErr(e)
+			}
+		default:
+			return diag.FromErr(e)
+		}
+	}
+	return diag.FromErr(err)
+}
+
 var projectReadiness = delay{
 	delay:  1 * time.Second,
 	maxCnt: 120,
