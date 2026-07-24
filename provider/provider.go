@@ -71,16 +71,6 @@ func New(version string) *schema.Provider {
 	return o
 }
 
-// NewUnitTest returns the provider's factory for unit tests.
-func NewUnitTest() *schema.Provider {
-	var o = new(schema.Provider)
-	*o = *p
-	o.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		return neon.NewMockHTTPClient(), nil
-	}
-	return o
-}
-
 func newAccTest() *schema.Provider {
 	return New("accTest")
 }
