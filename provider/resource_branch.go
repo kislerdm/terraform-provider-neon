@@ -126,16 +126,7 @@ func resourceBranchReadRetry(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceBranchUpdateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.RetryWithFallback(resourceBranchUpdate, ctx, d, meta,
-		map[int]FallbackFn{
-			http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-				tflog.Debug(ctx, "branch not found, removing from state",
-					map[string]interface{}{"project_id": d.Get("project_id"), "branch_id": d.Id()})
-				d.SetId("")
-				tflog.Debug(ctx, "recreating branch", map[string]interface{}{
-					"project_id": d.Get("project_id")})
-				return resourceBranchCreate(ctx, d, meta)
-			}})
+	return projectReadiness.Retry(resourceBranchUpdate, ctx, d, meta)
 }
 
 func resourceBranchDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
