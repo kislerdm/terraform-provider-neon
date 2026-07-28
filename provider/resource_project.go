@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -736,7 +737,16 @@ func deref(v *int64) int64 {
 }
 
 func resourceProjectDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceProjectDelete, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceProjectDelete, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+	})
 }
 
 func resourceProjectUpdateRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -1042,7 +1052,13 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 }
 
 func resourceProjectReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceProjectRead, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceProjectRead, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			tflog.Debug(ctx, "project not found, deleting from the state",
+				map[string]interface{}{"project_id": d.Id()})
+			d.SetId("")
+			return nil
+		}})
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -1060,7 +1076,7 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, meta int
 func resourceProjectImport(ctx context.Context, d *schema.ResourceData, meta interface{}) (
 	[]*schema.ResourceData, error,
 ) {
-	if diags := resourceProjectReadRetry(ctx, d, meta); diags.HasError() {
+	if diags := projectReadiness.Retry(resourceProjectRead, ctx, d, meta); diags.HasError() {
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
