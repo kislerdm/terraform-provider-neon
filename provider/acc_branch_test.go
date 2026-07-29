@@ -40,13 +40,29 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
 	}
 
-	t.Run("shall update the state if the branch was deleted outside of terraform", func(t *testing.T) {
+	var preConfig = func(projectName string, branchName string) {
+		ref, err := readProjectInfo(client, projectName)
+		if err != nil {
+			panic(err)
+		}
+
+		resp, err := client.ListProjectBranches(ref.ID,
+			nil, nil, nil, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+		for _, branch := range resp.Branches {
+			if branch.Name == branchName {
+				_, err := client.DeleteProjectBranch(ref.ID, branch.ID)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+	}
+
+	t.Run("shall indicate non empty plan if the branch was deleted outside of terraform", func(t *testing.T) {
 		projectName := newProjectName()
-		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
-resource "neon_branch" "this" {
-	project_id = neon_project.this.id 
-	name       = "test"
-}`, projectName)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -56,53 +72,24 @@ resource "neon_branch" "this" {
 				},
 				Steps: []resource.TestStep{
 					{
-						Config: config,
+						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
+resource "neon_branch" "this" {
+	project_id = neon_project.this.id 
+	name       = "test"
+}`, projectName),
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr(
 								"neon_branch.this",
 								"name", "test",
 							),
-							func(_ *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
-								if err != nil {
-									return err
-								}
-								for _, branch := range resp.Branches {
-									if branch.Name == "test" {
-										_, err := client.DeleteProjectBranch(ref.ID, branch.ID)
-										if err != nil {
-											return err
-										}
-									}
-								}
-								return nil
-							},
 						),
 					},
 					{
-						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName),
-						Check: resource.ComposeTestCheckFunc(
-							func(_ *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
-								if err != nil {
-									return err
-								}
-								assert.Len(t, resp.Branches, 1,
-									"1 branch is expected after deletion")
-								return nil
-							}),
+						PreConfig: func() {
+							preConfig(projectName, "test")
+						},
+						RefreshState:       true,
+						ExpectNonEmptyPlan: true,
 					},
 				},
 			})
@@ -130,101 +117,19 @@ resource "neon_branch" "this" {
 								"neon_branch.this",
 								"name", "test",
 							),
-							func(_ *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
-								if err != nil {
-									return err
-								}
-								for _, branch := range resp.Branches {
-									if branch.Name == "test" {
-										_, err := client.DeleteProjectBranch(ref.ID, branch.ID)
-										if err != nil {
-											return err
-										}
-									}
-								}
-								return nil
-							},
-						),
-					},
-				},
-			})
-	})
-
-	t.Run("shall recreate branch upon read if it was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
-		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
-resource "neon_branch" "this" {
-	project_id = neon_project.this.id 
-	name       = "test"
-}`, projectName)
-		resource.Test(
-			t, resource.TestCase{
-				ProviderFactories: map[string]func() (*schema.Provider, error){
-					"neon": func() (*schema.Provider, error) {
-						return newAccTest(), nil
-					},
-				},
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"neon_branch.this",
-								"name", "test",
-							),
-							func(_ *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
-								if err != nil {
-									return err
-								}
-								for _, branch := range resp.Branches {
-									if branch.Name == "test" {
-										_, err := client.DeleteProjectBranch(ref.ID, branch.ID)
-										if err != nil {
-											return err
-										}
-									}
-								}
-								return nil
-							},
 						),
 					},
 					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"neon_branch.this",
-								"name", "test",
-							),
-							func(_ *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
-								if err != nil {
-									return err
-								}
-								assert.Len(t, resp.Branches, 2,
-									"2 branches are expected after recreation")
-								return nil
-							},
-						),
+						PreConfig: func() {
+							preConfig(projectName, "test")
+						},
+						Config:  config,
+						Destroy: true,
+						Check: func(s *terraform.State) error {
+							_, ok := s.RootModule().Resources["neon_branch.this"]
+							assert.False(t, ok, "resource neon_branch.this should be destroyed")
+							return nil
+						},
 					},
 				},
 			})
@@ -251,27 +156,6 @@ resource "neon_branch" "this" {
 								"neon_branch.this",
 								"name", "foo",
 							),
-							func(_ *terraform.State) error {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									return err
-								}
-
-								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
-								if err != nil {
-									return err
-								}
-								for _, branch := range resp.Branches {
-									if branch.Name == "foo" {
-										_, err := client.DeleteProjectBranch(ref.ID, branch.ID)
-										if err != nil {
-											return err
-										}
-									}
-								}
-								return nil
-							},
 						),
 					},
 					{
@@ -280,6 +164,9 @@ resource "neon_branch" "this" {
 	project_id = neon_project.this.id 
 	name       = "bar"
 }`, projectName),
+						PreConfig: func() {
+							preConfig(projectName, "foo")
+						},
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr(
 								"neon_branch.this",
@@ -299,12 +186,17 @@ resource "neon_branch" "this" {
 								assert.Len(t, resp.Branches, 2,
 									"2 branches are expected after recreation")
 								var found bool
+								var oldFound bool
 								for _, branch := range resp.Branches {
 									if branch.Name == "bar" {
 										found = true
 									}
+									if branch.Name == "foo" {
+										oldFound = true
+									}
 								}
 								assert.Truef(t, found, "branch 'bar' is expected to be found after recreation")
+								assert.Falsef(t, oldFound, "branch 'foo' is not expected to be found")
 								return nil
 							},
 						),

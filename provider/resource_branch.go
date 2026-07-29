@@ -119,9 +119,7 @@ func resourceBranchReadRetry(ctx context.Context, d *schema.ResourceData, meta i
 				tflog.Debug(ctx, "branch not found, removing from state",
 					map[string]interface{}{"project_id": d.Get("project_id"), "branch_id": d.Id()})
 				d.SetId("")
-				tflog.Debug(ctx, "recreating branch", map[string]interface{}{
-					"project_id": d.Get("project_id")})
-				return resourceBranchCreate(ctx, d, meta)
+				return nil
 			}})
 }
 
@@ -132,9 +130,11 @@ func resourceBranchUpdateRetry(ctx context.Context, d *schema.ResourceData, meta
 func resourceBranchDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return projectReadiness.RetryWithFallback(resourceBranchDelete, ctx, d, meta, map[int]FallbackFn{
 		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
 			return nil
 		},
 		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
 			return nil
 		},
 	})
@@ -269,8 +269,8 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
-	if err := resourceBranchRead(ctx, d, meta); err != nil {
-		return nil, err
+	if diags := projectReadiness.Retry(resourceProjectRead, ctx, d, meta); diags.HasError() {
+		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
 }

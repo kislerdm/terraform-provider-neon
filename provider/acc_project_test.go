@@ -40,6 +40,18 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
 	}
 
+	var preConfig = func(projectName string) string {
+		ref, err := readProjectInfo(client, projectName)
+		if err != nil {
+			panic(err)
+		}
+		_, err = client.DeleteProject(ref.ID)
+		if err != nil {
+			panic(err)
+		}
+		return ref.ID
+	}
+
 	t.Run("shall indicate non empty plan if the project was deleted outside of terraform", func(t *testing.T) {
 		projectName := newProjectName()
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName)
@@ -62,17 +74,46 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 					},
 					{
 						PreConfig: func() {
-							ref, err := readProjectInfo(client, projectName)
-							if err != nil {
-								panic(err)
-							}
-							_, err = client.DeleteProject(ref.ID)
-							if err != nil {
-								panic(err)
-							}
+							preConfig(projectName)
 						},
 						RefreshState:       true,
 						ExpectNonEmptyPlan: true,
+					},
+				},
+			})
+	})
+
+	t.Run("shall destroy even if the project was deleted outside of terraform,", func(t *testing.T) {
+		projectName := newProjectName()
+		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName)
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"neon_project.this",
+								"name", projectName,
+							),
+						),
+					},
+					{
+						PreConfig: func() {
+							preConfig(projectName)
+						},
+						Config:  config,
+						Destroy: true,
+						Check: func(s *terraform.State) error {
+							_, ok := s.RootModule().Resources["neon_project.this"]
+							assert.False(t, ok, "resource neon_project.this should be destroyed")
+							return nil
+						},
 					},
 				},
 			})
@@ -101,15 +142,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 					{
 						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s-bar"}`, projectName),
 						PreConfig: func() {
-							ref, err := readProjectInfo(client, fmt.Sprintf("%s-foo", projectName))
-							if err != nil {
-								panic(err)
-							}
-							refProjectID = ref.ID
-							_, err = client.DeleteProject(ref.ID)
-							if err != nil {
-								panic(err)
-							}
+							refProjectID = preConfig(fmt.Sprintf("%s-foo", projectName))
 						},
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr(
@@ -148,14 +181,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 					{
 						Config: config,
 						PreConfig: func() {
-							ref, err := readProjectInfo(client, projectName)
-							if err != nil {
-								panic(err)
-							}
-							_, err = client.DeleteProject(ref.ID)
-							if err != nil {
-								panic(err)
-							}
+							preConfig(projectName)
 						},
 						ImportState:  true,
 						ResourceName: "neon_project.this",
