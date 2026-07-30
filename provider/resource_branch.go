@@ -269,7 +269,7 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil, errors.New("branch ID " + d.Id() + " is not valid")
 	}
 
-	if diags := projectReadiness.Retry(resourceProjectRead, ctx, d, meta); diags.HasError() {
+	if diags := projectReadiness.Retry(resourceBranchRead, ctx, d, meta); diags.HasError() {
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
