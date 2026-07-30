@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -12,7 +13,10 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
-const endpointTypeRW = "read_write"
+const (
+	endpointTypeRW       = "read_write"
+	endpointTypeReadOnly = "read_only"
+)
 
 func resourceEndpoint() *schema.Resource {
 	return &schema.Resource{
@@ -232,7 +236,14 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceEndpointReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceEndpointRead, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceEndpointRead, ctx, d, meta,
+		map[int]FallbackFn{
+			http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+				tflog.Debug(ctx, "endpoint not found, removing from state",
+					map[string]interface{}{"endpoint_id": d.Id()})
+				d.SetId("")
+				return nil
+			}})
 }
 
 func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -301,14 +312,23 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 	if err := d.Set("project_id", projectID); err != nil {
 		return nil, err
 	}
-	if err := resourceEndpointRead(ctx, d, meta); err != nil {
-		return nil, err
+	if diags := projectReadiness.Retry(resourceEndpointRead, ctx, d, meta); diags.HasError() {
+		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
 }
 
 func resourceEndpointDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceEndpointDelete, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceEndpointDelete, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+	})
 }
 
 func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
