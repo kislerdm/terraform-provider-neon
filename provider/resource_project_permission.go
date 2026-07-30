@@ -133,8 +133,11 @@ func resourceProjectPermissionRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	if !found {
-		tflog.Trace(ctx, "no project permission found")
-		return errors.New("no project permission found")
+		tflog.Debug(ctx, "no project permission found, removing from state", map[string]interface{}{
+			"project_id": d.Get("project_id"),
+			"grantee":    d.Get("grantee"),
+		})
+		d.SetId("")
 	}
 
 	return nil
