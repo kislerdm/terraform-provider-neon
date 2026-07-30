@@ -252,6 +252,10 @@ resource "neon_branch" "this" {
 						},
 						ExpectError: regexp.MustCompile("404"),
 					},
+					// to avoid dangling resources on post-test destroy
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" { name = "%s" }`, projectName),
+					},
 				},
 			})
 	})
