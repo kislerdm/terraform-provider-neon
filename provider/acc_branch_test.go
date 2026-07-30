@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -53,10 +54,11 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 		}
 		for _, branch := range resp.Branches {
 			if branch.Name == branchName {
-				_, err := client.DeleteProjectBranch(ref.ID, branch.ID)
+				resp, err := client.DeleteProjectBranch(ref.ID, branch.ID)
 				if err != nil {
 					panic(err)
 				}
+				waitUnfinishedOperations(context.TODO(), client, resp.OperationsResponse.Operations)
 			}
 		}
 	}

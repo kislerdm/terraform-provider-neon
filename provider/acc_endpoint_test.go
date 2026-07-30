@@ -53,10 +53,11 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 		}
 		for _, endpoint := range resp.Endpoints {
 			if endpoint.Type == endpointTypeReadOnly {
-				_, err := client.DeleteProjectEndpoint(ref.ID, endpoint.ID)
+				resp, err := client.DeleteProjectEndpoint(ref.ID, endpoint.ID)
 				if err != nil {
 					panic(err)
 				}
+				waitUnfinishedOperations(context.TODO(), client, resp.OperationsResponse.Operations)
 			}
 		}
 	}
