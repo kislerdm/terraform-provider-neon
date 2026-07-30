@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -110,7 +111,16 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceRoleReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceRoleRead, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceRoleRead, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			tflog.Debug(ctx, "role not found, removing from state",
+				map[string]interface{}{
+					"project_id": d.Get("project_id"), "branch_id": d.Get("project_id"),
+					"name": d.Get("name"),
+				})
+			d.SetId("")
+			return nil
+		}})
 }
 
 func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -138,7 +148,16 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 }
 
 func resourceRoleDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceRoleDelete, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceRoleDelete, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+	})
 }
 
 func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -174,7 +193,7 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	setResourceAttrsFromComplexID(d, r)
-	if diags := resourceRoleReadRetry(ctx, d, meta); diags.HasError() {
+	if diags := projectReadiness.Retry(resourceRoleRead, ctx, d, meta); diags.HasError() {
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
