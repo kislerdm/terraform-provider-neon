@@ -3,8 +3,10 @@ package provider
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
@@ -94,11 +96,30 @@ func resourceVPCEndpointAssignmentCreateRetry(ctx context.Context, d *schema.Res
 }
 
 func resourceVPCEndpointAssignmentReadRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceVPCEndpointAssignmentRead, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceVPCEndpointAssignmentRead, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			tflog.Debug(ctx, "VPC endpoint assignment not found, removing from state",
+				map[string]interface{}{
+					"org_id":          d.Get("org_id"),
+					"region_id":       d.Get("region_id"),
+					"vpc_endpoint_id": d.Get("vpc_endpoint_id"),
+				})
+			d.SetId("")
+			return nil
+		}})
 }
 
 func resourceVPCEndpointAssignmentDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceVPCEndpointAssignmentDelete, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceVPCEndpointAssignmentDelete, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+	})
 }
 
 func resourceVPCEndpointAssignmentImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
