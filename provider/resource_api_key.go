@@ -2,10 +2,11 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"slices"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
@@ -64,7 +65,7 @@ func resourceAPIKeyReadRetry(ctx context.Context, d *schema.ResourceData, meta i
 	return projectReadiness.Retry(resourceAPIKeyRead, ctx, d, meta)
 }
 
-func resourceAPIKeyRead(_ context.Context, d *schema.ResourceData, meta interface{}) error {
+func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	resp, err := meta.(*neon.Client).ListApiKeys()
 
 	if err == nil {
@@ -78,7 +79,8 @@ func resourceAPIKeyRead(_ context.Context, d *schema.ResourceData, meta interfac
 		})
 
 		if !found {
-			err = fmt.Errorf("couldn't find API Key %s", keyName)
+			tflog.Debug(ctx, "API key not found, removing from state", map[string]interface{}{"name": keyName})
+			d.SetId("")
 		}
 	}
 
@@ -86,7 +88,16 @@ func resourceAPIKeyRead(_ context.Context, d *schema.ResourceData, meta interfac
 }
 
 func resourceAPIKeyDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.Retry(resourceAPIKeyDelete, ctx, d, meta)
+	return projectReadiness.RetryWithFallback(resourceAPIKeyDelete, ctx, d, meta, map[int]FallbackFn{
+		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
+			return nil
+		},
+	})
 }
 
 func resourceAPIKeyDelete(_ context.Context, d *schema.ResourceData, meta interface{}) error {
