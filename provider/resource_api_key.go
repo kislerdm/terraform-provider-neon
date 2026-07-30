@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"net/http"
 	"slices"
 	"strconv"
 
@@ -88,16 +87,7 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceAPIKeyDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return projectReadiness.RetryWithFallback(resourceAPIKeyDelete, ctx, d, meta, map[int]FallbackFn{
-		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-			d.SetId("")
-			return nil
-		},
-		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-			d.SetId("")
-			return nil
-		},
-	})
+	return projectReadiness.Retry(resourceAPIKeyDelete, ctx, d, meta)
 }
 
 func resourceAPIKeyDelete(_ context.Context, d *schema.ResourceData, meta interface{}) error {
