@@ -2,9 +2,9 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
@@ -83,7 +83,7 @@ func resourceOrgAPIKeyReadRetry(ctx context.Context, d *schema.ResourceData, met
 	return projectReadiness.Retry(resourceOrgAPIKeyRead, ctx, d, meta)
 }
 
-func resourceOrgAPIKeyRead(_ context.Context, d *schema.ResourceData, meta interface{}) error {
+func resourceOrgAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	resp, err := meta.(*neon.Client).ListOrgApiKeys(d.Get("org_id").(string))
 
 	if err == nil {
@@ -99,7 +99,8 @@ func resourceOrgAPIKeyRead(_ context.Context, d *schema.ResourceData, meta inter
 		}
 
 		if !found {
-			err = fmt.Errorf("couldn't find API Key %s", keyName)
+			tflog.Debug(ctx, "API key not found, removing from state", map[string]interface{}{"name": keyName})
+			d.SetId("")
 		}
 	}
 
