@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -154,7 +153,11 @@ func resourceJwksUrlRead(ctx context.Context, d *schema.ResourceData, meta inter
 			}
 		}
 		if jwks.ID == "" {
-			err = fmt.Errorf("could not find JWKS %s for project %s", d.Id(), projectID)
+			tflog.Debug(ctx, "JWKS not found, removing from state", map[string]interface{}{
+				"id":         d.Id(),
+				"project_id": projectID,
+			})
+			d.SetId("")
 		} else {
 			err = updateStateJwksUrl(d, jwks, nil)
 		}

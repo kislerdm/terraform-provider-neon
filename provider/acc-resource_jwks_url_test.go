@@ -32,13 +32,12 @@ func TestAccJwksUrl(t *testing.T) {
 		}
 	})
 
-	t.Run("Stack as IdP", func(t *testing.T) {
-		// Note that Neon verifies the URL upon provisioning, hence the Stack project must exist.
-		// Dmitry Kisler's Stack project ID.
-		idpProjectID := "527b63cb-1552-429a-af47-29518c184629"
-		wantJwksUrl := fmt.Sprintf("https://api.stack-auth.com/api/v1/projects/%s/.well-known/jwks.json", idpProjectID)
-		wantRoleName := "foo"
-		resourceDefinition := fmt.Sprintf(`resource "neon_project" "_" { 
+	// Note that Neon verifies the URL upon provisioning, hence the Stack project must exist.
+	// Dmitry Kisler's Stack project ID.
+	idpProjectID := "527b63cb-1552-429a-af47-29518c184629"
+	wantJwksUrl := fmt.Sprintf("https://api.stack-auth.com/api/v1/projects/%s/.well-known/jwks.json", idpProjectID)
+	wantRoleName := "foo"
+	resourceDefinition := fmt.Sprintf(`resource "neon_project" "_" { 
 	name = "%s"
 	branch {role_name = "%s"}
 }
@@ -49,8 +48,9 @@ resource "neon_jwks_url" "_" {
 	jwks_url      = "%s"
 	depends_on    = [neon_project._]
 }`, projectName, wantRoleName, wantJwksUrl)
-		const resourceName = "neon_jwks_url._"
 
+	t.Run("Stack as IdP", func(t *testing.T) {
+		const resourceName = "neon_jwks_url._"
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -97,6 +97,24 @@ resource "neon_jwks_url" "_" {
 						ExpectError: regexp.MustCompile(
 							"the resource does not support import, please recreate it instead",
 						),
+					},
+					// shall yield non-empty plan if the resource is deleted outside terraform
+					// given that JWKs existed prior to deletion
+					{
+						PreConfig: func() {
+							ref, err := client.GetProjectJWKS(projectID)
+							if err != nil {
+								panic(err)
+							}
+							for _, jwk := range ref.Jwks {
+								_, err = client.DeleteProjectJWKS(projectID, jwk.ID)
+								if err != nil {
+									panic(err)
+								}
+							}
+						},
+						RefreshState:       true,
+						ExpectNonEmptyPlan: true,
 					},
 				},
 			})
