@@ -8,12 +8,6 @@
 
 -----
 
-<div align="center">
-    💖 Thank you <a href="https://github.com/neondatabase">@neondatabase</a> for sponsoring the project! 💖
-</div>
-
------
-
 Terraform provider to manage the [Neon](https://neon.tech/) Postgres projects.
 
 ## Using the provider
