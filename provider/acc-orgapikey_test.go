@@ -28,7 +28,7 @@ func TestAccOrgAPIKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wantKeyName := projectNamePrefix + "orgApikey" + uuid.NewString()
+	wantKeyName := "test" + uuid.NewString()
 
 	t.Cleanup(func() {
 		keys, _ := client.ListOrgApiKeys(orgID)

@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -47,7 +48,7 @@ func TestRecreateOrgAPIKeyIfNotFound(t *testing.T) {
 	}
 
 	t.Run("shall indicate non empty plan if the API key was deleted outside of terraform", func(t *testing.T) {
-		keyName := "test"
+		keyName := "test" + uuid.NewString()
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -80,7 +81,7 @@ func TestRecreateOrgAPIKeyIfNotFound(t *testing.T) {
 	})
 
 	t.Run("shall destroy even if the API key was deleted outside of terraform,", func(t *testing.T) {
-		keyName := "test"
+		keyName := "test" + uuid.NewString()
 		config := fmt.Sprintf(`resource "neon_org_api_key" "this" {
 	name   = "%s"
 	org_id = "%s"
