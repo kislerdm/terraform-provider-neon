@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.15.0] - 2026-08-01
+
+### Fixed
+
+- Fixed the link in the JWKS URL resource's documentation.
+
+### Changed
+
+- [[209](https://github.com/kislerdm/terraform-provider-neon/issues/209)] Changed the provider's state management behaviour. Now, the provider will not update the state of the resources if the resource's attributes are not changed in the Terraform configuration. It will attempt to recreate sources deleted outside terraform only if the resource's attributes are changed in the Terraform configuration. This change is introduced to avoid unexpected recreation of resources when they are deleted outside Terraform.
+
 ## [v0.14.0] - 2026-07-14
 
 ### Added
