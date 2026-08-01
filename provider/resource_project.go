@@ -1055,7 +1055,7 @@ func resourceProjectReadRetry(ctx context.Context, d *schema.ResourceData, meta 
 	return projectReadiness.RetryWithFallback(resourceProjectRead, ctx, d, meta, map[int]FallbackFn{
 		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 			tflog.Debug(ctx, "project not found, deleting from the state",
-				map[string]interface{}{"project_id": d.Id()})
+				map[string]interface{}{"id": d.Id()})
 			d.SetId("")
 			return nil
 		}})

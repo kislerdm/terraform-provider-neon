@@ -100,9 +100,9 @@ func resourceVPCEndpointAssignmentReadRetry(ctx context.Context, d *schema.Resou
 		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 			tflog.Debug(ctx, "VPC endpoint assignment not found, removing from state",
 				map[string]interface{}{
-					"org_id":          d.Get("org_id"),
-					"region_id":       d.Get("region_id"),
-					"vpc_endpoint_id": d.Get("vpc_endpoint_id"),
+					"id":        d.Get("vpc_endpoint_id"),
+					"org_id":    d.Get("org_id"),
+					"region_id": d.Get("region_id"),
 				})
 			d.SetId("")
 			return nil

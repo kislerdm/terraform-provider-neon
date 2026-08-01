@@ -93,15 +93,12 @@ func resourceDatabaseReadRetry(ctx context.Context, d *schema.ResourceData, meta
 		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 			tflog.Debug(ctx, "database not found, removing from state",
 				map[string]interface{}{
-					"project_id":  d.Get("project_id"),
-					"branch_id":   d.Get("branch_id"),
-					"database_id": d.Id(),
+					"id":         d.Id(),
+					"project_id": d.Get("project_id"),
+					"branch_id":  d.Get("branch_id"),
 				})
 			d.SetId("")
-			tflog.Debug(ctx, "recreating database", map[string]interface{}{
-				"project_id": d.Get("project_id"), "branch_id": d.Get("branch_id"),
-			})
-			return resourceDatabaseCreate(ctx, d, meta)
+			return nil
 		}})
 }
 
@@ -152,9 +149,11 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 func resourceDatabaseDeleteRetry(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return projectReadiness.RetryWithFallback(resourceDatabaseDelete, ctx, d, meta, map[int]FallbackFn{
 		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
 			return nil
 		},
 		http.StatusUnprocessableEntity: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+			d.SetId("")
 			return nil
 		},
 	})

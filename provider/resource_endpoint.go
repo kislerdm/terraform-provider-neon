@@ -240,7 +240,11 @@ func resourceEndpointReadRetry(ctx context.Context, d *schema.ResourceData, meta
 		map[int]FallbackFn{
 			http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 				tflog.Debug(ctx, "endpoint not found, removing from state",
-					map[string]interface{}{"endpoint_id": d.Id()})
+					map[string]interface{}{
+						"id":         d.Id(),
+						"project_id": d.Get("project_id"),
+						"branch_id":  d.Get("branch_id"),
+					})
 				d.SetId("")
 				return nil
 			}})
@@ -313,6 +317,7 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 		return nil, err
 	}
 	if diags := projectReadiness.Retry(resourceEndpointRead, ctx, d, meta); diags.HasError() {
+		d.SetId("")
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil

@@ -270,6 +270,7 @@ func resourceBranchImport(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	if diags := projectReadiness.Retry(resourceBranchRead, ctx, d, meta); diags.HasError() {
+		d.SetId("")
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil

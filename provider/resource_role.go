@@ -115,8 +115,9 @@ func resourceRoleReadRetry(ctx context.Context, d *schema.ResourceData, meta int
 		http.StatusNotFound: func(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 			tflog.Debug(ctx, "role not found, removing from state",
 				map[string]interface{}{
-					"project_id": d.Get("project_id"), "branch_id": d.Get("project_id"),
-					"name": d.Get("name"),
+					"name":       d.Get("name"),
+					"project_id": d.Get("project_id"),
+					"branch_id":  d.Get("project_id"),
 				})
 			d.SetId("")
 			return nil
@@ -194,6 +195,7 @@ func resourceRoleImport(ctx context.Context, d *schema.ResourceData, meta interf
 
 	setResourceAttrsFromComplexID(d, r)
 	if diags := projectReadiness.Retry(resourceRoleRead, ctx, d, meta); diags.HasError() {
+		d.SetId("")
 		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{d}, nil
