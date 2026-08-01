@@ -1,7 +1,7 @@
 ---
 page_title: "neon_jwks_url Resource - terraform-provider-neon"
 description: |-
-  Project JWKS URL. See details: https://neon.tech/docs/guides/neon-rls-authorize
+  Project JWKS URL. See details: https://neon.com/docs/data-api/custom-authentication-providers
 
 ~>**WARNING** The resource does not support import.
 
@@ -9,7 +9,7 @@ description: |-
 
 # neon_jwks_url (Resource)
 
-Project JWKS URL. See details: https://neon.tech/docs/guides/neon-rls-authorize
+Project JWKS URL. See details: https://neon.com/docs/data-api/custom-authentication-providers
 
 ~>**WARNING** The resource does not support import.
 

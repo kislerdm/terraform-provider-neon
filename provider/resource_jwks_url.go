@@ -12,7 +12,7 @@ import (
 
 func resourceJwksUrl() *schema.Resource {
 	return &schema.Resource{
-		Description: `Project JWKS URL. See details: https://neon.tech/docs/guides/neon-rls-authorize
+		Description: `Project JWKS URL. See details: https://neon.com/docs/data-api/custom-authentication-providers
 
 ~>**WARNING** The resource does not support import.
 `,
