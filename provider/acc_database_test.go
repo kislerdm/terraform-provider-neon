@@ -40,6 +40,29 @@ func TestRecreateDatabaseIfNotFound(t *testing.T) {
 		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
 	}
 
+	var preConfig = func(projectName, dbName string) int64 {
+		ref, err := readProjectInfo(client, projectName)
+		if err != nil {
+			panic(err)
+		}
+		br, err := client.ListProjectBranches(ref.ID,
+			nil, nil, nil, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+		var dbID int64
+		for _, branch := range br.Branches {
+			if branch.Default {
+				resp, err := client.DeleteProjectBranchDatabase(ref.ID, branch.ID, dbName)
+				if err != nil {
+					panic(err)
+				}
+				dbID = resp.Database.ID
+			}
+		}
+		return dbID
+	}
+
 	t.Run("shall yield non empty refresh plan if the database was deleted outside of terraform",
 		func(t *testing.T) {
 			projectName := newProjectName()
@@ -95,23 +118,7 @@ resource "neon_database" "this" {
 						},
 						{
 							PreConfig: func() {
-								ref, err := readProjectInfo(client, projectName)
-								if err != nil {
-									panic(err)
-								}
-								br, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
-								if err != nil {
-									panic(err)
-								}
-								for _, branch := range br.Branches {
-									if branch.Default {
-										_, err = client.DeleteProjectBranchDatabase(ref.ID, branch.ID, "test")
-										if err != nil {
-											panic(err)
-										}
-									}
-								}
+								preConfig(projectName, "test")
 							},
 							RefreshState:       true,
 							ExpectNonEmptyPlan: true,
@@ -143,27 +150,84 @@ resource "neon_database" "this" {
 					{
 						Config: config,
 						PreConfig: func() {
-							ref, err := readProjectInfo(client, projectName)
-							if err != nil {
-								panic(err)
-							}
-							br, err := client.ListProjectBranches(ref.ID,
-								nil, nil, nil, nil, nil)
-							if err != nil {
-								panic(err)
-							}
-
-							for _, branch := range br.Branches {
-								if branch.Default {
-									_, err := client.DeleteProjectBranchDatabase(ref.ID, branch.ID,
-										"test")
-									if err != nil {
-										panic(err)
-									}
-								}
-							}
+							preConfig(projectName, "test")
 						},
 						Destroy: true,
+					},
+				},
+			})
+	})
+
+	t.Run("shall recreate database upon update if it was deleted outside of terraform", func(t *testing.T) {
+		projectName := newProjectName()
+		var refDatabaseID int64
+		resource.Test(
+			t, resource.TestCase{
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"neon": func() (*schema.Provider, error) {
+						return newAccTest(), nil
+					},
+				},
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
+resource "neon_database" "this" {
+	project_id = neon_project.this.id
+	branch_id  = neon_project.this.default_branch_id
+	owner_name = neon_project.this.database_user
+	name       = "foo"
+}`, projectName),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"neon_database.this",
+								"name", "foo",
+							),
+						),
+					},
+					{
+						Config: fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
+resource "neon_database" "this" {
+	project_id = neon_project.this.id
+	branch_id  = neon_project.this.default_branch_id
+	owner_name = neon_project.this.database_user
+	name       = "bar"
+}`, projectName),
+						PreConfig: func() {
+							refDatabaseID = preConfig(projectName, "foo")
+						},
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"neon_database.this",
+								"name", "bar",
+							),
+							func(_ *terraform.State) error {
+								pr, err := readProjectInfo(client, projectName)
+								if err != nil {
+									return err
+								}
+								br, err := client.ListProjectBranches(pr.ID,
+									nil, nil, nil, nil, nil)
+								if err != nil {
+									return err
+								}
+								for _, branch := range br.Branches {
+									if branch.Default {
+										resp, err := client.ListProjectBranchDatabases(pr.ID, branch.ID)
+										if err != nil {
+											return err
+										}
+										assert.Len(t, resp.Databases, 2)
+										for _, db := range resp.Databases {
+											if db.Name == "bar" {
+												assert.NotEqualf(t, refDatabaseID, db.ID,
+													"database ID should be different after recreation")
+											}
+										}
+									}
+								}
+								return nil
+							},
+						),
 					},
 				},
 			})
