@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strconv"
 
@@ -18,6 +19,11 @@ func resourceAPIKey() *schema.Resource {
 ~>**WARNING** The resource does not support import.
 `,
 		SchemaVersion: 1,
+		Importer: &schema.ResourceImporter{
+			StateContext: func(_ context.Context, _ *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
+				return nil, errors.New("the resource does not support import, please recreate it instead")
+			},
+		},
 		CreateContext: resourceAPIKeyCreateRetry,
 		ReadContext:   resourceAPIKeyReadRetry,
 		DeleteContext: resourceAPIKeyDeleteRetry,

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -17,6 +18,11 @@ func resourceOrgAPIKey() *schema.Resource {
 ~>**WARNING** The resource does not support import.
 `,
 		SchemaVersion: 1,
+		Importer: &schema.ResourceImporter{
+			StateContext: func(_ context.Context, _ *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
+				return nil, errors.New("the resource does not support import, please recreate it instead")
+			},
+		},
 		CreateContext: resourceOrgAPIKeyCreateRetry,
 		ReadContext:   resourceOrgAPIKeyReadRetry,
 		DeleteContext: resourceOrgAPIKeyDeleteRetry,
