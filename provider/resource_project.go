@@ -183,9 +183,46 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 					return
 				},
 			},
-			"quota":                     schemaQuota,
-			"default_endpoint_settings": schemaDefaultEndpointSettings,
-			"branch":                    schemaDefaultBranch,
+			"quota": schemaQuota,
+			"default_endpoint_settings": {
+				Type:       schema.TypeList,
+				MaxItems:   1,
+				Computed:   true,
+				Optional:   true,
+				Deprecated: "Use endpoint_default_settings instead",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"autoscaling_limit_min_cu": {
+							Type:     schema.TypeFloat,
+							Optional: true,
+							Computed: true,
+						},
+						"autoscaling_limit_max_cu": {
+							Type:     schema.TypeFloat,
+							Optional: true,
+							Computed: true,
+						},
+						"suspend_timeout_seconds": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ValidateFunc: func(v interface{}, s string) (warn []string, errs []error) {
+								switch vv, ok := v.(int); ok {
+								case vv == -1:
+								default:
+									warn, errs = intValidationNotNegative(v, s)
+								}
+								return warn, errs
+							},
+							Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
+The value 0 means use the global default.
+The value -1 means never suspend. The default value is 300 seconds (5 minutes).
+The maximum value is 604800 seconds (1 week)`,
+						},
+					},
+				},
+			},
+			"branch": schemaDefaultBranch,
 			"allowed_ips": {
 				Type:     schema.TypeList,
 				MinItems: 1,
@@ -355,7 +392,7 @@ func mapToQuotaSettings(v map[string]interface{}) (o *neon.ProjectQuota) {
 	return o
 }
 
-var schemaDefaultEndpointSettings = &schema.Schema{
+var endpointDefaultSettings = &schema.Schema{
 	Type:     schema.TypeList,
 	MaxItems: 1,
 	Computed: true,

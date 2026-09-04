@@ -652,7 +652,7 @@ func Test_resourceProjectDefaultEndpointSettingsShallAllowToSetSuspensionTimeout
 	t.Parallel()
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			sh := schemaDefaultEndpointSettings.Elem.(*schema.Resource).Schema["suspend_timeout_seconds"]
+			sh := endpointDefaultSettings.Elem.(*schema.Resource).Schema["suspend_timeout_seconds"]
 			_, errs := sh.ValidateFunc(test.in, "")
 			switch test.isError {
 			case true:
