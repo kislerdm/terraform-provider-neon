@@ -135,7 +135,8 @@ Block connections that use VPC endpoints.
 Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
 - `default_branch_protected` (Boolean) Set default branch as protected. **Note** that the default value is false.
 - `default_endpoint` (Block List, Max: 1) (see [below for nested schema](#nestedblock--default_endpoint))
-- `default_endpoint_settings` (Block List, Max: 1, Deprecated) (see [below for nested schema](#nestedblock--default_endpoint_settings))
+- `default_endpoint_settings` (Block List, Max: 1, Deprecated) Project-wide settings for newly-provisioned endpoints. 
+Note that this block does not affect the default endpoint provisioned together with the project. (see [below for nested schema](#nestedblock--default_endpoint_settings))
 - `enable_logical_replication` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. See details: https://neon.tech/docs/introduction/logical-replication
@@ -222,9 +223,9 @@ Read-Only:
 
 Optional:
 
-- `autoscaling_limit_max_cu` (Number)
-- `autoscaling_limit_min_cu` (Number)
-- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
+- `autoscaling_limit_max_cu` (Number, Deprecated)
+- `autoscaling_limit_min_cu` (Number, Deprecated)
+- `suspend_timeout_seconds` (Number, Deprecated) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)

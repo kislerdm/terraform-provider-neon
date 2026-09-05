@@ -185,22 +185,54 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 			},
 			"quota": schemaQuota,
 			"default_endpoint_settings": {
-				Type:       schema.TypeList,
-				MaxItems:   1,
-				Computed:   true,
-				Optional:   true,
-				Deprecated: "Use endpoint_default_settings instead",
+				Description: `Project-wide settings for newly-provisioned endpoints. 
+Note that this block does not affect the default endpoint provisioned together with the project.`,
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Computed: true,
+				Optional: true,
+				Deprecated: `Instead, use the attributes of this block directly in the resource definition:
+resource "neon_project" "_" {
+    name = "foo"
+  
+	# configure project-wide scalability limits 
+    # applicable to all newly created endpoints
+	autoscaling_limit_min_cu = 1
+	autoscaling_limit_max_cu = 4
+	# configure project-wide auto-suspension limits
+	# applicable to all newly created endpoints
+	suspend_timeout_seconds  = 3600
+    
+	# ... other attributes
+}
+`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"autoscaling_limit_min_cu": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 							Computed: true,
+							Deprecated: `Use the respective attributes directly in the resource definition:
+resource "neon_project" "_" {
+    name = "foo"
+	
+	autoscaling_limit_min_cu = 1
+	# ... other attributes
+}
+`,
 						},
 						"autoscaling_limit_max_cu": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 							Computed: true,
+							Deprecated: `Use the respective attributes directly in the resource definition:
+resource "neon_project" "_" {
+    name = "foo"
+	
+	autoscaling_limit_max_cu = 1
+	# ... other attributes
+}
+`,
 						},
 						"suspend_timeout_seconds": {
 							Type:     schema.TypeInt,
@@ -218,6 +250,14 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)`,
+							Deprecated: `Use the respective attributes directly in the resource definition:
+resource "neon_project" "_" {
+    name = "foo"
+	
+	suspend_timeout_seconds  = 3600
+	# ... other attributes
+}
+`,
 						},
 					},
 				},
