@@ -236,7 +236,7 @@ func Test_resourceProjectCreate(t *testing.T) {
 					got := v.Project.Settings.AllowedIps
 
 					var ipsExcess []string
-					for _, ip := range *got.Ips {
+					for _, ip := range got.Ips {
 						if _, ok := ipsMap[ip]; ok {
 							delete(ipsMap, ip)
 						} else {
@@ -461,8 +461,8 @@ func Test_resourceProjectCreate_requestBody_allowed_ips_protected_branches_flag(
 
 			got := v.Project.Settings.AllowedIps
 
-			assert.Len(t, *got.Ips, len(wantIPs))
-			assert.ElementsMatch(t, wantIPs, *got.Ips)
+			assert.Len(t, got.Ips, len(wantIPs))
+			assert.ElementsMatch(t, wantIPs, got.Ips)
 			assert.Equal(t, tt.wantAllowedIPsProtectedBranchesOnly, got.ProtectedBranchesOnly)
 		})
 	}
@@ -540,7 +540,7 @@ func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(
 		assert.Truef(t, ok, "unexpected request object type")
 
 		reqCreateIps := reqCreate.Project.Settings.AllowedIps
-		assert.ElementsMatch(t, wantIPs, *reqCreateIps.Ips)
+		assert.ElementsMatch(t, wantIPs, reqCreateIps.Ips)
 		assert.True(t, *reqCreateIps.ProtectedBranchesOnly)
 
 		n := resource.TestResourceData()

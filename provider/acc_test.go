@@ -38,7 +38,7 @@ func TestAcc(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefixOverall, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefixOverall, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -289,7 +289,7 @@ resource "neon_database" "this" {
 
 								// check the branches
 								func(state *terraform.State) error {
-									resp, err := client.ListProjectBranches(projectID, nil, nil, nil, nil, nil)
+									resp, err := client.ListProjectBranches(projectID, nil, nil, nil, nil, nil, nil)
 									if err != nil {
 										return err
 									}
@@ -573,7 +573,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 									missingIPs[ip] = struct{}{}
 								}
 
-								for _, ip := range *ref.Settings.AllowedIps.Ips {
+								for _, ip := range ref.Settings.AllowedIps.Ips {
 									if _, ok := missingIPs[ip]; ok {
 										delete(missingIPs, ip)
 										continue
@@ -653,7 +653,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 									missingIPs[ip] = struct{}{}
 								}
 
-								for _, ip := range *ref.Settings.AllowedIps.Ips {
+								for _, ip := range ref.Settings.AllowedIps.Ips {
 									if _, ok := missingIPs[ip]; ok {
 										delete(missingIPs, ip)
 										continue
@@ -870,7 +870,7 @@ resource "neon_database" "this" {
 }
 
 func readProjectInfo(client *neon.Client, projectName string) (neon.Project, error) {
-	resp, err := client.ListProjects(nil, nil, &projectName, nil, nil)
+	resp, err := client.ListProjects(nil, nil, &projectName, nil, nil, nil)
 	if err != nil {
 		return neon.Project{}, errors.New("listing error: " + err.Error())
 	}
@@ -965,9 +965,9 @@ func TestAccBranch(t *testing.T) {
 	prefix := "branch-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &prefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &prefix, nil, nil, nil)
 		for _, project := range resp.Projects {
-			br, _ := client.ListProjectBranches(project.ID, nil, nil, nil, nil, nil)
+			br, _ := client.ListProjectBranches(project.ID, nil, nil, nil, nil, nil, nil)
 			for _, b := range br.BranchesResponse.Branches {
 				_, _ = client.UpdateProjectBranch(project.ID, b.ID, neon.BranchUpdateRequest{
 					Branch: neon.BranchUpdateRequestBranch{
@@ -1016,12 +1016,12 @@ resource "neon_branch" "this" {
 						resource.TestCheckResourceAttr("neon_branch.this", "protected", types.ValTrue),
 						func(state *terraform.State) error {
 							var e error
-							respProjects, e := client.ListProjects(nil, nil, &projectName, nil, nil)
+							respProjects, e := client.ListProjects(nil, nil, &projectName, nil, nil, nil)
 							if e != nil {
 								return e
 							}
 							projectID := respProjects.Projects[0].ID
-							respBranches, e := client.ListProjectBranches(projectID, nil, nil, nil, nil, nil)
+							respBranches, e := client.ListProjectBranches(projectID, nil, nil, nil, nil, nil, nil)
 							if e != nil {
 								return e
 							}
@@ -1068,7 +1068,7 @@ func TestProjectDefaultEndpointURI(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectName, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectName, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -1196,7 +1196,7 @@ func TestAccMaintenanceWindow(t *testing.T) {
 
 	var projectNamePrefix = "maintenanceWindow-"
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -1325,7 +1325,7 @@ func TestLogicalReplication(t *testing.T) {
 	projectNamePrefix := "logicalReplication-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -1633,7 +1633,7 @@ func TestDefaultBranchProtected(t *testing.T) {
 	projectNamePrefix := "defaultBranchProtected-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -1675,7 +1675,7 @@ func TestDefaultBranchProtected(t *testing.T) {
 								}
 
 								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
+									nil, nil, nil, nil, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -1705,7 +1705,7 @@ func TestDefaultBranchProtected(t *testing.T) {
 								}
 
 								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
+									nil, nil, nil, nil, nil, nil)
 								if err != nil {
 									return err
 								}

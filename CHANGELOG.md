@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **[BREAKING]** Removed the attr. block `default_endpoint_settings` from the resource `neon_project`. 
 Instead, use the `neon_project` attributes `autoscaling_limit_min_cu`, `autoscaling_limit_max_cu`, `suspend_timeout_seconds` to configure defaults for the project's compute resources.
+- **[BREAKING]** Removed the attribute `pooler_mode` from the resource `neon_endpoint` because it's no longer supported by the Neon API.
+
+### Changed
+
+- Updated dependencies:
+  - Neon Go SDK: [v0.18.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.16.0...v0.18.0)
 
 ## [v0.15.0] - 2026-08-02                                                                                                     
 

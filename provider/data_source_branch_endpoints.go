@@ -82,7 +82,7 @@ func dataSourceBranchEndpointsRead(ctx context.Context, d *schema.ResourceData, 
 		endpoints = append(endpoints, map[string]interface{}{
 			"id":         v.ID,
 			"host":       v.Host,
-			"type":       string(v.Type),
+			"type":       v.Type.String(),
 			"region_id":  v.RegionID,
 			"proxy_host": v.ProxyHost,
 		})

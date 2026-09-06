@@ -28,7 +28,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 	projectNamePrefix := "projectRecreation-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -199,7 +199,7 @@ func TestPrimaryCompute(t *testing.T) {
 	projectNamePrefix := "primaryCompute"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}

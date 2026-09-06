@@ -29,7 +29,7 @@ func TestAccOrg(t *testing.T) {
 
 	projectNamePrefix := "orgTest-"
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -57,7 +57,7 @@ func TestAccOrg(t *testing.T) {
 							e    error
 							resp neon.ListProjectsRespObj
 						)
-						resp, e = client.ListProjects(nil, nil, &projectName, &orgID, nil)
+						resp, e = client.ListProjects(nil, nil, &projectName, &orgID, nil, nil)
 						if e == nil {
 							if len(resp.Projects) != 1 {
 								e = fmt.Errorf(
@@ -92,7 +92,7 @@ func TestAccHIPAA(t *testing.T) {
 	projectNamePrefix := "hipaa-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, &orgID, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -124,7 +124,7 @@ func TestAccHIPAA(t *testing.T) {
 								"hipaa", "yes",
 							),
 							func(state *terraform.State) error {
-								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -171,7 +171,7 @@ func TestAccHIPAA(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckNoResourceAttr("neon_project.this", "hipaa"),
 							func(state *terraform.State) error {
-								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -198,7 +198,7 @@ func TestAccHIPAA(t *testing.T) {
 							"hipaa", "yes",
 						),
 							func(state *terraform.State) error {
-								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -240,7 +240,7 @@ func TestAccHIPAA(t *testing.T) {
 								"hipaa", "no",
 							),
 							func(state *terraform.State) error {
-								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -267,7 +267,7 @@ func TestAccHIPAA(t *testing.T) {
 							"hipaa", "yes",
 						),
 							func(state *terraform.State) error {
-								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil)
+								resp, err := client.ListProjects(nil, nil, &projectName, &orgID, nil, nil)
 								if err != nil {
 									return err
 								}

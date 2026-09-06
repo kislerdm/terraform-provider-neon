@@ -524,7 +524,7 @@ func findDefaultEndpoint(endpoints []neon.Endpoint, defaultBranchID string) neon
 		var eps []neon.Endpoint
 		for _, el := range endpoints {
 			// the default endpoint can only be of read_write type
-			if !el.Disabled && el.Type == endpointTypeRW && el.BranchID == defaultBranchID {
+			if !el.Disabled && el.Type == neon.EndpointTypeReadWrite && el.BranchID == defaultBranchID {
 				eps = append(eps, el)
 			}
 		}
@@ -659,7 +659,7 @@ func updateStateProject(d *schema.ResourceData, r neon.Project, defaultBranchID,
 		var allowedIPs = make([]string, 0)
 		var protectedBranchesOnly *bool
 		if r.Settings.AllowedIps.Ips != nil {
-			allowedIPs = *r.Settings.AllowedIps.Ips
+			allowedIPs = r.Settings.AllowedIps.Ips
 			protectedBranchesOnly = r.Settings.AllowedIps.ProtectedBranchesOnly
 		}
 		if err := d.Set("allowed_ips", allowedIPs); err != nil {
@@ -847,7 +847,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 			projectDef.Settings = &neon.ProjectSettingsData{}
 		}
 		projectDef.Settings.AllowedIps = &neon.AllowedIps{
-			Ips: &ips,
+			Ips: ips,
 		}
 
 		projectDef.Settings.AllowedIps.ProtectedBranchesOnly = types.GetTristateBool(d,
@@ -1072,7 +1072,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		for i, vv := range v.([]interface{}) {
 			allowedIPs[i] = fmt.Sprintf("%v", vv)
 		}
-		req.Project.Settings.AllowedIps.Ips = &allowedIPs
+		req.Project.Settings.AllowedIps.Ips = allowedIPs
 	}
 
 	client := meta.(sdkProject)
@@ -1141,7 +1141,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	project := resp.Project
 
-	branches, err := client.ListProjectBranches(d.Id(), nil, nil, nil, nil, nil)
+	branches, err := client.ListProjectBranches(d.Id(), nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -1212,7 +1212,8 @@ type sdkProject interface {
 	CreateProject(neon.ProjectCreateRequest) (neon.CreatedProject, error)
 	UpdateProject(string, neon.ProjectUpdateRequest) (neon.UpdateProjectRespObj, error)
 	GetProject(string) (neon.ProjectResponse, error)
-	ListProjectBranches(string, *string, *string, *string, *string, *int) (neon.ListProjectBranchesRespObj, error)
+	ListProjectBranches(string, *string, *neon.ListProjectBranchesSortBy, *string, *neon.SortOrderParam, *uint16,
+		*bool) (neon.ListProjectBranchesRespObj, error)
 	ListProjectBranchEndpoints(string, string) (neon.EndpointsResponse, error)
 	DeleteProject(string) (neon.ProjectResponse, error)
 	ListProjectBranchDatabases(string, string) (neon.DatabasesResponse, error)

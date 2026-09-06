@@ -198,7 +198,7 @@ func TestAccResourcesImport(t *testing.T) {
 	t.Run("branch-endpoint", func(t *testing.T) {
 		// GIVEN a custom branch
 		const customBranchName = "br-bar"
-		respBranch, err := client.CreateProjectBranch(projectID, &neon.CreateProjectBranchReqObj{
+		respBranch, err := client.CreateProjectBranch(projectID, &neon.CreateProjectBranchCfg{
 			BranchCreateRequest: neon.BranchCreateRequest{
 				Branch: &neon.BranchCreateRequestBranch{
 					Name: pointer(customBranchName),
@@ -282,7 +282,8 @@ func TestAccResourcesImport(t *testing.T) {
 							Check: resource.ComposeTestCheckFunc(
 								// THEN
 								// endpointTypeRW is the default type
-								resource.TestCheckResourceAttr("neon_endpoint.this", "type", endpointTypeRW),
+								resource.TestCheckResourceAttr("neon_endpoint.this", "type",
+									endpointTypeRW.String()),
 							),
 						},
 					},
@@ -335,7 +336,7 @@ func TestAccResourcesImport(t *testing.T) {
 func sleepDuringRunningOperations(t *testing.T, client *neon.Client, projectID string) {
 	t.Helper()
 
-	respOps, err := client.ListProjectOperations(projectID, nil, nil)
+	respOps, err := client.ListProjectOperations(nil, nil, projectID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,13 +346,13 @@ func sleepDuringRunningOperations(t *testing.T, client *neon.Client, projectID s
 	for !isOperationsFinished {
 		var isFinished = make([]bool, len(operations))
 		for i, operation := range operations {
-			isFinished[i] = operation.Status == "finished"
+			isFinished[i] = operation.Status == neon.OperationStatusFinished
 		}
 
 		isOperationsFinished = !slices.Contains(isFinished, false)
 		if !isOperationsFinished {
 			time.Sleep(500 * time.Millisecond)
-			respOps, err := client.ListProjectOperations(projectID, nil, nil)
+			respOps, err := client.ListProjectOperations(nil, nil, projectID)
 			if err != nil {
 				t.Fatal(err)
 			}

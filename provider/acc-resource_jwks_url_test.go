@@ -27,7 +27,7 @@ func TestAccJwksUrl(t *testing.T) {
 	projectNamePrefix := "jwks"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}

@@ -28,7 +28,7 @@ func TestRecreateDatabaseIfNotFound(t *testing.T) {
 	projectNamePrefix := "databaseRecreation-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -40,18 +40,22 @@ func TestRecreateDatabaseIfNotFound(t *testing.T) {
 			panic(err)
 		}
 		br, err := client.ListProjectBranches(ref.ID,
-			nil, nil, nil, nil, nil)
+			nil, nil, nil, nil, nil, nil)
 		if err != nil {
 			panic(err)
 		}
 		var dbID int64
 		for _, branch := range br.Branches {
 			if branch.Default {
-				resp, err := client.DeleteProjectBranchDatabase(ref.ID, branch.ID, dbName)
+				resp, err := client.GetProjectBranchDatabase(ref.ID, branch.ID, dbName)
 				if err != nil {
 					panic(err)
 				}
 				dbID = resp.Database.ID
+				err = client.DeleteProjectBranchDatabase(ref.ID, branch.ID, dbName)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 		return dbID
@@ -88,7 +92,7 @@ resource "neon_database" "this" {
 										return err
 									}
 									br, err := client.ListProjectBranches(ref.ID,
-										nil, nil, nil, nil, nil)
+										nil, nil, nil, nil, nil, nil)
 									if err != nil {
 										return err
 									}
@@ -200,7 +204,7 @@ resource "neon_database" "this" {
 									return err
 								}
 								br, err := client.ListProjectBranches(pr.ID,
-									nil, nil, nil, nil, nil)
+									nil, nil, nil, nil, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -258,7 +262,7 @@ resource "neon_database" "this" {
 							}
 
 							br, err := client.ListProjectBranches(ref.ID,
-								nil, nil, nil, nil, nil)
+								nil, nil, nil, nil, nil, nil)
 							if err != nil {
 								return "", err
 							}
@@ -277,7 +281,7 @@ resource "neon_database" "this" {
 
 							for _, db := range resp.Databases {
 								if db.Name == "test" {
-									_, err := client.DeleteProjectBranchDatabase(ref.ID, branchID, db.Name)
+									err := client.DeleteProjectBranchDatabase(ref.ID, branchID, db.Name)
 									if err != nil {
 										return "", err
 									}

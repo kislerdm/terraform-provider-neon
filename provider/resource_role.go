@@ -164,7 +164,7 @@ func resourceRoleDeleteRetry(ctx context.Context, d *schema.ResourceData, meta i
 func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Role")
 	client := meta.(*neon.Client)
-	resp, err := client.DeleteProjectBranchRole(
+	err := client.DeleteProjectBranchRole(
 		d.Get("project_id").(string),
 		d.Get("branch_id").(string),
 		d.Get("name").(string),
@@ -172,7 +172,6 @@ func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
-	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	d.SetId("")
 	if err := d.Set("project_id", ""); err != nil {
 		return err

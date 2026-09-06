@@ -25,7 +25,7 @@ var schemaRegionID = &schema.Schema{
 }
 
 type t interface {
-	bool | string | int | int32 | int64 | float64 | float32 | neon.PgVersion | neon.ComputeUnit | neon.Provisioner | neon.EndpointPoolerMode | neon.SuspendTimeoutSeconds
+	bool | string | int | int32 | int64 | float64 | float32 | neon.PgVersion | neon.ComputeUnit | neon.Provisioner | neon.SuspendTimeoutSeconds
 }
 
 func pointer[V t](v V) *V {

@@ -13,9 +13,9 @@ import (
 	neon "github.com/kislerdm/neon-sdk-go"
 )
 
-const (
-	endpointTypeRW       = "read_write"
-	endpointTypeReadOnly = "read_only"
+var (
+	endpointTypeRW       = neon.EndpointTypeReadWrite
+	endpointTypeReadOnly = neon.EndpointTypeReadOnly
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -84,13 +84,6 @@ func resourceEndpoint() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				Description: `Activate connection pooling.
-See details: https://neon.tech/docs/connect/connection-pooling`,
-			},
-			"pooler_mode": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				Description: `Mode of connections pooling.
 See details: https://neon.tech/docs/connect/connection-pooling`,
 			},
 			"disabled": {
@@ -163,12 +156,6 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 			return err
 		}
 	}
-	if err := d.Set("pooler_enabled", v.PoolerEnabled); err != nil {
-		return err
-	}
-	if err := d.Set("pooler_mode", string(v.PoolerMode)); err != nil {
-		return err
-	}
 	if err := d.Set("disabled", v.Disabled); err != nil {
 		return err
 	}
@@ -194,12 +181,16 @@ func resourceEndpointCreateRetry(ctx context.Context, d *schema.ResourceData, me
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "created Endpoint")
 
+	endpointType, err := neon.NewEndpointType(d.Get("type").(string))
+	if err != nil {
+		return err
+	}
+
 	cfg := neon.EndpointCreateRequestEndpoint{
 		BranchID:              d.Get("branch_id").(string),
-		Type:                  neon.EndpointType(d.Get("type").(string)),
+		Type:                  endpointType,
 		RegionID:              pointer(d.Get("region_id").(string)),
 		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
-		PoolerMode:            pointer(neon.EndpointPoolerMode(d.Get("pooler_mode").(string))),
 		Disabled:              pointer(d.Get("disabled").(bool)),
 		Provisioner:           pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 		SuspendTimeoutSeconds: pointer(neon.SuspendTimeoutSeconds(d.Get("suspend_timeout_seconds").(int))),
@@ -213,9 +204,13 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		cfg.AutoscalingLimitMaxCu = pointer(neon.ComputeUnit(v.(float64)))
 	}
 
-	if v, ok := d.GetOk("pg_settings"); ok {
+	if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {
+		var pgSettings neon.PgSettingsData
+		for k, vv := range v.(map[string]any) {
+			pgSettings[k] = vv
+		}
 		cfg.Settings = &neon.EndpointSettingsData{
-			PgSettings: v.(map[string]interface{}),
+			PgSettings: &pgSettings,
 		}
 	}
 
@@ -273,7 +268,6 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 	cfg := neon.EndpointUpdateRequestEndpoint{
 		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
-		PoolerMode:            pointer(neon.EndpointPoolerMode(d.Get("pooler_mode").(string))),
 		Disabled:              pointer(d.Get("disabled").(bool)),
 		BranchID:              pointer(d.Get("branch_id").(string)),
 		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
@@ -282,9 +276,13 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		SuspendTimeoutSeconds: pointer(neon.SuspendTimeoutSeconds(d.Get("suspend_timeout_seconds").(int))),
 	}
 
-	if v, ok := d.GetOk("pg_settings"); ok {
+	if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {
+		var pgSettings neon.PgSettingsData
+		for k, vv := range v.(map[string]any) {
+			pgSettings[k] = vv
+		}
 		cfg.Settings = &neon.EndpointSettingsData{
-			PgSettings: v.(map[string]interface{}),
+			PgSettings: &pgSettings,
 		}
 	}
 
@@ -339,11 +337,10 @@ func resourceEndpointDeleteRetry(ctx context.Context, d *schema.ResourceData, me
 func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Endpoint")
 	client := meta.(*neon.Client)
-	resp, err := client.DeleteProjectEndpoint(d.Get("project_id").(string), d.Id())
+	err := client.DeleteProjectEndpoint(d.Get("project_id").(string), d.Id())
 	if err != nil {
 		return err
 	}
-	waitUnfinishedOperations(ctx, client, resp.OperationsResponse.Operations)
 	d.SetId("")
 	return updateStateEndpoint(d, neon.Endpoint{})
 }

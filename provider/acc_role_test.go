@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -29,7 +28,7 @@ func TestRecreateRoleIfNotFound(t *testing.T) {
 	projectNamePrefix := "roleRecreation"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -42,7 +41,7 @@ func TestRecreateRoleIfNotFound(t *testing.T) {
 		}
 
 		respBranches, err := client.ListProjectBranches(ref.ID,
-			nil, nil, nil, nil, nil)
+			nil, nil, nil, nil, nil, nil)
 		if err != nil {
 			panic(err)
 		}
@@ -54,11 +53,10 @@ func TestRecreateRoleIfNotFound(t *testing.T) {
 			}
 		}
 
-		resp, err := client.DeleteProjectBranchRole(ref.ID, branchID, roleName)
+		err = client.DeleteProjectBranchRole(ref.ID, branchID, roleName)
 		if err != nil {
 			panic(err)
 		}
-		waitUnfinishedOperations(context.TODO(), client, resp.OperationsResponse.Operations)
 	}
 
 	t.Run("shall indicate non empty plan if the role was deleted outside of terraform", func(t *testing.T) {
@@ -183,7 +181,7 @@ resource "neon_role" "this" {
 								}
 
 								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
+									nil, nil, nil, nil, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -250,7 +248,7 @@ resource "neon_role" "this" {
 							}
 
 							resp, err := client.ListProjectBranches(ref.ID,
-								nil, nil, nil, nil, nil)
+								nil, nil, nil, nil, nil, nil)
 							if err != nil {
 								return "", err
 							}
@@ -261,11 +259,10 @@ resource "neon_role" "this" {
 								}
 							}
 
-							respDeletion, err := client.DeleteProjectBranchRole(ref.ID, branchID, "test")
+							err = client.DeleteProjectBranchRole(ref.ID, branchID, "test")
 							if err != nil {
 								return "", err
 							}
-							waitUnfinishedOperations(context.TODO(), client, respDeletion.OperationsResponse.Operations)
 
 							return fmt.Sprintf("%s/%s/test", ref.ID, branchID), nil
 						},

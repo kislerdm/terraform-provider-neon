@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -29,7 +28,7 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 	projectNamePrefix := "endpointRecreation"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -47,11 +46,10 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 		}
 		for _, endpoint := range resp.Endpoints {
 			if endpoint.Type == endpointTypeReadOnly {
-				resp, err := client.DeleteProjectEndpoint(ref.ID, endpoint.ID)
+				err := client.DeleteProjectEndpoint(ref.ID, endpoint.ID)
 				if err != nil {
 					panic(err)
 				}
-				waitUnfinishedOperations(context.TODO(), client, resp.OperationsResponse.Operations)
 			}
 		}
 	}
@@ -78,7 +76,7 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr(
 								"neon_endpoint.this",
-								"type", endpointTypeReadOnly,
+								"type", endpointTypeReadOnly.String(),
 							),
 						),
 					},
@@ -236,11 +234,10 @@ resource "neon_endpoint" "this" {
 							for _, endpoint := range resp.Endpoints {
 								if endpoint.Type == endpointTypeReadOnly {
 									endpointID = endpoint.ID
-									resp, err := client.DeleteProjectEndpoint(ref.ID, endpointID)
+									err := client.DeleteProjectEndpoint(ref.ID, endpointID)
 									if err != nil {
 										return "", err
 									}
-									waitUnfinishedOperations(context.TODO(), client, resp.OperationsResponse.Operations)
 								}
 							}
 

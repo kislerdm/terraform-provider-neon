@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -29,7 +28,7 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 	projectNamePrefix := "branchRecreation-"
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -42,17 +41,17 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 		}
 
 		resp, err := client.ListProjectBranches(ref.ID,
-			nil, nil, nil, nil, nil)
+			nil, nil, nil, nil, nil, nil)
 		if err != nil {
 			panic(err)
 		}
 		for _, branch := range resp.Branches {
 			if branch.Name == branchName {
-				resp, err := client.DeleteProjectBranch(ref.ID, branch.ID)
+				hardDelete := true
+				err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
 				if err != nil {
 					panic(err)
 				}
-				waitUnfinishedOperations(context.TODO(), client, resp.OperationsResponse.Operations)
 			}
 		}
 	}
@@ -175,7 +174,7 @@ resource "neon_branch" "this" {
 								}
 
 								resp, err := client.ListProjectBranches(ref.ID,
-									nil, nil, nil, nil, nil)
+									nil, nil, nil, nil, nil, nil)
 								if err != nil {
 									return err
 								}
@@ -230,7 +229,7 @@ resource "neon_branch" "this" {
 							}
 
 							resp, err := client.ListProjectBranches(ref.ID,
-								nil, nil, nil, nil, nil)
+								nil, nil, nil, nil, nil, nil)
 							if err != nil {
 								return "", err
 							}
@@ -238,7 +237,8 @@ resource "neon_branch" "this" {
 							for _, branch := range resp.Branches {
 								if branch.Name == "test" {
 									branchID = branch.ID
-									_, err := client.DeleteProjectBranch(ref.ID, branch.ID)
+									hardDelete := true
+									err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
 									if err != nil {
 										return "", err
 									}

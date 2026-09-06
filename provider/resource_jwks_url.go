@@ -66,7 +66,7 @@ func resourceJwksUrl() *schema.Resource {
 	}
 }
 
-func updateStateJwksUrl(d *schema.ResourceData, v neon.JWKS, roleNames *[]string) error {
+func updateStateJwksUrl(d *schema.ResourceData, v neon.JWKS, roleNames []string) error {
 	if err := d.Set("project_id", v.ProjectID); err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func resourceJwksUrlCreate(ctx context.Context, d *schema.ResourceData, meta int
 		for i, roleName := range vv {
 			roleNames[i] = roleName.(string)
 		}
-		cfg.RoleNames = &roleNames
+		cfg.RoleNames = roleNames
 	}
 	if v, ok := d.GetOk("branch_id"); ok && v.(string) != "" {
 		cfg.BranchID = pointer(v.(string))

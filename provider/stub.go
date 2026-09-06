@@ -47,7 +47,7 @@ func (s *sdkClientStub) GetProject(_ string) (neon.ProjectResponse, error) {
 	return neon.ProjectResponse{}, nil
 }
 
-func (s *sdkClientStub) ListProjectBranches(_ string, _ *string, _ *string, _ *string, _ *string, _ *int) (neon.ListProjectBranchesRespObj, error) {
+func (s *sdkClientStub) ListProjectBranches(_ string, _ *string, _ *neon.ListProjectBranchesSortBy, _ *string, _ *neon.SortOrderParam, _ *uint16, _ *bool) (neon.ListProjectBranchesRespObj, error) {
 	return neon.ListProjectBranchesRespObj{}, nil
 }
 
