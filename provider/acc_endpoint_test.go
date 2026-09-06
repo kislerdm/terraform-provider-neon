@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -28,7 +26,7 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "endpointRecreation-"
+	projectNamePrefix := "endpointRecreation"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -36,10 +34,6 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var preConfig = func(projectName string) {
 		ref, err := readProjectInfo(client, projectName)
@@ -63,7 +57,7 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 	}
 
 	t.Run("shall indicate non empty plan if the endpoint was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -100,7 +94,7 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 	})
 
 	t.Run("shall destroy even if the endpoint was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" { name = "%s" }
 resource "neon_endpoint" "this" {
 	project_id = neon_project.this.id
@@ -135,7 +129,7 @@ resource "neon_endpoint" "this" {
 	})
 
 	t.Run("shall recreate endpoint upon update if it was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -204,7 +198,7 @@ resource "neon_endpoint" "this" {
 	})
 
 	t.Run("shall fail to import endpoint if it was deleted", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`
 			resource "neon_project" "this" { name = "%s" }
 			resource "neon_endpoint" "this" {

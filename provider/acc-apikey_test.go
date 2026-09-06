@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -22,7 +23,7 @@ func TestAccAPIKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wantKeyName := projectNamePrefix + "apikey"
+	wantKeyName := "test" + uuid.NewString()
 
 	t.Cleanup(func() {
 		keys, _ := client.ListApiKeys()

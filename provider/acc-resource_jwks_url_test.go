@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,7 +24,7 @@ func TestAccJwksUrl(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "jwks-"
+	projectNamePrefix := "jwks"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -34,10 +32,6 @@ func TestAccJwksUrl(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	// Note that Neon verifies the URL upon provisioning, hence the Stack project must exist.
 	// Dmitry Kisler's Stack project ID.
@@ -58,7 +52,7 @@ resource "neon_jwks_url" "_" {
 }`, projectName, wantRoleName, wantJwksUrl)
 	}
 
-	projectName := newProjectName()
+	projectName := newProjectName(projectNamePrefix)
 	t.Run("Stack as IdP", func(t *testing.T) {
 		const resourceName = "neon_jwks_url._"
 		config := resourceDefinition(projectName)
@@ -147,7 +141,7 @@ resource "neon_jwks_url" "_" {
 	})
 
 	t.Run("shall destroy even if the resource was deleted outside of terraform,", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := resourceDefinition(projectName)
 		resource.Test(
 			t, resource.TestCase{

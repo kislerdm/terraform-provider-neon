@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,7 +25,7 @@ func TestRecreateDatabaseIfNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "databaseRecreation-"
+	projectNamePrefix := "databaseRecreation-"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -35,10 +33,6 @@ func TestRecreateDatabaseIfNotFound(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var preConfig = func(projectName, dbName string) int64 {
 		ref, err := readProjectInfo(client, projectName)
@@ -65,7 +59,7 @@ func TestRecreateDatabaseIfNotFound(t *testing.T) {
 
 	t.Run("shall yield non empty refresh plan if the database was deleted outside of terraform",
 		func(t *testing.T) {
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefix)
 			config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
 resource "neon_database" "this" {
 	project_id = neon_project.this.id
@@ -128,7 +122,7 @@ resource "neon_database" "this" {
 		})
 
 	t.Run("shall destroy even if the database was deleted outside of terraform,", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
 resource "neon_database" "this" {
 	project_id = neon_project.this.id
@@ -159,7 +153,7 @@ resource "neon_database" "this" {
 	})
 
 	t.Run("shall recreate database upon update if it was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		var refDatabaseID int64
 		resource.Test(
 			t, resource.TestCase{
@@ -234,7 +228,7 @@ resource "neon_database" "this" {
 	})
 
 	t.Run("shall fail to import database if it was deleted", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
 resource "neon_database" "this" {
 	project_id = neon_project.this.id

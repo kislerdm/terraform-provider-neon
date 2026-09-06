@@ -3,9 +3,7 @@ package provider
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,7 +24,7 @@ func TestProjectPermissionFSMIfResourceDeletedOutsideTerraform(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "projectPermissionRecreation-"
+	projectNamePrefix := "projectPermissionRecreation"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -34,10 +32,6 @@ func TestProjectPermissionFSMIfResourceDeletedOutsideTerraform(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var preConfig = func(projectName, email string) {
 		ref, err := readProjectInfo(client, projectName)
@@ -62,7 +56,7 @@ func TestProjectPermissionFSMIfResourceDeletedOutsideTerraform(t *testing.T) {
 	t.Run("shall indicate non empty plan if the project permission was deleted outside of terraform",
 		func(t *testing.T) {
 			email := "foo@bar.baz"
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefix)
 			resource.Test(
 				t, resource.TestCase{
 					ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -97,7 +91,7 @@ resource "neon_project_permission" "this" {
 
 	t.Run("shall destroy even if the project permission was deleted outside of terraform,", func(t *testing.T) {
 		email := "foo@bar.baz"
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
 resource "neon_project_permission" "this" {
 	project_id = neon_project.this.id 

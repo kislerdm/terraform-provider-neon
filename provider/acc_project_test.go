@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,7 +25,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "projectRecreation-"
+	projectNamePrefix := "projectRecreation-"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -35,10 +33,6 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var preConfig = func(projectName string) string {
 		ref, err := readProjectInfo(client, projectName)
@@ -53,7 +47,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 	}
 
 	t.Run("shall indicate non empty plan if the project was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName)
 		resource.Test(
 			t, resource.TestCase{
@@ -84,7 +78,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 	})
 
 	t.Run("shall destroy even if the project was deleted outside of terraform,", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName)
 		resource.Test(
 			t, resource.TestCase{
@@ -120,7 +114,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 	})
 
 	t.Run("shall recreate project upon update if it was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		var refProjectID string
 		resource.Test(
 			t, resource.TestCase{
@@ -165,7 +159,7 @@ func TestRecreateProjectIfNotFound(t *testing.T) {
 	})
 
 	t.Run("shall fail to import project if it was deleted", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}`, projectName)
 		resource.Test(
 			t, resource.TestCase{
@@ -202,7 +196,7 @@ func TestPrimaryCompute(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "primaryCompute-"
+	projectNamePrefix := "primaryCompute"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -211,13 +205,9 @@ func TestPrimaryCompute(t *testing.T) {
 		}
 	})
 
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
-
 	t.Run("shall create a new project with different compute configs and the default compute's configs",
 		func(t *testing.T) {
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefix)
 			resource.Test(
 				t, resource.TestCase{
 					ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -309,7 +299,7 @@ func TestPrimaryCompute(t *testing.T) {
 
 	t.Run("shall update default compute's configs w/o affecting project's compute configs",
 		func(t *testing.T) {
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefix)
 			resource.Test(
 				t, resource.TestCase{
 					ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -446,7 +436,7 @@ func TestPrimaryCompute(t *testing.T) {
 
 	t.Run("shall update project's compute configs w/o affecting default compute's configs",
 		func(t *testing.T) {
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefix)
 			resource.Test(
 				t, resource.TestCase{
 					ProviderFactories: map[string]func() (*schema.Provider, error){

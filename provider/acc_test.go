@@ -21,15 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var projectNamePrefix string
-
-func init() {
-	projectNamePrefix = "acctest-" + uuid.NewString() + "-"
+func newProjectName(prefix string) string {
+	return prefix + uuid.NewString() + strconv.FormatInt(time.Now().UnixMilli(), 10)
 }
 
-func newProjectName() string {
-	return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-}
+var projectNamePrefixOverall = "acctests"
 
 func TestAcc(t *testing.T) {
 	if os.Getenv("TF_ACC") != "1" {
@@ -42,7 +38,7 @@ func TestAcc(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefixOverall, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
@@ -68,7 +64,7 @@ func end2end(t *testing.T, client *neon.Client) {
 
 	t.Run(
 		"shall successfully provision a project, a branch, an endpoint", func(t *testing.T) {
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefixOverall)
 
 			const (
 				historyRetentionSeconds = "100"
@@ -519,7 +515,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 	ips := `["` + strings.Join(wantAllowedIPs, `", "`) + `"]`
 
 	t.Run("shall provision a project with a custom list of allowed IPs", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefixOverall)
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				  = "%s"
@@ -600,7 +596,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 	})
 
 	t.Run("shall provision a project with a custom list of allowed IPs set for protected branch only", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefixOverall)
 
 		resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
 			name      				  = "%s"
@@ -688,7 +684,7 @@ func projectAllowedIPs(t *testing.T, client *neon.Client) {
 func fetchDataSources(t *testing.T) {
 	t.Run(
 		"shall successfully fetch project", func(t *testing.T) {
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefixOverall)
 			branchName := "br-foo"
 			branchRoleName := "role-foo"
 
@@ -813,7 +809,7 @@ func fetchDataSources(t *testing.T) {
 // if custom database and role would be created using the default branch.
 // See details: https://github.com/kislerdm/terraform-provider-neon/issues/83
 func issue83(t *testing.T) {
-	projectName := newProjectName()
+	projectName := newProjectName(projectNamePrefixOverall)
 
 	resourceDefinition := fmt.Sprintf(`resource "neon_project" "this" {
   name                = "%s"
@@ -909,7 +905,7 @@ func mustParseFloat64(s string) float64 {
 
 // test covers the use case in the issue https://github.com/kislerdm/terraform-provider-neon/issues/108
 func testPlanAfterRoleImport(t *testing.T, client *neon.Client) {
-	projectName := newProjectName()
+	projectName := newProjectName(projectNamePrefixOverall)
 	respCreateProject, err := client.CreateProject(neon.ProjectCreateRequest{
 		Project: neon.ProjectCreateRequestProject{Name: &projectName},
 	})
@@ -969,8 +965,7 @@ func TestAccBranch(t *testing.T) {
 	prefix := "branch-"
 
 	t.Cleanup(func() {
-		scanPrefix := prefix + projectNamePrefix
-		resp, _ := client.ListProjects(nil, nil, &scanPrefix, nil, nil)
+		resp, _ := client.ListProjects(nil, nil, &prefix, nil, nil)
 		for _, project := range resp.Projects {
 			br, _ := client.ListProjectBranches(project.ID, nil, nil, nil, nil, nil)
 			for _, b := range br.BranchesResponse.Branches {
@@ -986,7 +981,7 @@ func TestAccBranch(t *testing.T) {
 
 	t.Run(`shall create the project with the custom protected branch
 and update its state afterwards to be unprotected`, func(t *testing.T) {
-		projectName := prefix + newProjectName()
+		projectName := newProjectName(prefix)
 
 		const branchName = "foo"
 
@@ -1065,7 +1060,7 @@ func TestProjectDefaultEndpointURI(t *testing.T) {
 		t.Skip("TF_ACC must be set to 1")
 	}
 
-	projectName := projectNamePrefix + "project-defaultURls"
+	projectName := newProjectName("project-defaultURls")
 
 	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
 	if err != nil {
@@ -1199,17 +1194,13 @@ func TestAccMaintenanceWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "maintenanceWindow-"
+	var projectNamePrefix = "maintenanceWindow-"
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
 		for _, project := range resp.Projects {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var (
 		wantWeekdays  = []int{1, 2}
@@ -1225,7 +1216,7 @@ func TestAccMaintenanceWindow(t *testing.T) {
 		}
 	}
 
-	projectName := newProjectName()
+	projectName := newProjectName(projectNamePrefix)
 	resource.Test(
 		t, resource.TestCase{
 			ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -1331,7 +1322,7 @@ func TestLogicalReplication(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "logicalReplication-"
+	projectNamePrefix := "logicalReplication-"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -1339,10 +1330,6 @@ func TestLogicalReplication(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var newResourceDefinition = func(projectName string, withLogicalReplication string) string {
 		return fmt.Sprintf(`resource "neon_project" "this" {
@@ -1354,7 +1341,7 @@ func TestLogicalReplication(t *testing.T) {
 	const resourceNameProject = "neon_project.this"
 
 	t.Run("shall enable logical replication", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -1392,7 +1379,7 @@ func TestLogicalReplication(t *testing.T) {
 	})
 
 	t.Run("shall keep enable logical replication implicitly disabled", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -1429,7 +1416,7 @@ func TestLogicalReplication(t *testing.T) {
 	})
 
 	t.Run("shall enable initially implicitly disabled logical replication", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		var projectID string
 		resource.Test(
 			t, resource.TestCase{
@@ -1493,7 +1480,7 @@ func TestLogicalReplication(t *testing.T) {
 	})
 
 	t.Run("shall enable initially disabled logical replication", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		var projectID string
 		resource.Test(
 			t, resource.TestCase{
@@ -1558,7 +1545,7 @@ func TestLogicalReplication(t *testing.T) {
 	})
 
 	t.Run("shall fail to disable initially enabled logical replication", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -1596,7 +1583,7 @@ func TestLogicalReplication(t *testing.T) {
 
 	t.Run("shall fail to disable initially enabled logical replication if the config was removed from manifest",
 		func(t *testing.T) {
-			projectName := newProjectName()
+			projectName := newProjectName(projectNamePrefix)
 			resource.Test(
 				t, resource.TestCase{
 					ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -1643,7 +1630,7 @@ func TestDefaultBranchProtected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "defaultBranchProtected-"
+	projectNamePrefix := "defaultBranchProtected-"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -1651,10 +1638,6 @@ func TestDefaultBranchProtected(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var newResourceDefinition = func(projectName string, withDefaultBranchProtected bool) string {
 		return fmt.Sprintf(`resource "neon_project" "this" {
@@ -1666,7 +1649,7 @@ func TestDefaultBranchProtected(t *testing.T) {
 	const resourceNameProject = "neon_project.this"
 
 	t.Run("shall enable/disable default branch protection", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -1740,7 +1723,7 @@ func TestDefaultBranchProtected(t *testing.T) {
 	})
 
 	t.Run("shall maintain default branch protection", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){

@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -28,7 +26,7 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	projectNamePrefix += "branchRecreation-"
+	projectNamePrefix := "branchRecreation-"
 
 	t.Cleanup(func() {
 		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil)
@@ -36,10 +34,6 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 			_, _ = client.DeleteProject(project.ID)
 		}
 	})
-
-	var newProjectName = func() string {
-		return projectNamePrefix + strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
 
 	var preConfig = func(projectName string, branchName string) {
 		ref, err := readProjectInfo(client, projectName)
@@ -64,7 +58,7 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 	}
 
 	t.Run("shall indicate non empty plan if the branch was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -98,7 +92,7 @@ resource "neon_branch" "this" {
 	})
 
 	t.Run("shall destroy even if the branch was deleted outside of terraform,", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
 resource "neon_branch" "this" {
 	project_id = neon_project.this.id 
@@ -138,7 +132,7 @@ resource "neon_branch" "this" {
 	})
 
 	t.Run("shall recreate branch upon update if it was deleted outside of terraform", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		resource.Test(
 			t, resource.TestCase{
 				ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -208,7 +202,7 @@ resource "neon_branch" "this" {
 	})
 
 	t.Run("shall fail to import branch if it was deleted", func(t *testing.T) {
-		projectName := newProjectName()
+		projectName := newProjectName(projectNamePrefix)
 		config := fmt.Sprintf(`resource "neon_project" "this" {name = "%s"}
 resource "neon_branch" "this" {
 	project_id = neon_project.this.id 

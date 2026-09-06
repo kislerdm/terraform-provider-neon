@@ -31,7 +31,7 @@ func TestAccResourcesImport(t *testing.T) {
 	})
 
 	// GIVEN the project
-	projectName := newProjectName()
+	projectName := newProjectName("importTest")
 	const (
 		defaultDatabaseName = "db-foo"
 		defaultRoleName     = "r-foo"
