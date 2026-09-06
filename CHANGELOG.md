@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.15.0] - 2026-08-02
+## [v0.16.0] - Unreleased
+
+### Added
+
+- Added attributes `autoscaling_limit_min_cu`, `autoscaling_limit_max_cu`, `suspend_timeout_seconds` to the `neon_project` resource to configure defaults for the project's compute resources.
+- [[#234](https://github.com/kislerdm/terraform-provider-neon/issues/234)] Added the attr. block `primary_compute` to the resource `neon_project` to configure the primary compute resources provisioned with the project.
+
+### Removed
+
+- **[BREAKING]** Removed the attr. block `default_endpoint_settings` from the resource `neon_project`. 
+Instead, use the `neon_project` attributes `autoscaling_limit_min_cu`, `autoscaling_limit_max_cu`, `suspend_timeout_seconds` to configure defaults for the project's compute resources.
+
+## [v0.15.0] - 2026-08-02                                                                                                     
 
 ### Fixed
 

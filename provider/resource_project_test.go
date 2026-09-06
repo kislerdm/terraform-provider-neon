@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
 	"github.com/kislerdm/terraform-provider-neon/provider/types"
 	"github.com/stretchr/testify/assert"
@@ -61,15 +60,15 @@ func Test_resourceProjectCreate(t *testing.T) {
 				ipsMap[ip] = struct{}{}
 			}
 
-			err = definition.Set(
-				"default_endpoint_settings", []interface{}{
-					map[string]interface{}{
-						"autoscaling_limit_min_cu": autoScalingMin,
-						"autoscaling_limit_max_cu": autoScalingMax,
-						"suspend_timeout_seconds":  suspendTimeoutSeconds,
-					},
-				},
-			)
+			err = definition.Set("autoscaling_limit_min_cu", autoScalingMin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = definition.Set("autoscaling_limit_max_cu", autoScalingMax)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = definition.Set("autoscaling_limit_max_cu", autoScalingMax)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -631,67 +630,6 @@ func Test_newPooledHost(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, newPooledHost(tt.host), "newPooledHost(%v)", tt.host)
-		})
-	}
-}
-
-func Test_resourceProjectDefaultEndpointSettingsShallAllowToSetSuspensionTimeout(t *testing.T) {
-	if os.Getenv("TF_ACC") == "1" {
-		t.Skip("acceptance tests are running")
-	}
-	tests := map[string]struct {
-		in      int
-		isError bool
-	}{
-		"never suspend (-1) is allowed":      {-1, false},
-		"negative other than -1 is rejected": {-2, true},
-		"large negative is rejected":         {-300, true},
-		"zero is allowed":                    {0, false},
-		"positive is allowed":                {300, false},
-	}
-	t.Parallel()
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			sh := endpointDefaultSettings.Elem.(*schema.Resource).Schema["suspend_timeout_seconds"]
-			_, errs := sh.ValidateFunc(test.in, "")
-			switch test.isError {
-			case true:
-				assert.Len(t, errs, 1)
-			case false:
-				assert.Nil(t, errs)
-			}
-		})
-	}
-}
-
-func Test_mapToDefaultEndpointsSettings_suspendTimeoutSeconds(t *testing.T) {
-	tests := map[string]struct {
-		in   int
-		want *neon.SuspendTimeoutSeconds
-	}{
-		"shall set a custom timeout as -1, a/k/a 'never suspend'": {
-			in:   -1,
-			want: pointer(neon.SuspendTimeoutSeconds(-1)),
-		},
-		"shall set a custom positive timeout": {
-			in:   300,
-			want: pointer(neon.SuspendTimeoutSeconds(300)),
-		},
-		"shall set zero": {
-			in:   0,
-			want: pointer(neon.SuspendTimeoutSeconds(0)),
-		},
-		"shall not set negative number less than -1": {
-			in: -10,
-		},
-	}
-	t.Parallel()
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
-			got := mapToDefaultEndpointsSettings(map[string]interface{}{
-				"suspend_timeout_seconds": tt.in,
-			})
-			assert.Equal(t, tt.want, got.SuspendTimeoutSeconds)
 		})
 	}
 }

@@ -97,11 +97,9 @@ resource "neon_project" "this" {
 
 	history_retention_seconds = %s
 
-	default_endpoint_settings {
-    	autoscaling_limit_min_cu = %s
-   	 	autoscaling_limit_max_cu = %s
-    	suspend_timeout_seconds  = %s
-  	}
+    autoscaling_limit_min_cu = %s
+    autoscaling_limit_max_cu = %s
+    suspend_timeout_seconds  = %s
 
 	quota {
 		active_time_seconds  = %d
@@ -214,21 +212,17 @@ resource "neon_database" "this" {
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.#", "1",
-								),
-								resource.TestCheckResourceAttr(
-									resourceNameProject,
-									"default_endpoint_settings.0.autoscaling_limit_max_cu",
+									"autoscaling_limit_max_cu",
 									autoscalingCUMax,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.autoscaling_limit_min_cu",
+									"autoscaling_limit_min_cu",
 									autoscalingCUMin,
 								),
 								resource.TestCheckResourceAttr(
 									resourceNameProject,
-									"default_endpoint_settings.0.suspend_timeout_seconds",
+									"suspend_timeout_seconds",
 									suspendTimeoutSec,
 								),
 								resource.TestCheckResourceAttr(
@@ -837,11 +831,9 @@ func issue83(t *testing.T) {
     role_name     = "main"
   }
 
-  default_endpoint_settings {
-    autoscaling_limit_min_cu = 0.25
-    autoscaling_limit_max_cu = 0.25
-    suspend_timeout_seconds  = 300 # 5 min
-  }
+  autoscaling_limit_min_cu = 0.25
+  autoscaling_limit_max_cu = 0.25
+  suspend_timeout_seconds  = 300 # 5 min
 }
 
 resource "neon_role" "this" {

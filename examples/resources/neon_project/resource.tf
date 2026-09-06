@@ -11,17 +11,29 @@ resource "neon_project" "example" {
   history_retention_seconds = 0
 }
 
-### Set custom compute limits
+### Set custom compute limits. Note that this configurations don't apply to existing compute,
+# e.g., they don't affect the primary compute resources provisioned with the project by default.
 
 resource "neon_project" "example" {
   name = "foo"
 
-  default_endpoint_settings {
+  autoscaling_limit_min_cu = 0.5
+  autoscaling_limit_max_cu = 1
+  suspend_timeout_seconds  = 10
+}
+
+### Set compute limits for the primary compute resources provisioned with the project.
+
+resource "neon_project" "example" {
+  name = "foo"
+
+  primary_compute {
     autoscaling_limit_min_cu = 0.5
     autoscaling_limit_max_cu = 1
     suspend_timeout_seconds  = 10
   }
 }
+
 
 ### Define custom default branch
 

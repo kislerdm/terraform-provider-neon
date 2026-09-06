@@ -3,16 +3,28 @@ page_title: "neon_project Resource - terraform-provider-neon"
 description: |-
   Neon Project.
 
-See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
-API: https://api-docs.neon.tech/reference/createproject
+Note that this resource manages five resources:
+
+- Project: https://neon.com/docs/reference/glossary#project
+- Root branch: https://neon.com/docs/reference/glossary#root-branch
+- Primary compute with the default read-write endpoint: https://neon.com/docs/reference/glossary#compute
+- Default database: https://neon.com/docs/reference/glossary#database
+- Default role: https://neon.com/docs/reference/glossary#postgres-role
+
 ---
 
 # neon_project (Resource)
 
 Neon Project.
 
-See details: https://neon.tech/docs/get-started-with-neon/setting-up-a-project/
-API: https://api-docs.neon.tech/reference/createproject
+Note that this resource manages five resources:
+
+- Project: https://neon.com/docs/reference/glossary#project
+- Root branch: https://neon.com/docs/reference/glossary#root-branch
+- Primary compute with the default read-write endpoint: https://neon.com/docs/reference/glossary#compute
+- Default database: https://neon.com/docs/reference/glossary#database
+- Default role: https://neon.com/docs/reference/glossary#postgres-role
+
 
 ## Example Usage
 
@@ -30,17 +42,29 @@ resource "neon_project" "example" {
   history_retention_seconds = 0
 }
 
-### Set custom compute limits
+### Set custom compute limits. Note that this configurations don't apply to existing compute,
+# e.g., they don't affect the primary compute resources provisioned with the project by default.
 
 resource "neon_project" "example" {
   name = "foo"
 
-  default_endpoint_settings {
+  autoscaling_limit_min_cu = 0.5
+  autoscaling_limit_max_cu = 1
+  suspend_timeout_seconds  = 10
+}
+
+### Set compute limits for the primary compute resources provisioned with the project.
+
+resource "neon_project" "example" {
+  name = "foo"
+
+  primary_compute {
     autoscaling_limit_min_cu = 0.5
     autoscaling_limit_max_cu = 1
     suspend_timeout_seconds  = 10
   }
 }
+
 
 ### Define custom default branch
 
@@ -126,6 +150,10 @@ Note that the feature is available to the Neon Scale plans only. Details: https:
 - `allowed_ips_protected_branches_only` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Apply the allow-list to the protected branches only.
 Note that the feature is available to the Neon Scale plans only.
+- `autoscaling_limit_max_cu` (Number) Maximal value of the project-wide autoscaling limit. 
+Note that it is not retrospectively applicable, i.e., existing compute resources are not affected by this configuration.
+- `autoscaling_limit_min_cu` (Number) Minimal value of the project-wide autoscaling limit. 
+Note that it is not retrospectively applicable, i.e., existing compute resources are not affected by this configuration.
 - `block_public_connections` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Block connections from public internet. This supersedes the AllowedIPs list.
 - `block_vpc_connections` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
@@ -134,9 +162,6 @@ Block connections that use VPC endpoints.
 - `compute_provisioner` (String) Provisioner The Neon compute provisioner.
 Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
 - `default_branch_protected` (Boolean) Set default branch as protected. **Note** that the default value is false.
-- `default_endpoint` (Block List, Max: 1) (see [below for nested schema](#nestedblock--default_endpoint))
-- `default_endpoint_settings` (Block List, Max: 1, Deprecated) Project-wide settings for newly-provisioned endpoints. 
-Note that this block does not affect the default endpoint provisioned together with the project. (see [below for nested schema](#nestedblock--default_endpoint_settings))
 - `enable_logical_replication` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Sets wal_level=logical for all compute endpoints in this project.
 All active endpoints will be suspended. See details: https://neon.tech/docs/introduction/logical-replication
@@ -154,6 +179,7 @@ Default: 1 day, see https://neon.tech/docs/reference/glossary#point-in-time-rest
 - `name` (String) Project name.
 - `org_id` (String) Identifier of the organisation to which this project belongs.
 - `pg_version` (Number) Postgres version
+- `primary_compute` (Block List, Max: 1) Primary read-write compute resource provisioned with the project. (see [below for nested schema](#nestedblock--primary_compute))
 - `quota` (Block List, Max: 1) Per-project consumption quota. If the quota is exceeded, all active computes
 are automatically suspended and it will not be possible to start them with
 an API method call or incoming proxy connections. The only exception is
@@ -170,6 +196,10 @@ The zero value per attributed means 'unlimited'. (see [below for nested schema](
 - `store_password` (String) Set to 'yes' to activate, 'no' to deactivate explicitly, and omit to keep the default value.
 Whether or not passwords are stored for roles in the Neon project.
 Storing passwords facilitates access to Neon features that require authorization.
+- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
+The value 0 means use the global default.
+The value -1 means never suspend. The default value is 300 seconds (5 minutes).
+The maximum value is 604800 seconds (1 week)
 
 ### Read-Only
 
@@ -201,36 +231,6 @@ Read-Only:
 - `id` (String) Branch ID.
 
 
-<a id="nestedblock--default_endpoint"></a>
-### Nested Schema for `default_endpoint`
-
-Optional:
-
-- `autoscaling_limit_max_cu` (Number)
-- `autoscaling_limit_min_cu` (Number)
-- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
-The value 0 means use the global default.
-The value -1 means never suspend. The default value is 300 seconds (5 minutes).
-The maximum value is 604800 seconds (1 week)
-
-Read-Only:
-
-- `id` (String) Endpoint ID.
-
-
-<a id="nestedblock--default_endpoint_settings"></a>
-### Nested Schema for `default_endpoint_settings`
-
-Optional:
-
-- `autoscaling_limit_max_cu` (Number, Deprecated)
-- `autoscaling_limit_min_cu` (Number, Deprecated)
-- `suspend_timeout_seconds` (Number, Deprecated) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
-The value 0 means use the global default.
-The value -1 means never suspend. The default value is 300 seconds (5 minutes).
-The maximum value is 604800 seconds (1 week)
-
-
 <a id="nestedblock--maintenance_window"></a>
 ### Nested Schema for `maintenance_window`
 
@@ -239,6 +239,23 @@ Required:
 - `end_time` (String) End time of the maintenance window, in the format of "HH:MM". Uses UTC.
 - `start_time` (String) Start time of the maintenance window, in the format of "HH:MM". Uses UTC.
 - `weekdays` (List of Number) A list of weekdays when the maintenance window is active. Encoded as ints, where 1 - Monday, and 7 - Sunday.
+
+
+<a id="nestedblock--primary_compute"></a>
+### Nested Schema for `primary_compute`
+
+Optional:
+
+- `autoscaling_limit_max_cu` (Number) Maximal value of the autoscaling limit for the primary project compute.
+- `autoscaling_limit_min_cu` (Number) Minimal value of the autoscaling limit for the primary project compute.
+- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the default compute endpoint is automatically suspended.
+The value 0 means use the global default.
+The value -1 means never suspend. The default value is 300 seconds (5 minutes).
+The maximum value is 604800 seconds (1 week)
+
+Read-Only:
+
+- `id` (String) Endpoint ID.
 
 
 <a id="nestedblock--quota"></a>
