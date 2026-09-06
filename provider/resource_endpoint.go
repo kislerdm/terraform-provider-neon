@@ -205,7 +205,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {
-		var pgSettings neon.PgSettingsData
+		var pgSettings = make(neon.PgSettingsData, len(v.(map[string]any)))
 		for k, vv := range v.(map[string]any) {
 			pgSettings[k] = vv
 		}
@@ -277,7 +277,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {
-		var pgSettings neon.PgSettingsData
+		var pgSettings = make(neon.PgSettingsData, len(v.(map[string]any)))
 		for k, vv := range v.(map[string]any) {
 			pgSettings[k] = vv
 		}
