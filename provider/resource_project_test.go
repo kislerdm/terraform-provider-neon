@@ -68,7 +68,7 @@ func Test_resourceProjectCreate(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = definition.Set("autoscaling_limit_max_cu", autoScalingMax)
+			err = definition.Set("suspend_timeout_seconds", suspendTimeoutSeconds)
 			if err != nil {
 				t.Fatal(err)
 			}
