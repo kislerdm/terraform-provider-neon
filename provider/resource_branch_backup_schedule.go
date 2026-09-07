@@ -1,4 +1,3 @@
-// Package v2 contains Terraform Plugin Framework resources.
 package provider
 
 import (
