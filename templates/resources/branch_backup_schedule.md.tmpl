@@ -1,0 +1,37 @@
+---
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/neon_branch_backup_schedule/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+The Backup Schedule for a Neon Branch can be imported to the terraform state by its composite identifier that
+consists of `ProjectID` and `BranchID` separated by a forward slash.
+
+Import using the [import block](https://developer.hashicorp.com/terraform/language/import):
+
+For example:
+
+```hcl
+import {
+  to = {{.Name}}.example
+  id = "curly-poetry-30604233/br-snowy-mountain-a5jkb18i"
+}
+```
+
+Import using the command `terraform import`:
+
+```commandline
+terraform import {{.Name}}.example "curly-poetry-30604233/br-snowy-mountain-a5jkb18i"
+```
