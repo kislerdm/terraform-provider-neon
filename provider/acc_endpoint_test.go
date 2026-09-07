@@ -253,3 +253,87 @@ resource "neon_endpoint" "this" {
 			})
 	})
 }
+
+func TestEndpointName(t *testing.T) {
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("TF_ACC must be set to 1")
+	}
+
+	client, err := neon.NewClient(neon.Config{Key: os.Getenv("NEON_API_KEY")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	projectNamePrefix := "endpointName"
+
+	t.Cleanup(func() {
+		resp, _ := client.ListProjects(nil, nil, &projectNamePrefix, nil, nil, nil)
+		for _, project := range resp.Projects {
+			_, _ = client.DeleteProject(project.ID)
+		}
+	})
+
+	projectName := newProjectName(projectNamePrefix)
+	resource.Test(
+		t, resource.TestCase{
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"neon": func() (*schema.Provider, error) {
+					return newAccTest(), nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(`
+		resource "neon_project" "this" { 
+			name = "%s"
+			primary_compute {
+				name = "foo"
+			}
+		}
+		resource "neon_endpoint" "this" {
+			project_id = neon_project.this.id
+			branch_id  = neon_project.this.default_branch_id
+			type       = "read_only"
+			name       = "bar"
+		}
+	`, projectName),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"neon_project.this",
+							"primary_compute.0.name", "foo",
+						),
+						resource.TestCheckResourceAttr(
+							"neon_endpoint.this",
+							"name", "bar",
+						),
+						func(_ *terraform.State) error {
+							ref, err := readProjectInfo(client, projectName)
+							if err != nil {
+								return err
+							}
+
+							resp, err := client.ListProjectEndpoints(ref.ID)
+							if err != nil {
+								return err
+							}
+							for _, endpoint := range resp.Endpoints {
+								switch endpoint.Type {
+								case neon.EndpointTypeReadWrite:
+									if endpoint.Name == nil || *endpoint.Name != "foo" {
+										return fmt.Errorf("expected endpoint name 'foo', got '%v'", endpoint.Name)
+									}
+
+								case neon.EndpointTypeReadOnly:
+									if endpoint.Name == nil || *endpoint.Name != "bar" {
+										return fmt.Errorf("expected endpoint name 'bar', got '%v'", endpoint.Name)
+									}
+								}
+							}
+
+							return nil
+						},
+					),
+				},
+			},
+		})
+}
