@@ -24,7 +24,7 @@ Instead, use the `neon_project` attributes `autoscaling_limit_min_cu`, `autoscal
 ### Changed
 
 - Updated dependencies:
-  - Neon Go SDK: [v0.19.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.16.0...v0.19.0)
+  - Neon Go SDK: [v0.20.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.16.0...v0.20.0)
 
 ## [v0.15.0] - 2026-08-02                                                                                                     
 

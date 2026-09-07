@@ -162,7 +162,7 @@ func resourceDatabaseDeleteRetry(ctx context.Context, d *schema.ResourceData, me
 func resourceDatabaseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Database")
 	client := meta.(*neon.Client)
-	err := client.DeleteProjectBranchDatabase(
+	op, err := client.DeleteProjectBranchDatabase(
 		d.Get("project_id").(string),
 		d.Get("branch_id").(string),
 		d.Get("name").(string),
@@ -170,6 +170,7 @@ func resourceDatabaseDelete(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, op.OperationsResponse.Operations)
 	d.SetId("")
 	return updateStateDatabase(d, neon.Database{})
 }

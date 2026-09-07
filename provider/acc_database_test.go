@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -52,10 +53,11 @@ func TestRecreateDatabaseIfNotFound(t *testing.T) {
 					panic(err)
 				}
 				dbID = resp.Database.ID
-				err = client.DeleteProjectBranchDatabase(ref.ID, branch.ID, dbName)
+				op, err := client.DeleteProjectBranchDatabase(ref.ID, branch.ID, dbName)
 				if err != nil {
 					panic(err)
 				}
+				waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 			}
 		}
 		return dbID
@@ -281,10 +283,11 @@ resource "neon_database" "this" {
 
 							for _, db := range resp.Databases {
 								if db.Name == "test" {
-									err := client.DeleteProjectBranchDatabase(ref.ID, branchID, db.Name)
+									op, err := client.DeleteProjectBranchDatabase(ref.ID, branchID, db.Name)
 									if err != nil {
 										return "", err
 									}
+									waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 								}
 							}
 							return fmt.Sprintf("%s/%s/%s", ref.ID, branchID, "test"), nil

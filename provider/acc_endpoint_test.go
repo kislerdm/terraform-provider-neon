@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -46,10 +47,11 @@ func TestRecreateEndpointIfNotFound(t *testing.T) {
 		}
 		for _, endpoint := range resp.Endpoints {
 			if endpoint.Type == endpointTypeReadOnly {
-				err := client.DeleteProjectEndpoint(ref.ID, endpoint.ID)
+				op, err := client.DeleteProjectEndpoint(ref.ID, endpoint.ID)
 				if err != nil {
 					panic(err)
 				}
+				waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 			}
 		}
 	}
@@ -234,10 +236,11 @@ resource "neon_endpoint" "this" {
 							for _, endpoint := range resp.Endpoints {
 								if endpoint.Type == endpointTypeReadOnly {
 									endpointID = endpoint.ID
-									err := client.DeleteProjectEndpoint(ref.ID, endpointID)
+									op, err := client.DeleteProjectEndpoint(ref.ID, endpointID)
 									if err != nil {
 										return "", err
 									}
+									waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 								}
 							}
 

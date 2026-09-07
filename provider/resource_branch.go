@@ -243,10 +243,11 @@ func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta inte
 
 	client := meta.(*neon.Client)
 	hardDelete := true
-	err := client.DeleteProjectBranch(d.Get("project_id").(string), d.Id(), &hardDelete)
+	op, err := client.DeleteProjectBranch(d.Get("project_id").(string), d.Id(), &hardDelete)
 	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, op.OperationsResponse.Operations)
 
 	d.SetId("")
 	return updateStateBranch(d, neon.Branch{})

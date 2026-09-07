@@ -33,32 +33,36 @@ func main() {
 	branchID := rProject.Branch.ID
 	for _, db := range rProject.DatabasesResponse.Databases {
 		dbName := db.Name
-		e := c.DeleteProjectBranchDatabase(projectID, branchID, dbName)
+		op, e := c.DeleteProjectBranchDatabase(projectID, branchID, dbName)
 		if e != nil {
 			log.Printf("error deleting database %s: %v\n", dbName, e)
 		}
+		waitRunningOps(c, projectID, op.OperationsResponse.Operations)
 	}
 
 	for _, role := range rProject.RolesResponse.Roles {
-		e := c.DeleteProjectBranchRole(projectID, branchID, role.Name)
+		op, e := c.DeleteProjectBranchRole(projectID, branchID, role.Name)
 		if e != nil {
 			log.Printf("error role %s: %v\n", role.Name, e)
 		}
+		waitRunningOps(c, projectID, op.OperationsResponse.Operations)
 	}
 
 	for _, endpoint := range rProject.EndpointsResponse.Endpoints {
-		e := c.DeleteProjectEndpoint(projectID, endpoint.ID)
+		op, e := c.DeleteProjectEndpoint(projectID, endpoint.ID)
 		if e != nil {
 			log.Printf("error deleting endpoint %s: %v\n", endpoint.ID, e)
 		}
+		waitRunningOps(c, projectID, op.OperationsResponse.Operations)
 	}
 
 	if !rProject.Branch.Default {
 		hardDelete := true
-		e := c.DeleteProjectBranch(projectID, branchID, &hardDelete)
+		op, e := c.DeleteProjectBranch(projectID, branchID, &hardDelete)
 		if e != nil {
 			log.Printf("error deleting branch %s: %v\n", branchID, e)
 		}
+		waitRunningOps(c, projectID, op.OperationsResponse.Operations)
 	}
 
 	log.Printf("lapsed: %d ms.\n", time.Since(t0).Milliseconds())

@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -53,10 +54,11 @@ func TestRecreateRoleIfNotFound(t *testing.T) {
 			}
 		}
 
-		err = client.DeleteProjectBranchRole(ref.ID, branchID, roleName)
+		op, err := client.DeleteProjectBranchRole(ref.ID, branchID, roleName)
 		if err != nil {
 			panic(err)
 		}
+		waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 	}
 
 	t.Run("shall indicate non empty plan if the role was deleted outside of terraform", func(t *testing.T) {
@@ -259,10 +261,11 @@ resource "neon_role" "this" {
 								}
 							}
 
-							err = client.DeleteProjectBranchRole(ref.ID, branchID, "test")
+							op, err := client.DeleteProjectBranchRole(ref.ID, branchID, "test")
 							if err != nil {
 								return "", err
 							}
+							waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 
 							return fmt.Sprintf("%s/%s/test", ref.ID, branchID), nil
 						},

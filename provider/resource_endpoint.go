@@ -376,10 +376,11 @@ func resourceEndpointDeleteRetry(ctx context.Context, d *schema.ResourceData, me
 func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	tflog.Trace(ctx, "delete Endpoint")
 	client := meta.(*neon.Client)
-	err := client.DeleteProjectEndpoint(d.Get("project_id").(string), d.Id())
+	op, err := client.DeleteProjectEndpoint(d.Get("project_id").(string), d.Id())
 	if err != nil {
 		return err
 	}
+	waitUnfinishedOperations(ctx, client, op.OperationsResponse.Operations)
 	d.SetId("")
 	return updateStateEndpoint(d, neon.Endpoint{})
 }

@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -48,10 +49,11 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 		for _, branch := range resp.Branches {
 			if branch.Name == branchName {
 				hardDelete := true
-				err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
+				op, err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
 				if err != nil {
 					panic(err)
 				}
+				waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 			}
 		}
 	}
@@ -238,10 +240,11 @@ resource "neon_branch" "this" {
 								if branch.Name == "test" {
 									branchID = branch.ID
 									hardDelete := true
-									err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
+									op, err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
 									if err != nil {
 										return "", err
 									}
+									waitUnfinishedOperations(context.TODO(), client, op.OperationsResponse.Operations)
 								}
 							}
 							return fmt.Sprintf("%s/%s", ref.ID, branchID), nil
