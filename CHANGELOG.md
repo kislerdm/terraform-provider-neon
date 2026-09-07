@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0] - 2026-09-08
+
+### Added
+
+- [[#202](https://github.com/kislerdm/terraform-provider-neon/issues/202)] Added the resource `neon_branch_backup_schedule` to configure backup schedules for project branches.
+
 ## [v0.16.0] - 2026-09-07
 
 ### Added
