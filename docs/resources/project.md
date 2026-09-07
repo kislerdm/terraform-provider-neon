@@ -248,6 +248,7 @@ Optional:
 
 - `autoscaling_limit_max_cu` (Number) Maximal value of the autoscaling limit for the primary project compute.
 - `autoscaling_limit_min_cu` (Number) Minimal value of the autoscaling limit for the primary project compute.
+- `name` (String) Compute name.
 - `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the default compute endpoint is automatically suspended.
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).

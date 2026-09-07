@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added attributes `autoscaling_limit_min_cu`, `autoscaling_limit_max_cu`, `suspend_timeout_seconds` to the `neon_project` resource to configure defaults for the project's compute resources.
 - [[#234](https://github.com/kislerdm/terraform-provider-neon/issues/234)] Added the attr. block `primary_compute` to the resource `neon_project` to configure the primary compute resources provisioned with the project.
 - Added read-only attribute `host_pooling` to the resource `neon_endpoint`.
+- Added the attribute `name` to the resource `neon_endpoint`.
 
 ### Removed
 

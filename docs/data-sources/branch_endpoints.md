@@ -30,8 +30,13 @@ Fetch Branch Endpoints
 
 Read-Only:
 
+- `autoscaling_limit_max_cu` (Number) Maximal value of the compute autoscaling limit.
+- `autoscaling_limit_min_cu` (Number) Minimal value of the compute autoscaling limit.
 - `host` (String) Endpoint URI.
+- `host_pooling` (String) Endpoint URI for connection pooling.
 - `id` (String) Endpoint ID.
+- `name` (String) Compute name.
 - `proxy_host` (String)
 - `region_id` (String) Deployment region: https://neon.tech/docs/introduction/regions
+- `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
 - `type` (String) Access type.

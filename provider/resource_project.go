@@ -67,6 +67,12 @@ The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)`,
 			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Compute name.",
+			},
 		},
 	},
 }
@@ -613,12 +619,17 @@ func updateStateProject(d *schema.ResourceData, r neon.Project, defaultBranchID,
 		}
 	}
 
-	var primaryCompute = make(map[string]interface{}, 4)
+	var primaryCompute = make(map[string]interface{}, len(schemaCompute.Elem.(*schema.Resource).Schema))
 	if dbConnectionInfo.endpointID != "" {
 		primaryCompute["id"] = dbConnectionInfo.endpointID
 		primaryCompute["autoscaling_limit_min_cu"] = float64(dbConnectionInfo.defaultEndpoint.AutoscalingLimitMinCu)
 		primaryCompute["autoscaling_limit_max_cu"] = float64(dbConnectionInfo.defaultEndpoint.AutoscalingLimitMaxCu)
 		primaryCompute["suspend_timeout_seconds"] = int(dbConnectionInfo.defaultEndpoint.SuspendTimeoutSeconds)
+		var name string
+		if dbConnectionInfo.defaultEndpoint.Name != nil {
+			name = *dbConnectionInfo.defaultEndpoint.Name
+		}
+		primaryCompute["name"] = name
 		if err := d.Set("primary_compute", []interface{}{primaryCompute}); err != nil {
 			return err
 		}
@@ -960,6 +971,10 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 				cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v))
 			}
 
+			if v, ok := v["name"].(string); ok {
+				cfg.Name = &v
+			}
+
 			client := meta.(*neon.Client)
 			resp, err := client.UpdateProjectEndpoint(
 				projectID,
@@ -1111,6 +1126,9 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 				if v, ok := v["suspend_timeout_seconds"].(int); ok && v > -2 {
 					cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v))
+				}
+				if v, ok := v["name"].(string); ok {
+					cfg.Name = &v
 				}
 
 				client := meta.(*neon.Client)

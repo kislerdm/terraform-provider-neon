@@ -140,6 +140,12 @@ The maximum value is 604800 seconds (1 week)`,
 				Computed:    true,
 				Description: "Endpoint URI for connection pooling.",
 			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Compute name.",
+			},
 		},
 	}
 }
@@ -182,6 +188,11 @@ func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
 	}
 	if err := d.Set("branch_id", v.BranchID); err != nil {
 		return err
+	}
+	if v.Name != nil {
+		if err := d.Set("name", *v.Name); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -226,6 +237,10 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		cfg.Settings = &neon.EndpointSettingsData{
 			PgSettings: &pgSettings,
 		}
+	}
+
+	if v, ok := d.GetOk("name"); ok {
+		cfg.Name = pointer(v.(string))
 	}
 
 	client := meta.(*neon.Client)
@@ -281,7 +296,6 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	tflog.Trace(ctx, "update Endpoint")
 
 	cfg := neon.EndpointUpdateRequestEndpoint{
-		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
 		Disabled:              pointer(d.Get("disabled").(bool)),
 		BranchID:              pointer(d.Get("branch_id").(string)),
 		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
@@ -289,18 +303,26 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		Provisioner:           pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 	}
 
-	if v, ok := d.GetOk("suspend_timeout_seconds"); ok {
-		cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v.(int)))
+	if d.HasChange("suspend_timeout_seconds") {
+		if v, ok := d.GetOk("suspend_timeout_seconds"); ok {
+			cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v.(int)))
+		}
 	}
 
-	if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {
-		var pgSettings = make(neon.PgSettingsData, len(v.(map[string]any)))
-		for k, vv := range v.(map[string]any) {
-			pgSettings[k] = vv
+	if d.HasChange("pg_settings") {
+		if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {
+			var pgSettings = make(neon.PgSettingsData, len(v.(map[string]any)))
+			for k, vv := range v.(map[string]any) {
+				pgSettings[k] = vv
+			}
+			cfg.Settings = &neon.EndpointSettingsData{
+				PgSettings: &pgSettings,
+			}
 		}
-		cfg.Settings = &neon.EndpointSettingsData{
-			PgSettings: &pgSettings,
-		}
+	}
+
+	if d.HasChange("name") {
+		cfg.Name = pointer(d.Get("name").(string))
 	}
 
 	client := meta.(*neon.Client)

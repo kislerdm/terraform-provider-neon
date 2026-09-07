@@ -42,6 +42,7 @@ resource "neon_endpoint" "example" {
 - `compute_provisioner` (String) Provisioner The Neon compute provisioner.
 Specify the k8s-neonvm provisioner to create a compute endpoint that supports Autoscaling.
 - `disabled` (Boolean) Disable the endpoint.
+- `name` (String) Compute name.
 - `pg_settings` (Map of String)
 - `region_id` (String) Deployment region: https://neon.tech/docs/introduction/regions
 - `suspend_timeout_seconds` (Number) Duration of inactivity in seconds after which the compute endpoint is automatically suspended.
