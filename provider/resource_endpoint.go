@@ -121,11 +121,11 @@ The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)`,
 				ValidateFunc: func(d interface{}, k string) (_ []string, errs []error) {
 					var v int64
-					switch d.(type) {
+					switch d := d.(type) {
 					case int:
-						v = int64(d.(int))
+						v = int64(d)
 					case int64:
-						v = d.(int64)
+						v = d
 					}
 					if v > 604800 || v < -1 {
 						errs = append(errs, fmt.Errorf("%d is not supported value for %s", v, k))
