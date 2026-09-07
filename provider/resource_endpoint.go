@@ -239,7 +239,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	if v, ok := d.GetOk("name"); ok {
+	if v, ok := d.GetOk("name"); ok && v.(string) != "" {
 		cfg.Name = pointer(v.(string))
 	}
 
@@ -321,7 +321,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	if d.HasChange("name") {
+	if d.HasChange("name") && d.Get("name").(string) != "" {
 		cfg.Name = pointer(d.Get("name").(string))
 	}
 

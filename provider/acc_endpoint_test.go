@@ -334,6 +334,43 @@ func TestEndpointName(t *testing.T) {
 						},
 					),
 				},
+				{
+					Config: fmt.Sprintf(`
+		resource "neon_project" "this" { 
+			name = "%s"
+		}
+		resource "neon_endpoint" "this" {
+			project_id = neon_project.this.id
+			branch_id  = neon_project.this.default_branch_id
+			type       = "read_only"
+		}
+	`, projectName),
+					Check: func(_ *terraform.State) error {
+						ref, err := readProjectInfo(client, projectName)
+						if err != nil {
+							return err
+						}
+
+						resp, err := client.ListProjectEndpoints(ref.ID)
+						if err != nil {
+							return err
+						}
+						for _, endpoint := range resp.Endpoints {
+							switch endpoint.Type {
+							case neon.EndpointTypeReadWrite:
+								if endpoint.Name == nil || *endpoint.Name != "foo" {
+									return fmt.Errorf("expected endpoint name 'foo', got '%v'", endpoint.Name)
+								}
+
+							case neon.EndpointTypeReadOnly:
+								if endpoint.Name == nil || *endpoint.Name != "bar" {
+									return fmt.Errorf("expected endpoint name 'bar', got '%v'", endpoint.Name)
+								}
+							}
+						}
+						return nil
+					},
+				},
 			},
 		})
 }

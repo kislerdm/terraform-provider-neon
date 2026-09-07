@@ -971,7 +971,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, meta int
 				cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v))
 			}
 
-			if v, ok := v["name"].(string); ok {
+			if v, ok := v["name"].(string); ok && v != "" {
 				cfg.Name = &v
 			}
 
@@ -1127,7 +1127,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 				if v, ok := v["suspend_timeout_seconds"].(int); ok && v > -2 {
 					cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v))
 				}
-				if v, ok := v["name"].(string); ok {
+				if v, ok := v["name"].(string); ok && v != "" {
 					cfg.Name = &v
 				}
 
