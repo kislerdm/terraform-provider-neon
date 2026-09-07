@@ -40,6 +40,11 @@ func dataSourceBranchEndpoints() *schema.Resource {
 							Computed:    true,
 							Description: "Endpoint URI.",
 						},
+						"host_pooling": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Endpoint URI for connection pooling.",
+						},
 						"type": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -53,6 +58,26 @@ func dataSourceBranchEndpoints() *schema.Resource {
 						"proxy_host": {
 							Type:     schema.TypeString,
 							Computed: true,
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Compute name.",
+						},
+						"autoscaling_limit_min_cu": {
+							Type:        schema.TypeFloat,
+							Computed:    true,
+							Description: "Minimal value of the compute autoscaling limit.",
+						},
+						"autoscaling_limit_max_cu": {
+							Type:        schema.TypeFloat,
+							Computed:    true,
+							Description: "Maximal value of the compute autoscaling limit.",
+						},
+						"suspend_timeout_seconds": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: `Duration of inactivity in seconds after which the compute endpoint is automatically suspended.`,
 						},
 					},
 				},
@@ -79,13 +104,21 @@ func dataSourceBranchEndpointsRead(ctx context.Context, d *schema.ResourceData, 
 
 	var endpoints []map[string]interface{}
 	for _, v := range resp.Endpoints {
-		endpoints = append(endpoints, map[string]interface{}{
-			"id":         v.ID,
-			"host":       v.Host,
-			"type":       v.Type.String(),
-			"region_id":  v.RegionID,
-			"proxy_host": v.ProxyHost,
-		})
+		el := map[string]interface{}{
+			"id":                       v.ID,
+			"host":                     v.Host,
+			"type":                     v.Type.String(),
+			"region_id":                v.RegionID,
+			"proxy_host":               v.ProxyHost,
+			"host_pooling":             newPooledHost(v.Host),
+			"suspend_timeout_seconds":  int(v.SuspendTimeoutSeconds),
+			"autoscaling_limit_min_cu": float64(v.AutoscalingLimitMinCu),
+			"autoscaling_limit_max_cu": float64(v.AutoscalingLimitMinCu),
+		}
+		if v.Name != nil {
+			el["name"] = *v.Name
+		}
+		endpoints = append(endpoints, el)
 	}
 
 	if err := d.Set("endpoints", endpoints); err != nil {
