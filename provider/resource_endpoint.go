@@ -66,14 +66,16 @@ func resourceEndpoint() *schema.Resource {
 			},
 			"region_id": schemaRegionID,
 			"autoscaling_limit_min_cu": {
-				Type:     schema.TypeFloat,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Computed:    true,
+				Description: "Minimal value of the compute autoscaling limit.",
 			},
 			"autoscaling_limit_max_cu": {
-				Type:     schema.TypeFloat,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Computed:    true,
+				Description: "Maximal value of the compute autoscaling limit.",
 			},
 			"pg_settings": {
 				Type:     schema.TypeMap,
