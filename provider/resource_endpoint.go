@@ -48,11 +48,11 @@ func resourceEndpoint() *schema.Resource {
 			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     endpointTypeRW,
+				Default:     endpointTypeRW.String(),
 				Description: `Access type. **Note** that a single branch can have only one "read_write" endpoint.`,
 				ValidateFunc: func(d interface{}, k string) (warn []string, errs []error) {
 					switch v := d.(string); v {
-					case "read_write", "read_only":
+					case endpointTypeRW.String(), endpointTypeReadOnly.String():
 					default:
 						errs = append(errs, errors.New(v+" is not supported value for "+k))
 					}
@@ -78,13 +78,6 @@ func resourceEndpoint() *schema.Resource {
 			"pg_settings": {
 				Type:     schema.TypeMap,
 				Optional: true,
-			},
-			"pooler_enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
-				Description: `Activate connection pooling.
-See details: https://neon.tech/docs/connect/connection-pooling`,
 			},
 			"disabled": {
 				Type:        schema.TypeBool,
@@ -126,20 +119,37 @@ Specify the k8s-neonvm provisioner to create a compute endpoint that supports Au
 The value 0 means use the global default.
 The value -1 means never suspend. The default value is 300 seconds (5 minutes).
 The maximum value is 604800 seconds (1 week)`,
+				ValidateFunc: func(d interface{}, k string) (_ []string, errs []error) {
+					var v int64
+					switch d.(type) {
+					case int:
+						v = int64(d.(int))
+					case int64:
+						v = d.(int64)
+					}
+					if v > 604800 || v < -1 {
+						errs = append(errs, fmt.Errorf("%d is not supported value for %s", v, k))
+					}
+					return nil, errs
+				},
+			},
+			"host_pooling": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Endpoint URI for connection pooling.",
 			},
 		},
 	}
 }
 
 func updateStateEndpoint(d *schema.ResourceData, v neon.Endpoint) error {
-	if err := d.Set("type", v.Type); err != nil {
+	if err := d.Set("type", v.Type.String()); err != nil {
 		return err
 	}
-	host := v.Host
-	if v.PoolerEnabled {
-		host = newPooledHost(host)
+	if err := d.Set("host", v.Host); err != nil {
+		return err
 	}
-	if err := d.Set("host", host); err != nil {
+	if err := d.Set("host_pooling", newPooledHost(v.Host)); err != nil {
 		return err
 	}
 	if err := d.Set("region_id", v.RegionID); err != nil {
@@ -187,13 +197,11 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	cfg := neon.EndpointCreateRequestEndpoint{
-		BranchID:              d.Get("branch_id").(string),
-		Type:                  endpointType,
-		RegionID:              pointer(d.Get("region_id").(string)),
-		PoolerEnabled:         pointer(d.Get("pooler_enabled").(bool)),
-		Disabled:              pointer(d.Get("disabled").(bool)),
-		Provisioner:           pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
-		SuspendTimeoutSeconds: pointer(neon.SuspendTimeoutSeconds(d.Get("suspend_timeout_seconds").(int))),
+		BranchID:    d.Get("branch_id").(string),
+		Type:        endpointType,
+		RegionID:    pointer(d.Get("region_id").(string)),
+		Disabled:    pointer(d.Get("disabled").(bool)),
+		Provisioner: pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
 	}
 
 	if v, ok := d.GetOk("autoscaling_limit_min_cu"); ok {
@@ -202,6 +210,10 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	if v, ok := d.GetOk("autoscaling_limit_max_cu"); ok {
 		cfg.AutoscalingLimitMaxCu = pointer(neon.ComputeUnit(v.(float64)))
+	}
+
+	if v, ok := d.GetOk("suspend_timeout_seconds"); ok {
+		cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v.(int)))
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {
@@ -273,7 +285,10 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		AutoscalingLimitMinCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_min_cu").(float64))),
 		AutoscalingLimitMaxCu: pointer(neon.ComputeUnit(d.Get("autoscaling_limit_max_cu").(float64))),
 		Provisioner:           pointer(neon.Provisioner(d.Get("compute_provisioner").(string))),
-		SuspendTimeoutSeconds: pointer(neon.SuspendTimeoutSeconds(d.Get("suspend_timeout_seconds").(int))),
+	}
+
+	if v, ok := d.GetOk("suspend_timeout_seconds"); ok {
+		cfg.SuspendTimeoutSeconds = pointer(neon.SuspendTimeoutSeconds(v.(int)))
 	}
 
 	if v, ok := d.GetOk("pg_settings"); ok && len(v.(map[string]any)) > 0 {

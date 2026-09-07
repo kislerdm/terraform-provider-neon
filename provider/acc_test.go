@@ -455,7 +455,7 @@ resource "neon_database" "this" {
 									"neon_endpoint.this", "disabled", "false",
 								),
 								resource.TestCheckResourceAttr(
-									"neon_endpoint.this", "suspend_timeout_seconds", "0",
+									"neon_endpoint.this", "suspend_timeout_seconds", suspendTimeoutSec,
 								),
 								resource.TestCheckResourceAttr(
 									"neon_endpoint.this", "compute_provisioner", "k8s-neonvm",

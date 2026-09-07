@@ -11,17 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added attributes `autoscaling_limit_min_cu`, `autoscaling_limit_max_cu`, `suspend_timeout_seconds` to the `neon_project` resource to configure defaults for the project's compute resources.
 - [[#234](https://github.com/kislerdm/terraform-provider-neon/issues/234)] Added the attr. block `primary_compute` to the resource `neon_project` to configure the primary compute resources provisioned with the project.
+- Added read-only attribute `host_pooling` to the resource `neon_endpoint`.
 
 ### Removed
 
 - **[BREAKING]** Removed the attr. block `default_endpoint_settings` from the resource `neon_project`. 
 Instead, use the `neon_project` attributes `autoscaling_limit_min_cu`, `autoscaling_limit_max_cu`, `suspend_timeout_seconds` to configure defaults for the project's compute resources.
 - **[BREAKING]** Removed the attribute `pooler_mode` from the resource `neon_endpoint` because it's no longer supported by the Neon API.
+- **[BREAKING]** Removed the attribute `pooler_enabled` from the resource `neon_endpoint` because the pooling is [always activated](https://neon.com/docs/connect/connection-pooling#enable-disable-and-find-the-pooled-connection-string-in-the-console:~:text=The%20pooled%20endpoint%20is%20always%20available).
 
 ### Changed
 
 - Updated dependencies:
-  - Neon Go SDK: [v0.18.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.16.0...v0.18.0)
+  - Neon Go SDK: [v0.19.0](https://github.com/kislerdm/neon-sdk-go/compare/v0.16.0...v0.19.0)
 
 ## [v0.15.0] - 2026-08-02                                                                                                     
 

@@ -3,12 +3,13 @@ module github.com/kislerdm/terraform-provider-neon
 go 1.24
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.21.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
 	github.com/jackc/pgx/v5 v5.7.3
-	github.com/kislerdm/neon-sdk-go v0.18.0
+	github.com/kislerdm/neon-sdk-go v0.19.0
 	github.com/stretchr/testify v1.10.0
 )
 
@@ -25,7 +26,6 @@ require (
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.8.1 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
