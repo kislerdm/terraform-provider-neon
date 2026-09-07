@@ -9,8 +9,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	frameworkprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	providerschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
+	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
@@ -155,4 +160,27 @@ func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resou
 
 func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return nil
+}
+
+func NewServer(version string) (tfprotov6.ProviderServer, error) {
+	legacyServer, err := tf5to6server.UpgradeServer(context.Background(), func() tfprotov5.ProviderServer {
+		return New(version).GRPCProvider()
+	})
+	if err != nil {
+		return nil, err
+	}
+	return tf6muxserver.NewMuxServer(context.Background(),
+		func() tfprotov6.ProviderServer {
+			return legacyServer
+		},
+		providerserver.NewProtocol6(NewFramework(version)),
+	)
+}
+
+func newAccTestFramework() tfprotov6.ProviderServer {
+	o, err := NewServer("accTest")
+	if err != nil {
+		panic(err)
+	}
+	return o
 }

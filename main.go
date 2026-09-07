@@ -1,15 +1,10 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
-	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 	"github.com/kislerdm/terraform-provider-neon/provider"
 )
@@ -36,19 +31,7 @@ func main() {
 	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	legacyServer, err := tf5to6server.UpgradeServer(context.Background(), func() tfprotov5.ProviderServer {
-		return provider.New(version).GRPCProvider()
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	muxServer, err := tf6muxserver.NewMuxServer(context.Background(),
-		func() tfprotov6.ProviderServer {
-			return legacyServer
-		},
-		providerserver.NewProtocol6(provider.NewFramework(version)),
-	)
+	muxServer, err := provider.NewServer(version)
 	if err != nil {
 		log.Fatal(err)
 	}
