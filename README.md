@@ -3,7 +3,11 @@
 -----
 
 <div align="center">
-    ⭐ The project needs your support! Please leave a star and become a GitHub sponsor! ⭐
+📣 The provider has been downloaded from the official Terraform Registry over 1 million times! 📣
+<p></p>
+⭐ Thank you very much for all your support, folks! ⭐
+<p></p>
+⚠️ The Terraform provider has been selected by the Neon team and will be officially maintained and distributed as <b>neondatabase/neon</b>. Please report any issues in the dedicated GitHub <a href="https://github.com/neondatabase/terraform-provider-neon" target="_blank">repo</a>. ⚠️
 </div>
 
 -----
