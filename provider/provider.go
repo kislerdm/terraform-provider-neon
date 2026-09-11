@@ -118,11 +118,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ frameworkprovider.Schema
 	}
 }
 
-type neonClient struct {
-	sdk    *neon.Client
-	sdkCfg neon.Config
-}
-
 func (p *frameworkProvider) Configure(ctx context.Context, req frameworkprovider.ConfigureRequest,
 	resp *frameworkprovider.ConfigureResponse) {
 	var config frameworkProviderConfigModel
@@ -146,10 +141,7 @@ func (p *frameworkProvider) Configure(ctx context.Context, req frameworkprovider
 		return
 	}
 
-	resp.ResourceData = &neonClient{
-		sdk:    client,
-		sdkCfg: cfg,
-	}
+	resp.ResourceData = client
 }
 
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
