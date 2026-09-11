@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-mux v0.18.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
 	github.com/jackc/pgx/v5 v5.7.3
-	github.com/kislerdm/neon-sdk-go v0.20.0
+	github.com/kislerdm/neon-sdk-go v0.21.0
 	github.com/stretchr/testify v1.10.0
 )
 
