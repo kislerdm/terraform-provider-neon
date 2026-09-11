@@ -1011,7 +1011,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		req.Project.HistoryRetentionSeconds = pointer(int32(d.Get("history_retention_seconds").(int)))
 	}
 
-	if d.HasChange("autoscaling_limit_max_cu") {
+	if d.HasChange("autoscaling_limit_min_cu") {
 		if v, ok := d.GetOk("autoscaling_limit_min_cu"); ok && v.(float64) > 0 {
 			if req.Project.DefaultEndpointSettings == nil {
 				req.Project.DefaultEndpointSettings = &neon.DefaultEndpointSettings{}

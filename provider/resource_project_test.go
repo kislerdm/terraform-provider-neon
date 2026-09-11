@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	neon "github.com/kislerdm/neon-sdk-go"
 	"github.com/kislerdm/terraform-provider-neon/provider/types"
 	"github.com/stretchr/testify/assert"
@@ -556,6 +557,32 @@ func Test_resourceProjectUpdate_requestBody_allowed_ips_protected_branches_flag(
 		reqUpdateIps := reqUpdate.Project.Settings.AllowedIps
 		assert.False(t, *reqUpdateIps.ProtectedBranchesOnly)
 	})
+}
+
+func Test_resourceProjectUpdate_requestBody_autoscaling_limit_min_cu(t *testing.T) {
+	meta := &sdkClientStub{}
+	resource := resourceProject()
+	definition := schema.TestResourceDataRaw(t, resource.Schema, map[string]interface{}{
+		"name":                     "Foo",
+		"autoscaling_limit_min_cu": 0.25,
+		"autoscaling_limit_max_cu": 1.0,
+	})
+	assert.NoError(t, resourceProjectCreate(context.TODO(), definition, meta))
+
+	update := schema.TestResourceDataRaw(t, resource.Schema, map[string]interface{}{
+		"autoscaling_limit_min_cu": 0.5,
+	})
+	assert.NoError(t, resourceProjectUpdate(context.TODO(), update, meta))
+
+	reqUpdate, ok := meta.req.(neon.ProjectUpdateRequest)
+	assert.Truef(t, ok, "unexpected request object type")
+	assert.NotNil(t, reqUpdate.Project.DefaultEndpointSettings)
+	assert.Equal(
+		t,
+		neon.ComputeUnit(0.5),
+		*reqUpdate.Project.DefaultEndpointSettings.AutoscalingLimitMinCu,
+	)
+	assert.Nil(t, reqUpdate.Project.DefaultEndpointSettings.AutoscalingLimitMaxCu)
 }
 
 func Test_resourceProjectUpdate_requestBody_block_public_connections(t *testing.T) {
