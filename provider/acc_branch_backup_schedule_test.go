@@ -114,8 +114,8 @@ resource "neon_branch_backup_schedule" "this" {
   schedule = [
     {
       frequency         = "monthly"
-      day               = 1
-      hour              = 4
+      day               = 2
+      hour              = 5
       retention_seconds = 86400 * 30
     }
   ]
@@ -132,11 +132,11 @@ resource "neon_branch_backup_schedule" "this" {
 						),
 						resource.TestCheckResourceAttr(
 							"neon_branch_backup_schedule.this",
-							"schedule.0.day", "1",
+							"schedule.0.day", "2",
 						),
 						resource.TestCheckResourceAttr(
 							"neon_branch_backup_schedule.this",
-							"schedule.0.hour", "4",
+							"schedule.0.hour", "5",
 						),
 						resource.TestCheckResourceAttr(
 							"neon_branch_backup_schedule.this",
@@ -160,8 +160,8 @@ resource "neon_branch_backup_schedule" "this" {
 								}
 								assert.Len(t, schedule.Schedule, 1)
 								assert.Equal(t, "monthly", schedule.Schedule[0].Frequency)
-								assert.Equal(t, uint8(1), *schedule.Schedule[0].Day)
-								assert.Equal(t, uint8(4), *schedule.Schedule[0].Hour)
+								assert.Equal(t, uint8(2), *schedule.Schedule[0].Day)
+								assert.Equal(t, uint8(5), *schedule.Schedule[0].Hour)
 								assert.Equal(t, uint32(2592000), *schedule.Schedule[0].RetentionSeconds)
 							}
 
