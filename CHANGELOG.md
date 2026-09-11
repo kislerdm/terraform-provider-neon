@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed the update logic for the `autoscaling_limit_min_cu` attribute of the `neon_project` resource so that it now reaches the API. The min-CU update was gated on a change to `autoscaling_limit_max_cu`.
 - Fixed the deletion logic of the `neon_branch_backup_schedule` resource.
+- Fixed the password reading of the `neon_role` resource.
+- Fixed the log message when reading non-existing roles.
 
 ### Changed
 

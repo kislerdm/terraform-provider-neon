@@ -100,7 +100,7 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	role := resp.Role
 	if role.Password == nil {
-		r, err := client.GetProjectBranchRolePassword(r.ProjectID, r.ProjectID, role.Name)
+		r, err := client.GetProjectBranchRolePassword(r.ProjectID, r.BranchID, role.Name)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func resourceRoleReadRetry(ctx context.Context, d *schema.ResourceData, meta int
 				map[string]interface{}{
 					"name":       d.Get("name"),
 					"project_id": d.Get("project_id"),
-					"branch_id":  d.Get("project_id"),
+					"branch_id":  d.Get("branch_id"),
 				})
 			d.SetId("")
 			return nil
