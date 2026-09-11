@@ -48,8 +48,7 @@ func TestRecreateBranchIfNotFound(t *testing.T) {
 		}
 		for _, branch := range resp.Branches {
 			if branch.Name == branchName {
-				hardDelete := true
-				op, err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
+				op, err := client.DeleteProjectBranch(ref.ID, branch.ID)
 				if err != nil {
 					panic(err)
 				}
@@ -239,8 +238,7 @@ resource "neon_branch" "this" {
 							for _, branch := range resp.Branches {
 								if branch.Name == "test" {
 									branchID = branch.ID
-									hardDelete := true
-									op, err := client.DeleteProjectBranch(ref.ID, branch.ID, &hardDelete)
+									op, err := client.DeleteProjectBranch(ref.ID, branch.ID)
 									if err != nil {
 										return "", err
 									}

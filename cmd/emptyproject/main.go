@@ -57,8 +57,7 @@ func main() {
 	}
 
 	if !rProject.Branch.Default {
-		hardDelete := true
-		op, e := c.DeleteProjectBranch(projectID, branchID, &hardDelete)
+		op, e := c.DeleteProjectBranch(projectID, branchID)
 		if e != nil {
 			log.Printf("error deleting branch %s: %v\n", branchID, e)
 		}

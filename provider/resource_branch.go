@@ -242,8 +242,7 @@ func resourceBranchDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	tflog.Trace(ctx, "delete Branch")
 
 	client := meta.(*neon.Client)
-	hardDelete := true
-	op, err := client.DeleteProjectBranch(d.Get("project_id").(string), d.Id(), &hardDelete)
+	op, err := client.DeleteProjectBranch(d.Get("project_id").(string), d.Id())
 	if err != nil {
 		return err
 	}
